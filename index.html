@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <title>Matte Co-Watch</title>
+    <title>Matte Co-Watch Pro</title>
     
     <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
@@ -15,7 +15,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, setDoc, onSnapshot, updateDoc, addDoc, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, setDoc, onSnapshot, updateDoc, addDoc, collection, getDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         window.initFirebase = async () => {
             const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
@@ -43,214 +43,264 @@
             return { auth, db, appId };
         };
 
-        window.fbImports = { doc, setDoc, onSnapshot, updateDoc, addDoc, collection };
+        window.fbImports = { doc, setDoc, onSnapshot, updateDoc, addDoc, collection, getDoc, arrayUnion, arrayRemove };
     </script>
     
     <style>
         /* --- Matte Stealth Aesthetic --- */
         :root {
             --bg-deep: #050505;
-            --surface-matte: rgba(255, 255, 255, 0.03);
+            --surface-matte: rgba(255, 255, 255, 0.04);
             --border-subtle: rgba(255, 255, 255, 0.08);
             --text-primary: #ededed;
             --text-secondary: #888888;
-            --accent: #ffffff;
         }
 
         body {
             font-family: 'Manrope', sans-serif;
             background-color: var(--bg-deep);
             color: var(--text-primary);
-            overflow: hidden; /* App-like feel */
+            overflow: hidden; 
         }
 
-        /* Subtle Noise Texture for Matte feel */
+        /* Noise Texture */
         .noise-bg {
             position: fixed;
             top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none;
             z-index: 0;
-            opacity: 0.03;
+            opacity: 0.035;
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
         }
 
-        /* Matte Glass Card */
+        /* Glass Cards */
         .matte-card {
             background: var(--surface-matte);
-            backdrop-filter: blur(24px);
-            -webkit-backdrop-filter: blur(24px);
+            backdrop-filter: blur(30px);
+            -webkit-backdrop-filter: blur(30px);
             border: 1px solid var(--border-subtle);
-            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
         }
 
-        /* Custom Scrollbar */
-        ::-webkit-scrollbar { width: 4px; }
-        ::-webkit-scrollbar-track { background: transparent; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
-        
         /* Animations */
-        .fade-in { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+        .fade-in { animation: fadeIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
 
-        /* Buttons */
-        .btn-matte {
-            background: rgba(255,255,255,0.1);
-            border: 1px solid rgba(255,255,255,0.1);
-            color: white;
-            transition: all 0.3s ease;
-        }
-        .btn-matte:hover {
-            background: rgba(255,255,255,0.2);
-            transform: translateY(-1px);
-        }
-        .btn-matte:active { transform: scale(0.98); }
-
-        .btn-primary {
-            background: white;
-            color: black;
-            font-weight: 600;
-            transition: all 0.3s ease;
-        }
-        .btn-primary:hover {
-            background: #e0e0e0;
-            box-shadow: 0 0 20px rgba(255,255,255,0.2);
-        }
-
-        /* Input Reset */
+        /* Custom UI Elements */
         .input-matte {
-            background: rgba(0,0,0,0.3);
+            background: rgba(0,0,0,0.4);
             border: 1px solid var(--border-subtle);
             color: white;
-            transition: border-color 0.3s;
+            transition: all 0.2s;
         }
         .input-matte:focus {
             outline: none;
             border-color: rgba(255,255,255,0.3);
+            background: rgba(0,0,0,0.6);
+        }
+
+        .btn-primary {
+            background: #ffffff;
+            color: black;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .btn-primary:hover {
+            background: #e5e5e5;
+            transform: translateY(-1px);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+            border: 1px solid transparent;
+            transition: all 0.2s;
+        }
+        .btn-ghost:hover {
+            background: rgba(255,255,255,0.05);
+            color: white;
+            border-color: var(--border-subtle);
+        }
+
+        /* Toggle Switch */
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #ffffff;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #ffffff;
         }
     </style>
 </head>
-<body class="h-screen w-screen relative">
+<body class="h-screen w-screen relative selection:bg-white/20">
 
     <div class="noise-bg"></div>
 
-    <!-- LOGIN SCREEN -->
-    <div id="login-screen" class="absolute inset-0 flex items-center justify-center p-6 z-50">
-        <div class="matte-card rounded-3xl p-8 md:p-12 w-full max-w-md flex flex-col items-center gap-8 fade-in relative overflow-hidden">
-            <!-- Decorative Glow -->
-            <div class="absolute -top-20 -left-20 w-40 h-40 bg-white/5 rounded-full blur-3xl pointer-events-none"></div>
+    <!-- MODAL: PASSWORD PROMPT -->
+    <div id="password-modal" class="hidden absolute inset-0 z-[60] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="matte-card w-full max-w-sm p-6 rounded-2xl flex flex-col gap-4">
+            <h3 class="text-lg font-semibold text-white text-center">Приватная комната</h3>
+            <p class="text-xs text-center text-secondary">Введите пароль для доступа</p>
+            <input id="modal-password-input" type="password" placeholder="Пароль" class="input-matte rounded-xl px-4 py-3 text-center tracking-widest">
+            <div class="flex gap-2">
+                <button id="btn-cancel-auth" class="flex-1 btn-ghost py-3 rounded-xl text-sm">Отмена</button>
+                <button id="btn-submit-auth" class="flex-1 btn-primary py-3 rounded-xl text-sm">Войти</button>
+            </div>
+        </div>
+    </div>
 
-            <div class="flex flex-col items-center text-center space-y-2 z-10">
-                <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-white/10">
-                    <svg class="text-black" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+    <!-- VIEW 1: LOGIN / CREATE -->
+    <div id="login-screen" class="absolute inset-0 flex items-center justify-center p-4 z-50">
+        <div class="matte-card rounded-3xl p-6 md:p-10 w-full max-w-md flex flex-col items-center gap-6 fade-in relative overflow-hidden">
+            
+            <!-- Logo area -->
+            <div class="text-center space-y-1 z-10">
+                <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center mx-auto mb-3 shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+                    <svg class="text-black" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
                 </div>
-                <h1 class="text-3xl font-bold tracking-tight text-white">Co-Watch</h1>
-                <p class="text-secondary text-sm font-medium tracking-wide uppercase">Синхронный просмотр</p>
+                <h1 class="text-2xl font-bold tracking-tight text-white">Co-Watch Pro</h1>
+                <p class="text-secondary text-xs uppercase tracking-widest font-medium">Shared Streaming</p>
             </div>
 
-            <div class="w-full space-y-4 z-10">
-                <button id="btn-create" class="w-full py-4 rounded-xl btn-primary text-sm tracking-wide shadow-xl">
-                    СОЗДАТЬ КОМНАТУ
-                </button>
+            <!-- Main Actions -->
+            <div class="w-full space-y-3 z-10 mt-2">
                 
-                <div class="flex items-center gap-4 w-full">
-                    <div class="h-px flex-1 bg-white/10"></div>
-                    <span class="text-xs text-secondary uppercase">или</span>
-                    <div class="h-px flex-1 bg-white/10"></div>
+                <!-- Create Section -->
+                <div class="bg-white/5 rounded-2xl p-4 border border-white/5 space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="text-sm font-medium text-white">Создать комнату</span>
+                        
+                        <!-- Private Toggle -->
+                        <div class="flex items-center gap-2">
+                            <span class="text-[10px] text-secondary uppercase tracking-wider">Приватная</span>
+                            <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
+                                <input type="checkbox" name="toggle" id="toggle-private" class="toggle-checkbox absolute block w-5 h-5 rounded-full bg-white border-4 appearance-none cursor-pointer transition-all duration-300 left-0 top-0 translate-x-0 checked:translate-x-full checked:bg-black"/>
+                                <label for="toggle-private" class="toggle-label block overflow-hidden h-5 rounded-full bg-gray-700 cursor-pointer transition-colors duration-300"></label>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <input id="create-password" type="password" placeholder="Пароль (опционально)" class="hidden w-full input-matte text-sm px-3 py-2 rounded-lg bg-black/20 focus:bg-black/40 transition-all">
+                    
+                    <button id="btn-create" class="w-full py-3 rounded-xl btn-primary text-sm shadow-lg">
+                        Запустить
+                    </button>
                 </div>
 
-                <div class="flex flex-col gap-3">
-                    <input id="input-room-id" type="text" placeholder="ID КОМНАТЫ" class="w-full input-matte rounded-xl px-4 py-3.5 text-center text-sm font-mono tracking-widest uppercase placeholder:text-secondary/50">
-                    <button id="btn-join" class="w-full py-3.5 rounded-xl btn-matte text-sm font-medium">
-                        ПРИСОЕДИНИТЬСЯ
+                <div class="relative py-2">
+                    <div class="absolute inset-0 flex items-center"><div class="w-full border-t border-white/10"></div></div>
+                    <div class="relative flex justify-center text-xs uppercase"><span class="bg-[#0f0f0f] px-2 text-secondary">Вход</span></div>
+                </div>
+
+                <!-- Join Section -->
+                <div class="flex gap-2">
+                    <input id="input-room-id" type="text" placeholder="ID КОМНАТЫ" class="flex-1 input-matte rounded-xl px-4 text-center text-sm font-mono uppercase tracking-wider placeholder:text-secondary/40">
+                    <button id="btn-join" class="px-6 rounded-xl btn-ghost border border-white/10 text-white font-medium hover:bg-white hover:text-black transition-colors">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
                     </button>
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- MAIN APP SCREEN -->
-    <div id="app-screen" class="hidden h-full w-full flex-col lg:grid lg:grid-cols-12 lg:gap-6 lg:p-6 fade-in relative z-10">
+    <!-- VIEW 2: APP INTERFACE -->
+    <div id="app-screen" class="hidden h-full w-full flex-col lg:flex-row fade-in relative z-10 bg-black/50">
         
-        <!-- HEADER (Mobile Only) -->
-        <div class="lg:hidden flex items-center justify-between p-4 border-b border-white/5 bg-black/40 backdrop-blur-md sticky top-0 z-20">
-            <div class="flex items-center gap-2">
-                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_#22c55e]"></div>
-                <span id="display-room-id-mobile" class="font-mono text-sm font-semibold tracking-wider text-white">...</span>
+        <!-- HEADER (Mobile/Tablet) -->
+        <div class="lg:hidden flex items-center justify-between px-4 py-3 border-b border-white/5 bg-black/60 backdrop-blur-xl z-20 sticky top-0">
+            <div class="flex items-center gap-3">
+                <button id="btn-leave-mobile" class="text-red-400 hover:text-red-300 transition-colors">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                </button>
+                <div class="h-4 w-px bg-white/10"></div>
+                <span id="display-room-id-mobile" class="font-mono text-sm text-white tracking-widest opacity-80">...</span>
             </div>
-            <button id="btn-copy-link-mobile" class="p-2 btn-matte rounded-lg">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
-            </button>
+            
+            <div class="flex items-center gap-3">
+                <div class="flex items-center gap-1.5 px-2 py-1 bg-white/5 rounded-md border border-white/5">
+                    <svg class="text-secondary" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                    <span id="count-mobile" class="text-xs font-mono text-white">1</span>
+                </div>
+                <button id="btn-copy-mobile" class="text-white/60 hover:text-white"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
+            </div>
         </div>
 
-        <!-- LEFT COLUMN: VIDEO & CONTROLS -->
-        <div class="flex-none lg:col-span-8 xl:col-span-9 flex flex-col gap-4 lg:gap-6 lg:h-full lg:justify-center">
-            
-            <!-- Video Container -->
-            <div class="w-full aspect-video bg-black relative shadow-2xl lg:rounded-2xl overflow-hidden border-b border-white/5 lg:border lg:border-white/10 group">
+        <!-- MAIN CONTENT (Video) -->
+        <div class="flex-1 flex flex-col justify-center relative bg-black lg:border-r border-white/5">
+            <!-- Desktop Header Overlay -->
+            <div class="hidden lg:flex absolute top-0 left-0 right-0 p-6 justify-between items-start z-30 pointer-events-none">
+                <div class="pointer-events-auto flex items-center gap-4">
+                    <button id="btn-leave-desktop" class="group flex items-center gap-2 px-3 py-2 bg-black/40 hover:bg-red-500/20 backdrop-blur-md rounded-lg border border-white/10 hover:border-red-500/50 transition-all">
+                        <svg class="text-white/60 group-hover:text-red-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                        <span class="text-xs font-medium text-white/60 group-hover:text-red-400">Выйти</span>
+                    </button>
+                </div>
+                
+                <div class="pointer-events-auto bg-black/40 backdrop-blur-md rounded-lg border border-white/10 px-4 py-2 flex items-center gap-4">
+                    <span id="display-room-id-desktop" class="font-mono text-sm text-white font-bold tracking-widest">...</span>
+                    <div class="h-3 w-px bg-white/20"></div>
+                    <button id="btn-copy-desktop" class="text-xs text-secondary hover:text-white uppercase tracking-wider">Copy Link</button>
+                </div>
+            </div>
+
+            <!-- Player Wrapper -->
+            <div class="w-full aspect-video bg-black relative shadow-2xl overflow-hidden group">
                 <div id="player-placeholder" class="absolute inset-0 flex items-center justify-center bg-[#080808] z-10">
-                     <div class="w-10 h-10 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                    <div class="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
                 </div>
                 <div id="youtube-player" class="w-full h-full"></div>
                 
-                <!-- Sync Badge -->
-                <div id="sync-badge" class="absolute top-4 right-4 lg:top-6 lg:right-6 px-3 py-1 bg-black/50 backdrop-blur-md rounded-full border border-white/10 flex items-center gap-2 opacity-0 transition-opacity duration-500 pointer-events-none">
-                    <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
-                    <span class="text-[10px] font-bold uppercase tracking-widest text-white">Synced</span>
+                <!-- Sync Notification -->
+                <div id="sync-badge" class="absolute bottom-6 left-6 px-3 py-1.5 bg-black/60 backdrop-blur-md rounded-lg border border-white/10 flex items-center gap-2 opacity-0 transition-opacity duration-300 pointer-events-none">
+                    <div class="w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_8px_#22c55e]"></div>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-white">Синхронизация</span>
                 </div>
             </div>
 
-            <!-- Controls (Desktop & Mobile Adaptive) -->
-            <div class="p-4 lg:p-0">
-                <div class="matte-card rounded-xl p-1.5 flex items-center gap-2">
-                    <div class="flex-1 bg-black/20 rounded-lg flex items-center px-3 border border-white/5 focus-within:border-white/20 transition-colors">
-                        <svg class="text-secondary" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
-                        <input id="input-video-url" type="text" placeholder="Ссылка на YouTube..." class="flex-1 bg-transparent px-3 py-3 text-sm text-white placeholder:text-secondary/50 outline-none w-full">
+            <!-- Controls Bar -->
+            <div class="p-4 lg:absolute lg:bottom-0 lg:left-0 lg:right-0 lg:p-6 lg:bg-gradient-to-t lg:from-black/90 lg:to-transparent pointer-events-none">
+                <div class="pointer-events-auto flex gap-2 max-w-2xl mx-auto">
+                    <div class="flex-1 matte-card rounded-xl flex items-center px-1 py-1 focus-within:border-white/30 transition-colors">
+                        <input id="input-video-url" type="text" placeholder="Вставьте ссылку YouTube..." class="flex-1 bg-transparent px-3 text-sm text-white placeholder:text-secondary/50 outline-none min-w-0">
                     </div>
-                    <button id="btn-change-video" class="btn-primary px-5 py-3 rounded-lg text-xs font-bold uppercase tracking-wide whitespace-nowrap">
+                    <button id="btn-change-video" class="btn-primary px-5 rounded-xl text-xs font-bold uppercase tracking-wide whitespace-nowrap shadow-lg">
                         Play
                     </button>
                 </div>
             </div>
         </div>
 
-        <!-- RIGHT COLUMN: CHAT -->
-        <div class="flex-1 lg:col-span-4 xl:col-span-3 min-h-0 flex flex-col bg-[#050505] lg:bg-transparent lg:h-full pb-safe">
-            <div class="matte-card lg:rounded-2xl flex-1 flex flex-col overflow-hidden border-t border-white/5 lg:border shadow-xl">
-                
-                <!-- Chat Header (Desktop) -->
-                <div class="hidden lg:flex px-5 py-4 border-b border-white/5 justify-between items-center bg-white/[0.02]">
-                    <div class="flex flex-col">
-                        <span class="text-[10px] text-secondary font-mono uppercase tracking-widest">Room ID</span>
-                        <span id="display-room-id-desktop" class="font-bold text-white text-lg tracking-tight font-mono">...</span>
-                    </div>
-                    <button id="btn-copy-link-desktop" class="text-xs text-white/50 hover:text-white transition-colors uppercase tracking-wider font-medium">
-                        Copy
+        <!-- SIDEBAR (Chat) -->
+        <div class="h-[40vh] lg:h-full lg:w-96 flex flex-col bg-[#080808] border-t lg:border-t-0 lg:border-l border-white/5 shadow-2xl z-20">
+            <!-- Sidebar Header -->
+            <div class="px-5 py-4 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
+                <span class="text-xs font-bold uppercase tracking-widest text-secondary">Чат комнаты</span>
+                <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/5 border border-white/5">
+                    <div class="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                    <span id="count-desktop" class="text-[10px] font-mono text-white/80">1/10</span>
+                </div>
+            </div>
+
+            <!-- Messages -->
+            <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth">
+                <div class="text-center py-4">
+                    <span class="text-[10px] text-white/20 uppercase tracking-widest">История пуста</span>
+                </div>
+            </div>
+
+            <!-- Input -->
+            <div class="p-3 bg-[#0a0a0a] border-t border-white/5">
+                <form id="chat-form" class="relative">
+                    <input id="chat-input" type="text" placeholder="Написать..." class="w-full input-matte rounded-xl pl-4 pr-10 py-3 text-sm" autocomplete="off">
+                    <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-white/60 hover:text-white transition-colors">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                     </button>
-                </div>
-
-                <!-- Messages Area -->
-                <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth">
-                    <div class="flex justify-center py-4">
-                        <span class="px-3 py-1 bg-white/5 rounded-full text-[10px] text-secondary uppercase tracking-widest border border-white/5">
-                            Чат подключен
-                        </span>
-                    </div>
-                </div>
-
-                <!-- Chat Input -->
-                <div class="p-3 bg-white/[0.02] border-t border-white/5 backdrop-blur-md">
-                    <form id="chat-form" class="flex gap-2 relative">
-                        <input id="chat-input" type="text" placeholder="Сообщение..." class="flex-1 input-matte rounded-xl px-4 py-3 text-sm placeholder:text-secondary/40 pr-10" autocomplete="off">
-                        <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-white text-black rounded-lg hover:bg-gray-200 transition-colors shadow-lg shadow-white/10">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
-                        </button>
-                    </form>
-                </div>
+                </form>
             </div>
         </div>
     </div>
 
-    <!-- MAIN LOGIC -->
+    <!-- SCRIPT -->
     <script type="module">
         let player;
         let db, auth, appId;
@@ -259,49 +309,76 @@
         let unsubscribeRoom = null;
         let unsubscribeChat = null;
         let suppressUpdate = false;
+        
+        // Modules
+        const { doc, setDoc, onSnapshot, updateDoc, addDoc, collection, getDoc, arrayUnion, arrayRemove } = window.fbImports;
 
-        const { doc, setDoc, onSnapshot, updateDoc, addDoc, collection } = window.fbImports;
-
+        // UI Refs
         const ui = {
-            loginScreen: document.getElementById('login-screen'),
-            appScreen: document.getElementById('app-screen'),
+            login: document.getElementById('login-screen'),
+            app: document.getElementById('app-screen'),
+            modal: document.getElementById('password-modal'),
+            
+            // Inputs/Buttons Login
+            togglePrivate: document.getElementById('toggle-private'),
+            createPass: document.getElementById('create-password'),
             btnCreate: document.getElementById('btn-create'),
             btnJoin: document.getElementById('btn-join'),
             inputRoomId: document.getElementById('input-room-id'),
-            displayRoomIdDesktop: document.getElementById('display-room-id-desktop'),
-            displayRoomIdMobile: document.getElementById('display-room-id-mobile'),
-            btnCopyDesktop: document.getElementById('btn-copy-link-desktop'),
-            btnCopyMobile: document.getElementById('btn-copy-link-mobile'),
-            inputVideoUrl: document.getElementById('input-video-url'),
-            btnChangeVideo: document.getElementById('btn-change-video'),
-            chatMessages: document.getElementById('chat-messages'),
+            
+            // Modal
+            modalPassInput: document.getElementById('modal-password-input'),
+            btnCancelAuth: document.getElementById('btn-cancel-auth'),
+            btnSubmitAuth: document.getElementById('btn-submit-auth'),
+            
+            // App UI
+            displayIdDesk: document.getElementById('display-room-id-desktop'),
+            displayIdMob: document.getElementById('display-room-id-mobile'),
+            countDesk: document.getElementById('count-desktop'),
+            countMob: document.getElementById('count-mobile'),
+            
+            btnLeaveDesk: document.getElementById('btn-leave-desktop'),
+            btnLeaveMob: document.getElementById('btn-leave-mobile'),
+            btnCopyDesk: document.getElementById('btn-copy-desktop'),
+            btnCopyMob: document.getElementById('btn-copy-mobile'),
+            
+            videoInput: document.getElementById('input-video-url'),
+            btnChangeVid: document.getElementById('btn-change-video'),
+            
             chatForm: document.getElementById('chat-form'),
             chatInput: document.getElementById('chat-input'),
+            chatMsgs: document.getElementById('chat-messages'),
             syncBadge: document.getElementById('sync-badge'),
         };
 
-        // --- INIT ---
+        // --- INITIALIZATION ---
         window.onload = async () => {
+            // Setup UI Listeners
+            ui.togglePrivate.addEventListener('change', (e) => {
+                ui.createPass.classList.toggle('hidden', !e.target.checked);
+            });
+            
+            // Check URL
             const urlParams = new URLSearchParams(window.location.search);
             const roomParam = urlParams.get('room');
             if (roomParam) ui.inputRoomId.value = roomParam;
 
+            // Init Firebase
             const fb = await window.initFirebase();
-            if (!fb) return alert("Firebase setup error");
+            if (!fb) return alert("Firebase setup failed");
             
             db = fb.db;
             auth = fb.auth;
             appId = fb.appId;
-            userId = auth.currentUser ? auth.currentUser.uid : 'anon-' + Math.random().toString(36).substr(2, 5);
-            console.log("User:", userId);
+            userId = auth.currentUser ? auth.currentUser.uid : 'user_' + Math.random().toString(36).substr(2, 5);
 
-            // Load YouTube API
+            // Load YT
             const tag = document.createElement('script');
             tag.src = "https://www.youtube.com/iframe_api";
             document.body.appendChild(tag);
         };
 
-        // --- YOUTUBE ---
+        // --- YOUTUBE API ---
         window.onYouTubeIframeAPIReady = () => {
             player = new YT.Player('youtube-player', {
                 height: '100%',
@@ -319,7 +396,7 @@
             if (suppressUpdate || !roomId) return;
             const state = event.data;
             if (state === YT.PlayerState.PLAYING || state === YT.PlayerState.PAUSED) {
-                updateRoomState({
+                updateRoomDoc({
                     isPlaying: state === YT.PlayerState.PLAYING,
                     timestamp: player.getCurrentTime(),
                     lastUpdated: Date.now()
@@ -327,60 +404,179 @@
             }
         }
 
-        // --- ROOM LOGIC ---
-        ui.btnCreate.addEventListener('click', () => createRoom(Math.random().toString(36).substr(2, 6).toUpperCase()));
-        ui.btnJoin.addEventListener('click', () => {
-            const id = ui.inputRoomId.value.trim().toUpperCase();
-            if(id) joinRoom(id);
-        });
+        // --- CORE LOGIC ---
 
-        async function createRoom(id) {
-            roomId = id;
+        // 1. Create Room
+        ui.btnCreate.addEventListener('click', async () => {
+            const newId = Math.random().toString(36).substr(2, 6).toUpperCase();
+            const isPrivate = ui.togglePrivate.checked;
+            const password = isPrivate ? ui.createPass.value.trim() : null;
+
+            if (isPrivate && !password) return alert("Введите пароль для приватной комнаты");
+
             try {
-                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', id), {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', newId), {
                     videoId: 'jfKfPfyJRdk',
                     isPlaying: false,
                     timestamp: 0,
                     lastUpdated: Date.now(),
-                    createdBy: userId
+                    createdBy: userId,
+                    isPrivate: isPrivate,
+                    password: password, // In a real app, hash this!
+                    participants: [userId]
                 });
-                enterRoomUI(id);
-                listenToRoom(id);
+                joinSuccess(newId);
             } catch (e) {
                 console.error(e);
-                alert("Ошибка: " + e.message);
+                alert("Ошибка создания: " + e.message);
+            }
+        });
+
+        // 2. Join Button Click
+        ui.btnJoin.addEventListener('click', () => {
+            const id = ui.inputRoomId.value.trim().toUpperCase();
+            if(!id) return;
+            checkRoomAndJoin(id);
+        });
+
+        // 3. Room Validation & Join Logic
+        async function checkRoomAndJoin(id, providedPassword = null) {
+            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', id);
+            const snap = await getDoc(roomRef);
+
+            if (!snap.exists()) return alert("Комната не найдена");
+            
+            const data = snap.data();
+
+            // Capacity Check (Max 10)
+            const currentUsers = data.participants || [];
+            if (currentUsers.length >= 10 && !currentUsers.includes(userId)) {
+                return alert("Комната переполнена (макс. 10 человек)");
+            }
+
+            // Privacy Check
+            if (data.isPrivate) {
+                if (providedPassword === data.password) {
+                    // Pass correct
+                    finalizeJoin(id);
+                } else {
+                    // Need pass
+                    pendingRoomId = id;
+                    ui.modal.classList.remove('hidden');
+                }
+            } else {
+                finalizeJoin(id);
             }
         }
 
-        async function joinRoom(id) {
-            roomId = id;
-            enterRoomUI(id);
-            listenToRoom(id);
+        // 4. Modal Logic
+        let pendingRoomId = null;
+        ui.btnCancelAuth.addEventListener('click', () => {
+            ui.modal.classList.add('hidden');
+            ui.modalPassInput.value = '';
+            pendingRoomId = null;
+        });
+        
+        ui.btnSubmitAuth.addEventListener('click', () => {
+            const pass = ui.modalPassInput.value.trim();
+            if(pendingRoomId && pass) {
+                checkRoomAndJoin(pendingRoomId, pass);
+                ui.modal.classList.add('hidden');
+                ui.modalPassInput.value = '';
+            }
+        });
+
+        async function finalizeJoin(id) {
+            // Add user to participants list
+            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', id);
+            await updateDoc(roomRef, {
+                participants: arrayUnion(userId)
+            });
+            joinSuccess(id);
         }
 
-        function enterRoomUI(id) {
-            ui.loginScreen.classList.add('hidden');
-            ui.appScreen.classList.remove('hidden');
-            ui.appScreen.classList.add('flex'); // Mobile default
+        function joinSuccess(id) {
+            roomId = id;
             
-            ui.displayRoomIdDesktop.textContent = id;
-            ui.displayRoomIdMobile.textContent = id;
+            // Switch UI
+            ui.login.classList.add('hidden');
+            ui.app.classList.remove('hidden');
+            ui.app.classList.add('flex');
+            
+            ui.displayIdDesk.textContent = id;
+            ui.displayIdMob.textContent = id;
             
             const newUrl = `${window.location.pathname}?room=${id}`;
             window.history.pushState({path:newUrl},'',newUrl);
+            
+            startListeners(id);
         }
 
-        // --- SYNC ---
-        function listenToRoom(id) {
-            unsubscribeRoom = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', id), (snap) => {
-                if (snap.exists()) syncPlayer(snap.data());
+        // 5. Leave Room
+        const leaveRoom = async () => {
+            if (!roomId) return;
+            
+            // Remove from participants
+            try {
+                const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomId);
+                await updateDoc(roomRef, {
+                    participants: arrayRemove(userId)
+                });
+            } catch(e) { console.error("Error leaving", e); }
+
+            // Stop Listeners
+            if (unsubscribeRoom) unsubscribeRoom();
+            if (unsubscribeChat) unsubscribeChat();
+            
+            roomId = null;
+            ui.app.classList.add('hidden');
+            ui.app.classList.remove('flex');
+            ui.login.classList.remove('hidden');
+            
+            // Reset URL
+            const cleanUrl = window.location.pathname;
+            window.history.pushState({path:cleanUrl},'',cleanUrl);
+            
+            // Stop Player
+            if(player) player.pauseVideo();
+        };
+
+        ui.btnLeaveDesk.addEventListener('click', leaveRoom);
+        ui.btnLeaveMob.addEventListener('click', leaveRoom);
+        
+        // Window close handler
+        window.addEventListener('beforeunload', () => {
+            if(roomId) {
+                // Best effort remove
+                const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomId);
+                updateDoc(roomRef, { participants: arrayRemove(userId) });
+            }
+        });
+
+
+        // --- SYNC & LISTENERS ---
+        function startListeners(id) {
+            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', id);
+            
+            unsubscribeRoom = onSnapshot(roomRef, (snap) => {
+                if (snap.exists()) {
+                    const data = snap.data();
+                    syncPlayer(data);
+                    
+                    // Update Participant Count
+                    const count = data.participants ? data.participants.length : 1;
+                    ui.countDesk.textContent = `${count}/10`;
+                    ui.countMob.textContent = count;
+                } else {
+                    alert("Комната была удалена");
+                    leaveRoom();
+                }
             });
 
-            // Using simplified path logic
-            const chatCollectionName = 'chat_' + id;
-            unsubscribeChat = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', chatCollectionName), (snap) => {
+            const chatCol = collection(db, 'artifacts', appId, 'public', 'data', 'chat_' + id);
+            unsubscribeChat = onSnapshot(chatCol, (snap) => {
                 const msgs = [];
-                snap.forEach(d => msgs.push({id: d.id, ...d.data()}));
+                snap.forEach(d => msgs.push(d.data()));
                 msgs.sort((a,b) => a.createdAt - b.createdAt);
                 renderChat(msgs);
             });
@@ -394,19 +590,20 @@
                 return;
             }
 
-            const timeDiff = Math.abs(player.getCurrentTime() - data.timestamp);
-            const playerState = player.getPlayerState();
+            const diff = Math.abs(player.getCurrentTime() - data.timestamp);
+            const pState = player.getPlayerState();
+            
             suppressUpdate = true;
 
-            if (timeDiff > 2) {
+            if (diff > 2) {
                 player.seekTo(data.timestamp, true);
                 flashSync();
             }
 
-            if (data.isPlaying && playerState !== 1) {
+            if (data.isPlaying && pState !== 1) {
                 player.playVideo();
                 flashSync();
-            } else if (!data.isPlaying && playerState !== 2 && playerState !== -1) {
+            } else if (!data.isPlaying && pState !== 2 && pState !== -1) {
                 player.pauseVideo();
                 flashSync();
             }
@@ -414,47 +611,44 @@
             setTimeout(() => suppressUpdate = false, 1000);
         }
 
-        async function updateRoomState(data) {
+        async function updateRoomDoc(data) {
             if (!roomId) return;
             try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomId), data); } catch (e) {}
         }
 
-        // --- CHAT ---
+        // --- CHAT & UTILS ---
         ui.chatForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const text = ui.chatInput.value.trim();
             if (!text || !roomId) return;
             ui.chatInput.value = '';
             
-            const chatCollectionName = 'chat_' + roomId;
             try {
-                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', chatCollectionName), {
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', 'chat_' + roomId), {
                     text, userId, createdAt: Date.now(), username: userId.substr(0,4)
                 });
-            } catch (e) { console.error(e); }
+            } catch (e) {}
         });
 
         function renderChat(messages) {
-            ui.chatMessages.innerHTML = '';
+            ui.chatMsgs.innerHTML = '';
             messages.forEach(msg => {
                 const isMe = msg.userId === userId;
                 const div = document.createElement('div');
                 div.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'}`;
-                
                 div.innerHTML = `
-                    <div class="px-4 py-2.5 text-sm max-w-[85%] rounded-2xl shadow-sm border border-white/5 ${isMe ? 'bg-white text-black rounded-br-none font-medium' : 'bg-white/10 text-white/90 rounded-bl-none'}">
+                    <div class="px-4 py-2 text-sm max-w-[85%] rounded-2xl border border-white/5 ${isMe ? 'bg-white text-black rounded-br-none' : 'bg-white/10 text-white rounded-bl-none'}">
                         ${escapeHtml(msg.text)}
                     </div>
-                    <span class="text-[9px] text-white/30 mt-1 uppercase tracking-wider px-1 font-medium">${isMe ? 'Вы' : msg.username}</span>
+                    <span class="text-[9px] text-white/30 mt-1 uppercase px-1">${isMe ? 'Вы' : msg.username}</span>
                 `;
-                ui.chatMessages.appendChild(div);
+                ui.chatMsgs.appendChild(div);
             });
-            ui.chatMessages.scrollTop = ui.chatMessages.scrollHeight;
+            ui.chatMsgs.scrollTop = ui.chatMsgs.scrollHeight;
         }
 
-        // --- UTILS ---
-        const changeVideoHandler = () => {
-            const url = ui.inputVideoUrl.value;
+        ui.btnChangeVid.addEventListener('click', () => {
+            const url = ui.videoInput.value;
             let vidId = '';
             try {
                 if (url.includes('v=')) vidId = new URL(url).searchParams.get('v');
@@ -462,24 +656,19 @@
             } catch(e){}
             
             if(vidId) {
-                updateRoomState({ videoId: vidId, timestamp: 0, isPlaying: true, lastUpdated: Date.now() });
-                ui.inputVideoUrl.value = '';
+                updateRoomDoc({ videoId: vidId, timestamp: 0, isPlaying: true, lastUpdated: Date.now() });
+                ui.videoInput.value = '';
             }
-        };
+        });
 
-        ui.btnChangeVideo.addEventListener('click', changeVideoHandler);
-        
-        // Copy function logic
-        const copyToClipboard = (btn) => {
+        const copyLink = (btn) => {
             navigator.clipboard.writeText(window.location.href);
-            const original = btn.innerHTML;
-            // Temporary checkmark icon
-            btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
-            setTimeout(() => btn.innerHTML = original, 2000);
+            const orig = btn.innerHTML;
+            btn.textContent = "Скопировано";
+            setTimeout(() => btn.innerHTML = orig, 1500);
         };
-
-        ui.btnCopyDesktop.addEventListener('click', () => copyToClipboard(ui.btnCopyDesktop));
-        ui.btnCopyMobile.addEventListener('click', () => copyToClipboard(ui.btnCopyMobile));
+        ui.btnCopyDesk.addEventListener('click', () => copyLink(ui.btnCopyDesk));
+        ui.btnCopyMob.addEventListener('click', () => copyLink(ui.btnCopyMob));
 
         function flashSync() {
             ui.syncBadge.style.opacity = '1';
