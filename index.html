@@ -18,8 +18,14 @@
         import { getFirestore, doc, setDoc, onSnapshot, updateDoc, addDoc, collection, getDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         window.initFirebase = async () => {
-            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
-            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app';
+            const firebaseConfig = {
+  apiKey: "AIzaSyBtm8hgy9LGFFL_7CdLnR6jxyoLqy94AQA",
+  authDomain: "upbeat-orb-479013-p8.firebaseapp.com",
+  projectId: "upbeat-orb-479013-p8",
+  storageBucket: "upbeat-orb-479013-p8.firebasestorage.app",
+  messagingSenderId: "547138498300",
+  appId: "1:547138498300:web:a03c11d6aafd5f027cf179"
+};
 
             if (!firebaseConfig) {
                 console.error("Firebase config missing.");
