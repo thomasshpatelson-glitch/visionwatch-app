@@ -2,398 +2,494 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Atmospheric Lofi Player</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>Matte Co-Watch</title>
     
-    <!-- Подключаем Tailwind CSS для стилей -->
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Кастомные стили для анимаций -->
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, setDoc, onSnapshot, updateDoc, addDoc, collection } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        window.initFirebase = async () => {
+            const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+            const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app';
+
+            if (!firebaseConfig) {
+                console.error("Firebase config missing.");
+                return null;
+            }
+
+            const app = initializeApp(firebaseConfig);
+            const auth = getAuth(app);
+            const db = getFirestore(app);
+
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                console.error("Auth Error:", error);
+            }
+
+            return { auth, db, appId };
+        };
+
+        window.fbImports = { doc, setDoc, onSnapshot, updateDoc, addDoc, collection };
+    </script>
+    
     <style>
-        /* Анимация вращения для логотипа */
-        @keyframes slow-spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
-        }
-        
-        .animate-spin-slow {
-            animation: slow-spin 4s linear infinite;
-        }
-
-        /* Утилита для скрытия элементов */
-        .hidden-force {
-            display: none !important;
+        /* --- Matte Stealth Aesthetic --- */
+        :root {
+            --bg-deep: #050505;
+            --surface-matte: rgba(255, 255, 255, 0.03);
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --text-primary: #ededed;
+            --text-secondary: #888888;
+            --accent: #ffffff;
         }
 
-        /* Стилизация ползунка громкости */
-        input[type=range] {
-            -webkit-appearance: none;
-            background: transparent;
-        }
-        
-        input[type=range]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            height: 12px;
-            width: 12px;
-            border-radius: 50%;
-            background: #ffffff;
-            cursor: pointer;
-            margin-top: -4px;
+        body {
+            font-family: 'Manrope', sans-serif;
+            background-color: var(--bg-deep);
+            color: var(--text-primary);
+            overflow: hidden; /* App-like feel */
         }
 
-        input[type=range]::-webkit-slider-runnable-track {
-            width: 100%;
-            height: 4px;
-            cursor: pointer;
-            background: #475569;
-            border-radius: 2px;
+        /* Subtle Noise Texture for Matte feel */
+        .noise-bg {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            opacity: 0.03;
+            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
         }
+
+        /* Matte Glass Card */
+        .matte-card {
+            background: var(--surface-matte);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--border-subtle);
+            box-shadow: 0 20px 40px -10px rgba(0,0,0,0.5);
+        }
+
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
         
-        /* Акцентный цвет ползунка при наведении */
-        input[type=range]:hover::-webkit-slider-runnable-track {
-            background: #6366f1;
+        /* Animations */
+        .fade-in { animation: fadeIn 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98) translateY(10px); } to { opacity: 1; transform: scale(1) translateY(0); } }
+
+        /* Buttons */
+        .btn-matte {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            transition: all 0.3s ease;
+        }
+        .btn-matte:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateY(-1px);
+        }
+        .btn-matte:active { transform: scale(0.98); }
+
+        .btn-primary {
+            background: white;
+            color: black;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        .btn-primary:hover {
+            background: #e0e0e0;
+            box-shadow: 0 0 20px rgba(255,255,255,0.2);
+        }
+
+        /* Input Reset */
+        .input-matte {
+            background: rgba(0,0,0,0.3);
+            border: 1px solid var(--border-subtle);
+            color: white;
+            transition: border-color 0.3s;
+        }
+        .input-matte:focus {
+            outline: none;
+            border-color: rgba(255,255,255,0.3);
         }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 font-sans overflow-hidden h-screen flex flex-col">
+<body class="h-screen w-screen relative">
 
-    <!-- ФОН / ВИЗУАЛИЗАЦИЯ -->
-    <div class="relative flex-1 w-full bg-black flex items-center justify-center overflow-hidden">
-        
-        <!-- IFrame YouTube (скрыт фильтрами, работает как фон) -->
-        <div class="absolute inset-0 opacity-40 pointer-events-none grayscale contrast-125">
-            <div id="youtube-player" class="w-full h-full pointer-events-none"></div>
-        </div>
+    <div class="noise-bg"></div>
 
-        <!-- Оверлей с информацией о треке -->
-        <div class="z-10 text-center p-8 backdrop-blur-sm bg-black/20 rounded-xl max-w-lg mx-4 border border-white/10 shadow-2xl relative">
-            
-            <!-- Круг с иконкой (вращается при проигрывании) -->
-            <div class="mb-6 relative group">
-                <div id="visualizer-circle" class="w-32 h-32 mx-auto rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/50 transition-transform duration-[4000ms]">
-                    <!-- Иконка ноты (SVG) -->
-                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
-                        <path d="M9 18V5l12-2v13"></path>
-                        <circle cx="6" cy="18" r="3"></circle>
-                        <circle cx="18" cy="16" r="3"></circle>
-                    </svg>
+    <!-- LOGIN SCREEN -->
+    <div id="login-screen" class="absolute inset-0 flex items-center justify-center p-6 z-50">
+        <div class="matte-card rounded-3xl p-8 md:p-12 w-full max-w-md flex flex-col items-center gap-8 fade-in relative overflow-hidden">
+            <!-- Decorative Glow -->
+            <div class="absolute -top-20 -left-20 w-40 h-40 bg-white/5 rounded-full blur-3xl pointer-events-none"></div>
+
+            <div class="flex flex-col items-center text-center space-y-2 z-10">
+                <div class="w-14 h-14 bg-white rounded-2xl flex items-center justify-center mb-4 shadow-lg shadow-white/10">
+                    <svg class="text-black" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
+                </div>
+                <h1 class="text-3xl font-bold tracking-tight text-white">Co-Watch</h1>
+                <p class="text-secondary text-sm font-medium tracking-wide uppercase">Синхронный просмотр</p>
+            </div>
+
+            <div class="w-full space-y-4 z-10">
+                <button id="btn-create" class="w-full py-4 rounded-xl btn-primary text-sm tracking-wide shadow-xl">
+                    СОЗДАТЬ КОМНАТУ
+                </button>
+                
+                <div class="flex items-center gap-4 w-full">
+                    <div class="h-px flex-1 bg-white/10"></div>
+                    <span class="text-xs text-secondary uppercase">или</span>
+                    <div class="h-px flex-1 bg-white/10"></div>
+                </div>
+
+                <div class="flex flex-col gap-3">
+                    <input id="input-room-id" type="text" placeholder="ID КОМНАТЫ" class="w-full input-matte rounded-xl px-4 py-3.5 text-center text-sm font-mono tracking-widest uppercase placeholder:text-secondary/50">
+                    <button id="btn-join" class="w-full py-3.5 rounded-xl btn-matte text-sm font-medium">
+                        ПРИСОЕДИНИТЬСЯ
+                    </button>
                 </div>
             </div>
-            
-            <!-- Текст: Название и Канал -->
-            <h2 id="track-title" class="text-2xl font-bold mb-2 tracking-tight text-white transition-opacity duration-300">Загрузка...</h2>
-            <p id="track-channel" class="text-slate-400 font-medium transition-opacity duration-300">...</p>
+        </div>
+    </div>
 
-            <!-- Сообщение об ошибке (скрыто по умолчанию) -->
-            <div id="error-container" class="mt-4 hidden flex items-center justify-center gap-2 text-amber-400 bg-amber-950/30 py-2 px-4 rounded-full text-sm animate-pulse">
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="12" cy="12" r="10"></circle>
-                    <line x1="12" y1="8" x2="12" y2="12"></line>
-                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                </svg>
-                <span id="error-text">Ошибка воспроизведения</span>
+    <!-- MAIN APP SCREEN -->
+    <div id="app-screen" class="hidden h-full w-full flex-col lg:grid lg:grid-cols-12 lg:gap-6 lg:p-6 fade-in relative z-10">
+        
+        <!-- HEADER (Mobile Only) -->
+        <div class="lg:hidden flex items-center justify-between p-4 border-b border-white/5 bg-black/40 backdrop-blur-md sticky top-0 z-20">
+            <div class="flex items-center gap-2">
+                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse shadow-[0_0_10px_#22c55e]"></div>
+                <span id="display-room-id-mobile" class="font-mono text-sm font-semibold tracking-wider text-white">...</span>
+            </div>
+            <button id="btn-copy-link-mobile" class="p-2 btn-matte rounded-lg">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            </button>
+        </div>
+
+        <!-- LEFT COLUMN: VIDEO & CONTROLS -->
+        <div class="flex-none lg:col-span-8 xl:col-span-9 flex flex-col gap-4 lg:gap-6 lg:h-full lg:justify-center">
+            
+            <!-- Video Container -->
+            <div class="w-full aspect-video bg-black relative shadow-2xl lg:rounded-2xl overflow-hidden border-b border-white/5 lg:border lg:border-white/10 group">
+                <div id="player-placeholder" class="absolute inset-0 flex items-center justify-center bg-[#080808] z-10">
+                     <div class="w-10 h-10 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
+                </div>
+                <div id="youtube-player" class="w-full h-full"></div>
+                
+                <!-- Sync Badge -->
+                <div id="sync-badge" class="absolute top-4 right-4 lg:top-6 lg:right-6 px-3 py-1 bg-black/50 backdrop-blur-md rounded-full border border-white/10 flex items-center gap-2 opacity-0 transition-opacity duration-500 pointer-events-none">
+                    <div class="w-1.5 h-1.5 bg-white rounded-full"></div>
+                    <span class="text-[10px] font-bold uppercase tracking-widest text-white">Synced</span>
+                </div>
+            </div>
+
+            <!-- Controls (Desktop & Mobile Adaptive) -->
+            <div class="p-4 lg:p-0">
+                <div class="matte-card rounded-xl p-1.5 flex items-center gap-2">
+                    <div class="flex-1 bg-black/20 rounded-lg flex items-center px-3 border border-white/5 focus-within:border-white/20 transition-colors">
+                        <svg class="text-secondary" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path></svg>
+                        <input id="input-video-url" type="text" placeholder="Ссылка на YouTube..." class="flex-1 bg-transparent px-3 py-3 text-sm text-white placeholder:text-secondary/50 outline-none w-full">
+                    </div>
+                    <button id="btn-change-video" class="btn-primary px-5 py-3 rounded-lg text-xs font-bold uppercase tracking-wide whitespace-nowrap">
+                        Play
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- RIGHT COLUMN: CHAT -->
+        <div class="flex-1 lg:col-span-4 xl:col-span-3 min-h-0 flex flex-col bg-[#050505] lg:bg-transparent lg:h-full pb-safe">
+            <div class="matte-card lg:rounded-2xl flex-1 flex flex-col overflow-hidden border-t border-white/5 lg:border shadow-xl">
+                
+                <!-- Chat Header (Desktop) -->
+                <div class="hidden lg:flex px-5 py-4 border-b border-white/5 justify-between items-center bg-white/[0.02]">
+                    <div class="flex flex-col">
+                        <span class="text-[10px] text-secondary font-mono uppercase tracking-widest">Room ID</span>
+                        <span id="display-room-id-desktop" class="font-bold text-white text-lg tracking-tight font-mono">...</span>
+                    </div>
+                    <button id="btn-copy-link-desktop" class="text-xs text-white/50 hover:text-white transition-colors uppercase tracking-wider font-medium">
+                        Copy
+                    </button>
+                </div>
+
+                <!-- Messages Area -->
+                <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth">
+                    <div class="flex justify-center py-4">
+                        <span class="px-3 py-1 bg-white/5 rounded-full text-[10px] text-secondary uppercase tracking-widest border border-white/5">
+                            Чат подключен
+                        </span>
+                    </div>
+                </div>
+
+                <!-- Chat Input -->
+                <div class="p-3 bg-white/[0.02] border-t border-white/5 backdrop-blur-md">
+                    <form id="chat-form" class="flex gap-2 relative">
+                        <input id="chat-input" type="text" placeholder="Сообщение..." class="flex-1 input-matte rounded-xl px-4 py-3 text-sm placeholder:text-secondary/40 pr-10" autocomplete="off">
+                        <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 bg-white text-black rounded-lg hover:bg-gray-200 transition-colors shadow-lg shadow-white/10">
+                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+                        </button>
+                    </form>
+                </div>
             </div>
         </div>
     </div>
 
-    <!-- ПАНЕЛЬ УПРАВЛЕНИЯ -->
-    <div class="h-24 bg-slate-800 border-t border-slate-700 flex items-center justify-between px-6 sm:px-12 z-20">
-        
-        <!-- Левая часть: Инфо (только десктоп) -->
-        <div class="hidden sm:flex flex-col w-1/3">
-            <span class="text-xs text-slate-400 uppercase tracking-wider">Сейчас играет</span>
-            <span id="footer-track-title" class="text-sm font-semibold truncate pr-4">Загрузка...</span>
-        </div>
+    <!-- MAIN LOGIC -->
+    <script type="module">
+        let player;
+        let db, auth, appId;
+        let roomId = null;
+        let userId = null;
+        let unsubscribeRoom = null;
+        let unsubscribeChat = null;
+        let suppressUpdate = false;
 
-        <!-- Центр: Кнопки управления -->
-        <div class="flex items-center justify-center gap-6 w-full sm:w-1/3">
-            <!-- Назад -->
-            <button id="btn-prev" class="text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-700 rounded-full" aria-label="Предыдущий трек">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="19 20 9 12 19 4 19 20"></polygon>
-                    <line x1="5" y1="19" x2="5" y2="5"></line>
-                </svg>
-            </button>
+        const { doc, setDoc, onSnapshot, updateDoc, addDoc, collection } = window.fbImports;
 
-            <!-- Play/Pause -->
-            <button id="btn-play-pause" class="w-14 h-14 bg-white text-slate-900 rounded-full flex items-center justify-center hover:scale-105 hover:bg-slate-200 transition-all shadow-lg shadow-white/10" aria-label="Play">
-                <!-- Иконка Play (по умолчанию) -->
-                <svg id="icon-play" class="ml-1 block" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                </svg>
-                <!-- Иконка Pause (скрыта) -->
-                <svg id="icon-pause" class="hidden" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="currentColor" stroke="none">
-                    <rect x="6" y="4" width="4" height="16"></rect>
-                    <rect x="14" y="4" width="4" height="16"></rect>
-                </svg>
-            </button>
-
-            <!-- Вперед -->
-            <button id="btn-next" class="text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-700 rounded-full" aria-label="Следующий трек">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="5 4 15 12 5 20 5 4"></polygon>
-                    <line x1="19" y1="5" x2="19" y2="19"></line>
-                </svg>
-            </button>
-        </div>
-
-        <!-- Правая часть: Громкость -->
-        <div class="hidden sm:flex items-center justify-end w-1/3 gap-3">
-            <button id="btn-mute" class="text-slate-400 hover:text-white">
-                <!-- Звук есть -->
-                <svg id="icon-vol-on" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                </svg>
-                <!-- Звук выключен -->
-                <svg id="icon-vol-off" class="hidden" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                    <line x1="23" y1="9" x2="17" y2="15"></line>
-                    <line x1="17" y1="9" x2="23" y2="15"></line>
-                </svg>
-            </button>
-            <input id="volume-slider" type="range" min="0" max="100" value="50">
-        </div>
-        
-        <!-- Мобильная громкость (оверлей) -->
-        <div class="sm:hidden absolute top-4 right-4 z-30 bg-black/50 p-2 rounded-full backdrop-blur-md">
-            <button id="btn-mute-mobile" class="text-white block">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
-                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
-                </svg>
-            </button>
-        </div>
-
-    </div>
-
-    <!-- СКРИПТ ЛОГИКИ ПЛЕЕРА -->
-    <script>
-        // --- ДАННЫЕ ПЛЕЙЛИСТА ---
-        const PLAYLIST = [
-            { id: 'jfKfPfyJRdk', title: 'lofi hip hop radio - beats to relax/study to', channel: 'Lofi Girl' },
-            { id: '4xDzrJKXOOY', title: 'synthwave radio - beats to chill/game to', channel: 'Lofi Girl' },
-            { id: '5yx6BWlEVcY', title: 'Chillhop Radio - jazzy & lofi hip hop beats', channel: 'Chillhop Music' },
-            { id: 'DWcJFNfaw9c', title: 'lofi hip hop radio - beats to sleep/chill to', channel: 'Lofi Girl' },
-            { id: 'rUxyKA_-grg', title: '24/7 lofi hip hop radio', channel: 'Chillhop Music' },
-            { id: 'lTRiuFIWV54', title: 'Nintendo Lofi Study Beats', channel: 'Helynt' },
-        ];
-
-        // --- СОСТОЯНИЕ ПРИЛОЖЕНИЯ ---
-        let player = null;
-        let isPlaying = false;
-        let currentIndex = 0;
-        let volume = 50;
-        let isMuted = false;
-        let playerReady = false;
-
-        // --- DOM ЭЛЕМЕНТЫ ---
         const ui = {
-            title: document.getElementById('track-title'),
-            channel: document.getElementById('track-channel'),
-            footerTitle: document.getElementById('footer-track-title'),
-            btnPlayPause: document.getElementById('btn-play-pause'),
-            iconPlay: document.getElementById('icon-play'),
-            iconPause: document.getElementById('icon-pause'),
-            btnPrev: document.getElementById('btn-prev'),
-            btnNext: document.getElementById('btn-next'),
-            btnMute: document.getElementById('btn-mute'),
-            btnMuteMobile: document.getElementById('btn-mute-mobile'),
-            iconVolOn: document.getElementById('icon-vol-on'),
-            iconVolOff: document.getElementById('icon-vol-off'),
-            volumeSlider: document.getElementById('volume-slider'),
-            visualizer: document.getElementById('visualizer-circle'),
-            errorContainer: document.getElementById('error-container'),
-            errorText: document.getElementById('error-text')
+            loginScreen: document.getElementById('login-screen'),
+            appScreen: document.getElementById('app-screen'),
+            btnCreate: document.getElementById('btn-create'),
+            btnJoin: document.getElementById('btn-join'),
+            inputRoomId: document.getElementById('input-room-id'),
+            displayRoomIdDesktop: document.getElementById('display-room-id-desktop'),
+            displayRoomIdMobile: document.getElementById('display-room-id-mobile'),
+            btnCopyDesktop: document.getElementById('btn-copy-link-desktop'),
+            btnCopyMobile: document.getElementById('btn-copy-link-mobile'),
+            inputVideoUrl: document.getElementById('input-video-url'),
+            btnChangeVideo: document.getElementById('btn-change-video'),
+            chatMessages: document.getElementById('chat-messages'),
+            chatForm: document.getElementById('chat-form'),
+            chatInput: document.getElementById('chat-input'),
+            syncBadge: document.getElementById('sync-badge'),
         };
 
-        // --- ИНИЦИАЛИЗАЦИЯ YOUTUBE API ---
-        
-        // Эта функция вызывается автоматически API YouTube, когда он загружен
-        window.onYouTubeIframeAPIReady = function() {
+        // --- INIT ---
+        window.onload = async () => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const roomParam = urlParams.get('room');
+            if (roomParam) ui.inputRoomId.value = roomParam;
+
+            const fb = await window.initFirebase();
+            if (!fb) return alert("Firebase setup error");
+            
+            db = fb.db;
+            auth = fb.auth;
+            appId = fb.appId;
+            userId = auth.currentUser ? auth.currentUser.uid : 'anon-' + Math.random().toString(36).substr(2, 5);
+            console.log("User:", userId);
+
+            // Load YouTube API
+            const tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
+            document.body.appendChild(tag);
+        };
+
+        // --- YOUTUBE ---
+        window.onYouTubeIframeAPIReady = () => {
             player = new YT.Player('youtube-player', {
                 height: '100%',
                 width: '100%',
-                videoId: PLAYLIST[currentIndex].id,
-                playerVars: {
-                    'playsinline': 1,
-                    'controls': 0,
-                    'disablekb': 1,
-                    'fs': 0,
-                    'rel': 0,
-                    'modestbranding': 1,
-                },
+                videoId: 'jfKfPfyJRdk', 
+                playerVars: { 'playsinline': 1, 'controls': 1, 'disablekb': 0, 'modestbranding': 1, 'rel': 0 },
                 events: {
-                    'onReady': onPlayerReady,
-                    'onStateChange': onPlayerStateChange,
-                    'onError': onPlayerError
+                    'onReady': () => document.getElementById('player-placeholder').style.display = 'none',
+                    'onStateChange': onPlayerStateChange
                 }
             });
         };
 
-        // Загружаем API асинхронно
-        (function loadYouTubeAPI() {
-            const tag = document.createElement('script');
-            tag.src = "https://www.youtube.com/iframe_api";
-            const firstScriptTag = document.getElementsByTagName('script')[0];
-            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-        })();
-
-        // --- ОБРАБОТЧИКИ СОБЫТИЙ ПЛЕЕРА ---
-
-        function onPlayerReady(event) {
-            playerReady = true;
-            player.setVolume(volume);
-            updateTrackInfoUI();
-            console.log("Player Ready");
-        }
-
         function onPlayerStateChange(event) {
-            // 0 = Ended
-            if (event.data === YT.PlayerState.ENDED) {
-                playNext();
-            }
-            // 1 = Playing
-            else if (event.data === YT.PlayerState.PLAYING) {
-                isPlaying = true;
-                hideError();
-                updatePlayPauseUI();
-            }
-            // 2 = Paused
-            else if (event.data === YT.PlayerState.PAUSED) {
-                isPlaying = false;
-                updatePlayPauseUI();
+            if (suppressUpdate || !roomId) return;
+            const state = event.data;
+            if (state === YT.PlayerState.PLAYING || state === YT.PlayerState.PAUSED) {
+                updateRoomState({
+                    isPlaying: state === YT.PlayerState.PLAYING,
+                    timestamp: player.getCurrentTime(),
+                    lastUpdated: Date.now()
+                });
             }
         }
 
-        function onPlayerError(event) {
-            const code = event.data;
-            console.warn(`YouTube Error: ${code}`);
-            
-            showError(`Видео недоступно (Код ${code}). Пропуск...`);
-            
-            // Авто-пропуск через 1.5 сек
-            setTimeout(() => {
-                playNext();
-            }, 1500);
+        // --- ROOM LOGIC ---
+        ui.btnCreate.addEventListener('click', () => createRoom(Math.random().toString(36).substr(2, 6).toUpperCase()));
+        ui.btnJoin.addEventListener('click', () => {
+            const id = ui.inputRoomId.value.trim().toUpperCase();
+            if(id) joinRoom(id);
+        });
+
+        async function createRoom(id) {
+            roomId = id;
+            try {
+                await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', id), {
+                    videoId: 'jfKfPfyJRdk',
+                    isPlaying: false,
+                    timestamp: 0,
+                    lastUpdated: Date.now(),
+                    createdBy: userId
+                });
+                enterRoomUI(id);
+                listenToRoom(id);
+            } catch (e) {
+                console.error(e);
+                alert("Ошибка: " + e.message);
+            }
         }
 
-        // --- ЛОГИКА УПРАВЛЕНИЯ ---
+        async function joinRoom(id) {
+            roomId = id;
+            enterRoomUI(id);
+            listenToRoom(id);
+        }
 
-        function togglePlay() {
-            if (!playerReady) return;
-            if (isPlaying) {
-                player.pauseVideo();
-            } else {
+        function enterRoomUI(id) {
+            ui.loginScreen.classList.add('hidden');
+            ui.appScreen.classList.remove('hidden');
+            ui.appScreen.classList.add('flex'); // Mobile default
+            
+            ui.displayRoomIdDesktop.textContent = id;
+            ui.displayRoomIdMobile.textContent = id;
+            
+            const newUrl = `${window.location.pathname}?room=${id}`;
+            window.history.pushState({path:newUrl},'',newUrl);
+        }
+
+        // --- SYNC ---
+        function listenToRoom(id) {
+            unsubscribeRoom = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', id), (snap) => {
+                if (snap.exists()) syncPlayer(snap.data());
+            });
+
+            // Using simplified path logic
+            const chatCollectionName = 'chat_' + id;
+            unsubscribeChat = onSnapshot(collection(db, 'artifacts', appId, 'public', 'data', chatCollectionName), (snap) => {
+                const msgs = [];
+                snap.forEach(d => msgs.push({id: d.id, ...d.data()}));
+                msgs.sort((a,b) => a.createdAt - b.createdAt);
+                renderChat(msgs);
+            });
+        }
+
+        function syncPlayer(data) {
+            if (!player || typeof player.getPlayerState !== 'function') return;
+
+            if (data.videoId && !player.getVideoUrl().includes(data.videoId)) {
+                player.loadVideoById(data.videoId);
+                return;
+            }
+
+            const timeDiff = Math.abs(player.getCurrentTime() - data.timestamp);
+            const playerState = player.getPlayerState();
+            suppressUpdate = true;
+
+            if (timeDiff > 2) {
+                player.seekTo(data.timestamp, true);
+                flashSync();
+            }
+
+            if (data.isPlaying && playerState !== 1) {
                 player.playVideo();
+                flashSync();
+            } else if (!data.isPlaying && playerState !== 2 && playerState !== -1) {
+                player.pauseVideo();
+                flashSync();
             }
+
+            setTimeout(() => suppressUpdate = false, 1000);
         }
 
-        function playNext() {
-            currentIndex = (currentIndex + 1) % PLAYLIST.length;
-            loadTrack(currentIndex);
+        async function updateRoomState(data) {
+            if (!roomId) return;
+            try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomId), data); } catch (e) {}
         }
 
-        function playPrev() {
-            currentIndex = (currentIndex - 1 + PLAYLIST.length) % PLAYLIST.length;
-            loadTrack(currentIndex);
-        }
-
-        function loadTrack(index) {
-            if (!playerReady) return;
+        // --- CHAT ---
+        ui.chatForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const text = ui.chatInput.value.trim();
+            if (!text || !roomId) return;
+            ui.chatInput.value = '';
             
-            const track = PLAYLIST[index];
-            player.loadVideoById(track.id);
-            updateTrackInfoUI();
+            const chatCollectionName = 'chat_' + roomId;
+            try {
+                await addDoc(collection(db, 'artifacts', appId, 'public', 'data', chatCollectionName), {
+                    text, userId, createdAt: Date.now(), username: userId.substr(0,4)
+                });
+            } catch (e) { console.error(e); }
+        });
+
+        function renderChat(messages) {
+            ui.chatMessages.innerHTML = '';
+            messages.forEach(msg => {
+                const isMe = msg.userId === userId;
+                const div = document.createElement('div');
+                div.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'}`;
+                
+                div.innerHTML = `
+                    <div class="px-4 py-2.5 text-sm max-w-[85%] rounded-2xl shadow-sm border border-white/5 ${isMe ? 'bg-white text-black rounded-br-none font-medium' : 'bg-white/10 text-white/90 rounded-bl-none'}">
+                        ${escapeHtml(msg.text)}
+                    </div>
+                    <span class="text-[9px] text-white/30 mt-1 uppercase tracking-wider px-1 font-medium">${isMe ? 'Вы' : msg.username}</span>
+                `;
+                ui.chatMessages.appendChild(div);
+            });
+            ui.chatMessages.scrollTop = ui.chatMessages.scrollHeight;
+        }
+
+        // --- UTILS ---
+        const changeVideoHandler = () => {
+            const url = ui.inputVideoUrl.value;
+            let vidId = '';
+            try {
+                if (url.includes('v=')) vidId = new URL(url).searchParams.get('v');
+                else if (url.includes('youtu.be')) vidId = url.split('/').pop();
+            } catch(e){}
             
-            // Если мы переключили трек, мы обычно хотим, чтобы он заиграл
-            // (даже если до этого стояла пауза, переключение подразумевает действие)
-            // Но можно оставить логику "если играло - играй дальше". 
-            // Здесь сделаем автоплей при переключении.
-            player.playVideo(); 
-        }
-
-        function toggleMute() {
-            if (!playerReady) return;
-            isMuted = !isMuted;
-            if (isMuted) {
-                player.mute();
-            } else {
-                player.unMute();
-                player.setVolume(volume); // Восстанавливаем уровень
+            if(vidId) {
+                updateRoomState({ videoId: vidId, timestamp: 0, isPlaying: true, lastUpdated: Date.now() });
+                ui.inputVideoUrl.value = '';
             }
-            updateVolumeUI();
+        };
+
+        ui.btnChangeVideo.addEventListener('click', changeVideoHandler);
+        
+        // Copy function logic
+        const copyToClipboard = (btn) => {
+            navigator.clipboard.writeText(window.location.href);
+            const original = btn.innerHTML;
+            // Temporary checkmark icon
+            btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>`;
+            setTimeout(() => btn.innerHTML = original, 2000);
+        };
+
+        ui.btnCopyDesktop.addEventListener('click', () => copyToClipboard(ui.btnCopyDesktop));
+        ui.btnCopyMobile.addEventListener('click', () => copyToClipboard(ui.btnCopyMobile));
+
+        function flashSync() {
+            ui.syncBadge.style.opacity = '1';
+            setTimeout(() => ui.syncBadge.style.opacity = '0', 2000);
         }
-
-        function handleVolumeChange(e) {
-            volume = parseInt(e.target.value);
-            if (playerReady) {
-                player.setVolume(volume);
-                if (volume > 0 && isMuted) {
-                    isMuted = false;
-                    player.unMute();
-                }
-            }
-            updateVolumeUI();
+        function escapeHtml(text) {
+            const d = document.createElement('div');
+            d.textContent = text;
+            return d.innerHTML;
         }
-
-        // --- ОБНОВЛЕНИЕ UI ---
-
-        function updateTrackInfoUI() {
-            const track = PLAYLIST[currentIndex];
-            ui.title.textContent = track.title;
-            ui.channel.textContent = track.channel;
-            ui.footerTitle.textContent = track.title;
-        }
-
-        function updatePlayPauseUI() {
-            if (isPlaying) {
-                ui.iconPlay.classList.add('hidden');
-                ui.iconPause.classList.remove('hidden');
-                ui.visualizer.classList.add('animate-spin-slow');
-            } else {
-                ui.iconPlay.classList.remove('hidden');
-                ui.iconPause.classList.add('hidden');
-                ui.visualizer.classList.remove('animate-spin-slow');
-                // Сброс вращения в начало (опционально, можно оставить на паузе)
-                // ui.visualizer.style.transform = 'rotate(0deg)'; 
-            }
-        }
-
-        function updateVolumeUI() {
-            ui.volumeSlider.value = volume;
-            
-            if (isMuted || volume === 0) {
-                ui.iconVolOn.classList.add('hidden');
-                ui.iconVolOff.classList.remove('hidden');
-            } else {
-                ui.iconVolOn.classList.remove('hidden');
-                ui.iconVolOff.classList.add('hidden');
-            }
-        }
-
-        function showError(msg) {
-            ui.errorText.textContent = msg;
-            ui.errorContainer.classList.remove('hidden');
-            ui.errorContainer.classList.add('flex');
-        }
-
-        function hideError() {
-            ui.errorContainer.classList.add('hidden');
-            ui.errorContainer.classList.remove('flex');
-        }
-
-        // --- ПРИВЯЗКА СОБЫТИЙ DOM ---
-        ui.btnPlayPause.addEventListener('click', togglePlay);
-        ui.btnNext.addEventListener('click', playNext);
-        ui.btnPrev.addEventListener('click', playPrev);
-        ui.btnMute.addEventListener('click', toggleMute);
-        ui.btnMuteMobile.addEventListener('click', toggleMute);
-        ui.volumeSlider.addEventListener('input', handleVolumeChange);
-
-        // Инициализация начального текста
-        updateTrackInfoUI();
-
     </script>
 </body>
 </html>
