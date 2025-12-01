@@ -1,254 +1,399 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, AlertCircle, Music } from 'lucide-react';
-
-// A curated list of typically embed-safe ambient/lo-fi streams and videos
-const PLAYLIST = [
-  { id: 'jfKfPfyJRdk', title: 'lofi hip hop radio - beats to relax/study to', channel: 'Lofi Girl' },
-  { id: '4xDzrJKXOOY', title: 'synthwave radio - beats to chill/game to', channel: 'Lofi Girl' },
-  { id: '5yx6BWlEVcY', title: 'Chillhop Radio - jazzy & lofi hip hop beats', channel: 'Chillhop Music' },
-  { id: 'DWcJFNfaw9c', title: 'lofi hip hop radio - beats to sleep/chill to', channel: 'Lofi Girl' },
-  { id: 'rUxyKA_-grg', title: '24/7 lofi hip hop radio', channel: 'Chillhop Music' },
-  { id: 'lTRiuFIWV54', title: 'Nintendo Lofi Study Beats', channel: 'Helynt' },
-];
-
-export default function App() {
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
-  const [volume, setVolume] = useState(50);
-  const [isMuted, setIsMuted] = useState(false);
-  const [playerReady, setPlayerReady] = useState(false);
-  const [errorMsg, setErrorMsg] = useState(null);
-  
-  const playerRef = useRef(null);
-  const containerRef = useRef(null);
-
-  // Load YouTube API
-  useEffect(() => {
-    if (!window.YT) {
-      const tag = document.createElement('script');
-      tag.src = "https://www.youtube.com/iframe_api";
-      const firstScriptTag = document.getElementsByTagName('script')[0];
-      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
-    }
-
-    window.onYouTubeIframeAPIReady = initializePlayer;
-
-    if (window.YT && window.YT.Player) {
-      initializePlayer();
-    }
-
-    return () => {
-      // Cleanup not strictly necessary for single page iframe app but good practice
-    };
-  }, []);
-
-  // Update player when track changes
-  useEffect(() => {
-    if (playerReady && playerRef.current) {
-      const videoId = PLAYLIST[currentTrackIndex].id;
-      playerRef.current.loadVideoById(videoId);
-      if (!isPlaying) {
-        playerRef.current.pauseVideo();
-      }
-    }
-  }, [currentTrackIndex]);
-
-  // Update volume
-  useEffect(() => {
-    if (playerReady && playerRef.current) {
-      if (isMuted) {
-        playerRef.current.mute();
-      } else {
-        playerRef.current.unMute();
-        playerRef.current.setVolume(volume);
-      }
-    }
-  }, [volume, isMuted, playerReady]);
-
-  // Sync Play/Pause state
-  useEffect(() => {
-    if (playerReady && playerRef.current) {
-      if (isPlaying) {
-        playerRef.current.playVideo();
-      } else {
-        playerRef.current.pauseVideo();
-      }
-    }
-  }, [isPlaying, playerReady]);
-
-  const initializePlayer = () => {
-    if (playerRef.current) return; // Already initialized
-
-    playerRef.current = new window.YT.Player('youtube-player', {
-      height: '100%',
-      width: '100%',
-      videoId: PLAYLIST[0].id,
-      playerVars: {
-        'playsinline': 1,
-        'controls': 0,
-        'disablekb': 1,
-        'fs': 0,
-        'rel': 0,
-        'modestbranding': 1,
-      },
-      events: {
-        'onReady': onPlayerReady,
-        'onStateChange': onPlayerStateChange,
-        'onError': onPlayerError
-      }
-    });
-  };
-
-  const onPlayerReady = (event) => {
-    setPlayerReady(true);
-    event.target.setVolume(volume);
-  };
-
-  const onPlayerStateChange = (event) => {
-    // YT.PlayerState.ENDED is 0
-    if (event.data === 0) {
-      handleNext();
-    }
-    // YT.PlayerState.PLAYING is 1
-    if (event.data === 1) {
-      setIsPlaying(true);
-      setErrorMsg(null);
-    }
-    // YT.PlayerState.PAUSED is 2
-    if (event.data === 2) {
-      setIsPlaying(false);
-    }
-  };
-
-  const onPlayerError = (event) => {
-    // Error codes:
-    // 2: Invalid parameter
-    // 5: HTML5 player error
-    // 100: Video requested not found or removed
-    // 101: Owner does not allow embedded players
-    // 150: Same as 101
-    // 153: Same as 101/150 but specifically related to permissions logic
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Atmospheric Lofi Player</title>
     
-    console.warn(`Youtubeer Error: ${event.data}. Skipping to next track.`);
-    setErrorMsg(`Video unavailable (Error ${event.data}). Skipping...`);
+    <!-- Подключаем Tailwind CSS для стилей -->
+    <script src="https://cdn.tailwindcss.com"></script>
     
-    // Auto-skip to next track after a short delay to prevent infinite loops if all fail
-    setTimeout(() => {
-      handleNext();
-    }, 1500);
-  };
-
-  const handleNext = () => {
-    setCurrentTrackIndex((prev) => (prev + 1) % PLAYLIST.length);
-    setIsPlaying(true);
-  };
-
-  const handlePrev = () => {
-    setCurrentTrackIndex((prev) => (prev - 1 + PLAYLIST.length) % PLAYLIST.length);
-    setIsPlaying(true);
-  };
-
-  const togglePlay = () => {
-    setIsPlaying(!isPlaying);
-  };
-
-  const currentTrack = PLAYLIST[currentTrackIndex];
-
-  return (
-    <div className="flex flex-col h-screen w-full bg-slate-900 text-slate-100 font-sans overflow-hidden">
-      
-      {/* Background / Visualizer Area */}
-      <div className="relative flex-1 w-full bg-black flex items-center justify-center overflow-hidden">
-        {/* The actual YouTube Iframe - Hidden or obscured mostly, but we keep it visible for policy/technical reasons */}
-        <div className="absolute inset-0 opacity-40 pointer-events-none grayscale contrast-125">
-           <div id="youtube-player" className="w-full h-full pointer-events-none"></div>
-        </div>
-
-        {/* Overlay Content */}
-        <div className="z-10 text-center p-8 backdrop-blur-sm bg-black/20 rounded-xl max-w-lg mx-4 border border-white/10 shadow-2xl">
-           <div className="mb-6 relative group">
-              <div className={`w-32 h-32 mx-auto rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/50 transition-transform duration-[4000ms] ${isPlaying ? 'rotate-[360deg]' : ''}`}>
-                 <Music size={48} className="text-white" />
-              </div>
-           </div>
-           
-           <h2 className="text-2xl font-bold mb-2 tracking-tight text-white">{currentTrack.title}</h2>
-           <p className="text-slate-400 font-medium">{currentTrack.channel}</p>
-
-           {errorMsg && (
-             <div className="mt-4 flex items-center justify-center gap-2 text-amber-400 bg-amber-950/30 py-2 px-4 rounded-full text-sm animate-pulse">
-               <AlertCircle size={16} />
-               <span>{errorMsg}</span>
-             </div>
-           )}
-        </div>
-      </div>
-
-      {/* Control Bar */}
-      <div className="h-24 bg-slate-800 border-t border-slate-700 flex items-center justify-between px-6 sm:px-12 z-20">
+    <!-- Кастомные стили для анимаций -->
+    <style>
+        /* Анимация вращения для логотипа */
+        @keyframes slow-spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
         
-        {/* Left: Track Info (Desktop) */}
-        <div className="hidden sm:flex flex-col w-1/3">
-          <span className="text-xs text-slate-400 uppercase tracking-wider">Now Playing</span>
-          <span className="text-sm font-semibold truncate pr-4">{currentTrack.title}</span>
+        .animate-spin-slow {
+            animation: slow-spin 4s linear infinite;
+        }
+
+        /* Утилита для скрытия элементов */
+        .hidden-force {
+            display: none !important;
+        }
+
+        /* Стилизация ползунка громкости */
+        input[type=range] {
+            -webkit-appearance: none;
+            background: transparent;
+        }
+        
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 12px;
+            width: 12px;
+            border-radius: 50%;
+            background: #ffffff;
+            cursor: pointer;
+            margin-top: -4px;
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 4px;
+            cursor: pointer;
+            background: #475569;
+            border-radius: 2px;
+        }
+        
+        /* Акцентный цвет ползунка при наведении */
+        input[type=range]:hover::-webkit-slider-runnable-track {
+            background: #6366f1;
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans overflow-hidden h-screen flex flex-col">
+
+    <!-- ФОН / ВИЗУАЛИЗАЦИЯ -->
+    <div class="relative flex-1 w-full bg-black flex items-center justify-center overflow-hidden">
+        
+        <!-- IFrame YouTube (скрыт фильтрами, работает как фон) -->
+        <div class="absolute inset-0 opacity-40 pointer-events-none grayscale contrast-125">
+            <div id="youtube-player" class="w-full h-full pointer-events-none"></div>
         </div>
 
-        {/* Center: Playback Controls */}
-        <div className="flex items-center justify-center gap-6 w-full sm:w-1/3">
-          <button 
-            onClick={handlePrev}
-            className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-700 rounded-full"
-            aria-label="Previous Track"
-          >
-            <SkipBack size={24} />
-          </button>
+        <!-- Оверлей с информацией о треке -->
+        <div class="z-10 text-center p-8 backdrop-blur-sm bg-black/20 rounded-xl max-w-lg mx-4 border border-white/10 shadow-2xl relative">
+            
+            <!-- Круг с иконкой (вращается при проигрывании) -->
+            <div class="mb-6 relative group">
+                <div id="visualizer-circle" class="w-32 h-32 mx-auto rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/50 transition-transform duration-[4000ms]">
+                    <!-- Иконка ноты (SVG) -->
+                    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-white">
+                        <path d="M9 18V5l12-2v13"></path>
+                        <circle cx="6" cy="18" r="3"></circle>
+                        <circle cx="18" cy="16" r="3"></circle>
+                    </svg>
+                </div>
+            </div>
+            
+            <!-- Текст: Название и Канал -->
+            <h2 id="track-title" class="text-2xl font-bold mb-2 tracking-tight text-white transition-opacity duration-300">Загрузка...</h2>
+            <p id="track-channel" class="text-slate-400 font-medium transition-opacity duration-300">...</p>
 
-          <button 
-            onClick={togglePlay}
-            className="w-14 h-14 bg-white text-slate-900 rounded-full flex items-center justify-center hover:scale-105 hover:bg-slate-200 transition-all shadow-lg shadow-white/10"
-            aria-label={isPlaying ? "Pause" : "Play"}
-          >
-            {isPlaying ? <Pause size={28} fill="currentColor" /> : <Play size={28} fill="currentColor" className="ml-1" />}
-          </button>
+            <!-- Сообщение об ошибке (скрыто по умолчанию) -->
+            <div id="error-container" class="mt-4 hidden flex items-center justify-center gap-2 text-amber-400 bg-amber-950/30 py-2 px-4 rounded-full text-sm animate-pulse">
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <line x1="12" y1="8" x2="12" y2="12"></line>
+                    <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+                <span id="error-text">Ошибка воспроизведения</span>
+            </div>
+        </div>
+    </div>
 
-          <button 
-            onClick={handleNext}
-            className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-700 rounded-full"
-            aria-label="Next Track"
-          >
-            <SkipForward size={24} />
-          </button>
+    <!-- ПАНЕЛЬ УПРАВЛЕНИЯ -->
+    <div class="h-24 bg-slate-800 border-t border-slate-700 flex items-center justify-between px-6 sm:px-12 z-20">
+        
+        <!-- Левая часть: Инфо (только десктоп) -->
+        <div class="hidden sm:flex flex-col w-1/3">
+            <span class="text-xs text-slate-400 uppercase tracking-wider">Сейчас играет</span>
+            <span id="footer-track-title" class="text-sm font-semibold truncate pr-4">Загрузка...</span>
         </div>
 
-        {/* Right: Volume */}
-        <div className="hidden sm:flex items-center justify-end w-1/3 gap-3">
-          <button 
-            onClick={() => setIsMuted(!isMuted)}
-            className="text-slate-400 hover:text-white"
-          >
-            {isMuted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
-          </button>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            value={volume}
-            onChange={(e) => setVolume(Number(e.target.value))}
-            className="w-24 h-1.5 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400"
-          />
+        <!-- Центр: Кнопки управления -->
+        <div class="flex items-center justify-center gap-6 w-full sm:w-1/3">
+            <!-- Назад -->
+            <button id="btn-prev" class="text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-700 rounded-full" aria-label="Предыдущий трек">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="19 20 9 12 19 4 19 20"></polygon>
+                    <line x1="5" y1="19" x2="5" y2="5"></line>
+                </svg>
+            </button>
+
+            <!-- Play/Pause -->
+            <button id="btn-play-pause" class="w-14 h-14 bg-white text-slate-900 rounded-full flex items-center justify-center hover:scale-105 hover:bg-slate-200 transition-all shadow-lg shadow-white/10" aria-label="Play">
+                <!-- Иконка Play (по умолчанию) -->
+                <svg id="icon-play" class="ml-1 block" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                <!-- Иконка Pause (скрыта) -->
+                <svg id="icon-pause" class="hidden" xmlns="http://www.w3.org/2000/svg" width="28" height="28" viewBox="0 0 24 24" fill="currentColor" stroke="none">
+                    <rect x="6" y="4" width="4" height="16"></rect>
+                    <rect x="14" y="4" width="4" height="16"></rect>
+                </svg>
+            </button>
+
+            <!-- Вперед -->
+            <button id="btn-next" class="text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-700 rounded-full" aria-label="Следующий трек">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="5 4 15 12 5 20 5 4"></polygon>
+                    <line x1="19" y1="5" x2="19" y2="19"></line>
+                </svg>
+            </button>
         </div>
-      </div>
-      
-      {/* Mobile Volume (Overlay) */}
-      <div className="sm:hidden absolute top-4 right-4 z-30 bg-black/50 p-2 rounded-full backdrop-blur-md">
-         <button 
-            onClick={() => setIsMuted(!isMuted)}
-            className="text-white"
-          >
-            {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
-         </button>
-      </div>
+
+        <!-- Правая часть: Громкость -->
+        <div class="hidden sm:flex items-center justify-end w-1/3 gap-3">
+            <button id="btn-mute" class="text-slate-400 hover:text-white">
+                <!-- Звук есть -->
+                <svg id="icon-vol-on" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                </svg>
+                <!-- Звук выключен -->
+                <svg id="icon-vol-off" class="hidden" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <line x1="23" y1="9" x2="17" y2="15"></line>
+                    <line x1="17" y1="9" x2="23" y2="15"></line>
+                </svg>
+            </button>
+            <input id="volume-slider" type="range" min="0" max="100" value="50">
+        </div>
+        
+        <!-- Мобильная громкость (оверлей) -->
+        <div class="sm:hidden absolute top-4 right-4 z-30 bg-black/50 p-2 rounded-full backdrop-blur-md">
+            <button id="btn-mute-mobile" class="text-white block">
+                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon>
+                    <path d="M19.07 4.93a10 10 0 0 1 0 14.14M15.54 8.46a5 5 0 0 1 0 7.07"></path>
+                </svg>
+            </button>
+        </div>
 
     </div>
-  );
-}
+
+    <!-- СКРИПТ ЛОГИКИ ПЛЕЕРА -->
+    <script>
+        // --- ДАННЫЕ ПЛЕЙЛИСТА ---
+        const PLAYLIST = [
+            { id: 'jfKfPfyJRdk', title: 'lofi hip hop radio - beats to relax/study to', channel: 'Lofi Girl' },
+            { id: '4xDzrJKXOOY', title: 'synthwave radio - beats to chill/game to', channel: 'Lofi Girl' },
+            { id: '5yx6BWlEVcY', title: 'Chillhop Radio - jazzy & lofi hip hop beats', channel: 'Chillhop Music' },
+            { id: 'DWcJFNfaw9c', title: 'lofi hip hop radio - beats to sleep/chill to', channel: 'Lofi Girl' },
+            { id: 'rUxyKA_-grg', title: '24/7 lofi hip hop radio', channel: 'Chillhop Music' },
+            { id: 'lTRiuFIWV54', title: 'Nintendo Lofi Study Beats', channel: 'Helynt' },
+        ];
+
+        // --- СОСТОЯНИЕ ПРИЛОЖЕНИЯ ---
+        let player = null;
+        let isPlaying = false;
+        let currentIndex = 0;
+        let volume = 50;
+        let isMuted = false;
+        let playerReady = false;
+
+        // --- DOM ЭЛЕМЕНТЫ ---
+        const ui = {
+            title: document.getElementById('track-title'),
+            channel: document.getElementById('track-channel'),
+            footerTitle: document.getElementById('footer-track-title'),
+            btnPlayPause: document.getElementById('btn-play-pause'),
+            iconPlay: document.getElementById('icon-play'),
+            iconPause: document.getElementById('icon-pause'),
+            btnPrev: document.getElementById('btn-prev'),
+            btnNext: document.getElementById('btn-next'),
+            btnMute: document.getElementById('btn-mute'),
+            btnMuteMobile: document.getElementById('btn-mute-mobile'),
+            iconVolOn: document.getElementById('icon-vol-on'),
+            iconVolOff: document.getElementById('icon-vol-off'),
+            volumeSlider: document.getElementById('volume-slider'),
+            visualizer: document.getElementById('visualizer-circle'),
+            errorContainer: document.getElementById('error-container'),
+            errorText: document.getElementById('error-text')
+        };
+
+        // --- ИНИЦИАЛИЗАЦИЯ YOUTUBE API ---
+        
+        // Эта функция вызывается автоматически API YouTube, когда он загружен
+        window.onYouTubeIframeAPIReady = function() {
+            player = new YT.Player('youtube-player', {
+                height: '100%',
+                width: '100%',
+                videoId: PLAYLIST[currentIndex].id,
+                playerVars: {
+                    'playsinline': 1,
+                    'controls': 0,
+                    'disablekb': 1,
+                    'fs': 0,
+                    'rel': 0,
+                    'modestbranding': 1,
+                },
+                events: {
+                    'onReady': onPlayerReady,
+                    'onStateChange': onPlayerStateChange,
+                    'onError': onPlayerError
+                }
+            });
+        };
+
+        // Загружаем API асинхронно
+        (function loadYouTubeAPI() {
+            const tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
+            const firstScriptTag = document.getElementsByTagName('script')[0];
+            firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+        })();
+
+        // --- ОБРАБОТЧИКИ СОБЫТИЙ ПЛЕЕРА ---
+
+        function onPlayerReady(event) {
+            playerReady = true;
+            player.setVolume(volume);
+            updateTrackInfoUI();
+            console.log("Player Ready");
+        }
+
+        function onPlayerStateChange(event) {
+            // 0 = Ended
+            if (event.data === YT.PlayerState.ENDED) {
+                playNext();
+            }
+            // 1 = Playing
+            else if (event.data === YT.PlayerState.PLAYING) {
+                isPlaying = true;
+                hideError();
+                updatePlayPauseUI();
+            }
+            // 2 = Paused
+            else if (event.data === YT.PlayerState.PAUSED) {
+                isPlaying = false;
+                updatePlayPauseUI();
+            }
+        }
+
+        function onPlayerError(event) {
+            const code = event.data;
+            console.warn(`YouTube Error: ${code}`);
+            
+            showError(`Видео недоступно (Код ${code}). Пропуск...`);
+            
+            // Авто-пропуск через 1.5 сек
+            setTimeout(() => {
+                playNext();
+            }, 1500);
+        }
+
+        // --- ЛОГИКА УПРАВЛЕНИЯ ---
+
+        function togglePlay() {
+            if (!playerReady) return;
+            if (isPlaying) {
+                player.pauseVideo();
+            } else {
+                player.playVideo();
+            }
+        }
+
+        function playNext() {
+            currentIndex = (currentIndex + 1) % PLAYLIST.length;
+            loadTrack(currentIndex);
+        }
+
+        function playPrev() {
+            currentIndex = (currentIndex - 1 + PLAYLIST.length) % PLAYLIST.length;
+            loadTrack(currentIndex);
+        }
+
+        function loadTrack(index) {
+            if (!playerReady) return;
+            
+            const track = PLAYLIST[index];
+            player.loadVideoById(track.id);
+            updateTrackInfoUI();
+            
+            // Если мы переключили трек, мы обычно хотим, чтобы он заиграл
+            // (даже если до этого стояла пауза, переключение подразумевает действие)
+            // Но можно оставить логику "если играло - играй дальше". 
+            // Здесь сделаем автоплей при переключении.
+            player.playVideo(); 
+        }
+
+        function toggleMute() {
+            if (!playerReady) return;
+            isMuted = !isMuted;
+            if (isMuted) {
+                player.mute();
+            } else {
+                player.unMute();
+                player.setVolume(volume); // Восстанавливаем уровень
+            }
+            updateVolumeUI();
+        }
+
+        function handleVolumeChange(e) {
+            volume = parseInt(e.target.value);
+            if (playerReady) {
+                player.setVolume(volume);
+                if (volume > 0 && isMuted) {
+                    isMuted = false;
+                    player.unMute();
+                }
+            }
+            updateVolumeUI();
+        }
+
+        // --- ОБНОВЛЕНИЕ UI ---
+
+        function updateTrackInfoUI() {
+            const track = PLAYLIST[currentIndex];
+            ui.title.textContent = track.title;
+            ui.channel.textContent = track.channel;
+            ui.footerTitle.textContent = track.title;
+        }
+
+        function updatePlayPauseUI() {
+            if (isPlaying) {
+                ui.iconPlay.classList.add('hidden');
+                ui.iconPause.classList.remove('hidden');
+                ui.visualizer.classList.add('animate-spin-slow');
+            } else {
+                ui.iconPlay.classList.remove('hidden');
+                ui.iconPause.classList.add('hidden');
+                ui.visualizer.classList.remove('animate-spin-slow');
+                // Сброс вращения в начало (опционально, можно оставить на паузе)
+                // ui.visualizer.style.transform = 'rotate(0deg)'; 
+            }
+        }
+
+        function updateVolumeUI() {
+            ui.volumeSlider.value = volume;
+            
+            if (isMuted || volume === 0) {
+                ui.iconVolOn.classList.add('hidden');
+                ui.iconVolOff.classList.remove('hidden');
+            } else {
+                ui.iconVolOn.classList.remove('hidden');
+                ui.iconVolOff.classList.add('hidden');
+            }
+        }
+
+        function showError(msg) {
+            ui.errorText.textContent = msg;
+            ui.errorContainer.classList.remove('hidden');
+            ui.errorContainer.classList.add('flex');
+        }
+
+        function hideError() {
+            ui.errorContainer.classList.add('hidden');
+            ui.errorContainer.classList.remove('flex');
+        }
+
+        // --- ПРИВЯЗКА СОБЫТИЙ DOM ---
+        ui.btnPlayPause.addEventListener('click', togglePlay);
+        ui.btnNext.addEventListener('click', playNext);
+        ui.btnPrev.addEventListener('click', playPrev);
+        ui.btnMute.addEventListener('click', toggleMute);
+        ui.btnMuteMobile.addEventListener('click', toggleMute);
+        ui.volumeSlider.addEventListener('input', handleVolumeChange);
+
+        // Инициализация начального текста
+        updateTrackInfoUI();
+
+    </script>
+</body>
+</html>
