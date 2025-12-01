@@ -1,0 +1,254 @@
+import React, { useState, useEffect, useRef } from 'react';
+import { Play, Pause, SkipForward, SkipBack, Volume2, VolumeX, AlertCircle, Music } from 'lucide-react';
+
+// A curated list of typically embed-safe ambient/lo-fi streams and videos
+const PLAYLIST = [
+  { id: 'jfKfPfyJRdk', title: 'lofi hip hop radio - beats to relax/study to', channel: 'Lofi Girl' },
+  { id: '4xDzrJKXOOY', title: 'synthwave radio - beats to chill/game to', channel: 'Lofi Girl' },
+  { id: '5yx6BWlEVcY', title: 'Chillhop Radio - jazzy & lofi hip hop beats', channel: 'Chillhop Music' },
+  { id: 'DWcJFNfaw9c', title: 'lofi hip hop radio - beats to sleep/chill to', channel: 'Lofi Girl' },
+  { id: 'rUxyKA_-grg', title: '24/7 lofi hip hop radio', channel: 'Chillhop Music' },
+  { id: 'lTRiuFIWV54', title: 'Nintendo Lofi Study Beats', channel: 'Helynt' },
+];
+
+export default function App() {
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [currentTrackIndex, setCurrentTrackIndex] = useState(0);
+  const [volume, setVolume] = useState(50);
+  const [isMuted, setIsMuted] = useState(false);
+  const [playerReady, setPlayerReady] = useState(false);
+  const [errorMsg, setErrorMsg] = useState(null);
+  
+  const playerRef = useRef(null);
+  const containerRef = useRef(null);
+
+  // Load YouTube API
+  useEffect(() => {
+    if (!window.YT) {
+      const tag = document.createElement('script');
+      tag.src = "https://www.youtube.com/iframe_api";
+      const firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    }
+
+    window.onYouTubeIframeAPIReady = initializePlayer;
+
+    if (window.YT && window.YT.Player) {
+      initializePlayer();
+    }
+
+    return () => {
+      // Cleanup not strictly necessary for single page iframe app but good practice
+    };
+  }, []);
+
+  // Update player when track changes
+  useEffect(() => {
+    if (playerReady && playerRef.current) {
+      const videoId = PLAYLIST[currentTrackIndex].id;
+      playerRef.current.loadVideoById(videoId);
+      if (!isPlaying) {
+        playerRef.current.pauseVideo();
+      }
+    }
+  }, [currentTrackIndex]);
+
+  // Update volume
+  useEffect(() => {
+    if (playerReady && playerRef.current) {
+      if (isMuted) {
+        playerRef.current.mute();
+      } else {
+        playerRef.current.unMute();
+        playerRef.current.setVolume(volume);
+      }
+    }
+  }, [volume, isMuted, playerReady]);
+
+  // Sync Play/Pause state
+  useEffect(() => {
+    if (playerReady && playerRef.current) {
+      if (isPlaying) {
+        playerRef.current.playVideo();
+      } else {
+        playerRef.current.pauseVideo();
+      }
+    }
+  }, [isPlaying, playerReady]);
+
+  const initializePlayer = () => {
+    if (playerRef.current) return; // Already initialized
+
+    playerRef.current = new window.YT.Player('youtube-player', {
+      height: '100%',
+      width: '100%',
+      videoId: PLAYLIST[0].id,
+      playerVars: {
+        'playsinline': 1,
+        'controls': 0,
+        'disablekb': 1,
+        'fs': 0,
+        'rel': 0,
+        'modestbranding': 1,
+      },
+      events: {
+        'onReady': onPlayerReady,
+        'onStateChange': onPlayerStateChange,
+        'onError': onPlayerError
+      }
+    });
+  };
+
+  const onPlayerReady = (event) => {
+    setPlayerReady(true);
+    event.target.setVolume(volume);
+  };
+
+  const onPlayerStateChange = (event) => {
+    // YT.PlayerState.ENDED is 0
+    if (event.data === 0) {
+      handleNext();
+    }
+    // YT.PlayerState.PLAYING is 1
+    if (event.data === 1) {
+      setIsPlaying(true);
+      setErrorMsg(null);
+    }
+    // YT.PlayerState.PAUSED is 2
+    if (event.data === 2) {
+      setIsPlaying(false);
+    }
+  };
+
+  const onPlayerError = (event) => {
+    // Error codes:
+    // 2: Invalid parameter
+    // 5: HTML5 player error
+    // 100: Video requested not found or removed
+    // 101: Owner does not allow embedded players
+    // 150: Same as 101
+    // 153: Same as 101/150 but specifically related to permissions logic
+    
+    console.warn(`Youtubeer Error: ${event.data}. Skipping to next track.`);
+    setErrorMsg(`Video unavailable (Error ${event.data}). Skipping...`);
+    
+    // Auto-skip to next track after a short delay to prevent infinite loops if all fail
+    setTimeout(() => {
+      handleNext();
+    }, 1500);
+  };
+
+  const handleNext = () => {
+    setCurrentTrackIndex((prev) => (prev + 1) % PLAYLIST.length);
+    setIsPlaying(true);
+  };
+
+  const handlePrev = () => {
+    setCurrentTrackIndex((prev) => (prev - 1 + PLAYLIST.length) % PLAYLIST.length);
+    setIsPlaying(true);
+  };
+
+  const togglePlay = () => {
+    setIsPlaying(!isPlaying);
+  };
+
+  const currentTrack = PLAYLIST[currentTrackIndex];
+
+  return (
+    <div className="flex flex-col h-screen w-full bg-slate-900 text-slate-100 font-sans overflow-hidden">
+      
+      {/* Background / Visualizer Area */}
+      <div className="relative flex-1 w-full bg-black flex items-center justify-center overflow-hidden">
+        {/* The actual YouTube Iframe - Hidden or obscured mostly, but we keep it visible for policy/technical reasons */}
+        <div className="absolute inset-0 opacity-40 pointer-events-none grayscale contrast-125">
+           <div id="youtube-player" className="w-full h-full pointer-events-none"></div>
+        </div>
+
+        {/* Overlay Content */}
+        <div className="z-10 text-center p-8 backdrop-blur-sm bg-black/20 rounded-xl max-w-lg mx-4 border border-white/10 shadow-2xl">
+           <div className="mb-6 relative group">
+              <div className={`w-32 h-32 mx-auto rounded-full bg-gradient-to-tr from-indigo-500 to-purple-600 flex items-center justify-center shadow-lg shadow-indigo-500/50 transition-transform duration-[4000ms] ${isPlaying ? 'rotate-[360deg]' : ''}`}>
+                 <Music size={48} className="text-white" />
+              </div>
+           </div>
+           
+           <h2 className="text-2xl font-bold mb-2 tracking-tight text-white">{currentTrack.title}</h2>
+           <p className="text-slate-400 font-medium">{currentTrack.channel}</p>
+
+           {errorMsg && (
+             <div className="mt-4 flex items-center justify-center gap-2 text-amber-400 bg-amber-950/30 py-2 px-4 rounded-full text-sm animate-pulse">
+               <AlertCircle size={16} />
+               <span>{errorMsg}</span>
+             </div>
+           )}
+        </div>
+      </div>
+
+      {/* Control Bar */}
+      <div className="h-24 bg-slate-800 border-t border-slate-700 flex items-center justify-between px-6 sm:px-12 z-20">
+        
+        {/* Left: Track Info (Desktop) */}
+        <div className="hidden sm:flex flex-col w-1/3">
+          <span className="text-xs text-slate-400 uppercase tracking-wider">Now Playing</span>
+          <span className="text-sm font-semibold truncate pr-4">{currentTrack.title}</span>
+        </div>
+
+        {/* Center: Playback Controls */}
+        <div className="flex items-center justify-center gap-6 w-full sm:w-1/3">
+          <button 
+            onClick={handlePrev}
+            className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-700 rounded-full"
+            aria-label="Previous Track"
+          >
+            <SkipBack size={24} />
+          </button>
+
+          <button 
+            onClick={togglePlay}
+            className="w-14 h-14 bg-white text-slate-900 rounded-full flex items-center justify-center hover:scale-105 hover:bg-slate-200 transition-all shadow-lg shadow-white/10"
+            aria-label={isPlaying ? "Pause" : "Play"}
+          >
+            {isPlaying ? <Pause size={28} fill="currentColor" /> : <Play size={28} fill="currentColor" className="ml-1" />}
+          </button>
+
+          <button 
+            onClick={handleNext}
+            className="text-slate-400 hover:text-white transition-colors p-2 hover:bg-slate-700 rounded-full"
+            aria-label="Next Track"
+          >
+            <SkipForward size={24} />
+          </button>
+        </div>
+
+        {/* Right: Volume */}
+        <div className="hidden sm:flex items-center justify-end w-1/3 gap-3">
+          <button 
+            onClick={() => setIsMuted(!isMuted)}
+            className="text-slate-400 hover:text-white"
+          >
+            {isMuted || volume === 0 ? <VolumeX size={20} /> : <Volume2 size={20} />}
+          </button>
+          <input
+            type="range"
+            min="0"
+            max="100"
+            value={volume}
+            onChange={(e) => setVolume(Number(e.target.value))}
+            className="w-24 h-1.5 bg-slate-600 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:accent-indigo-400"
+          />
+        </div>
+      </div>
+      
+      {/* Mobile Volume (Overlay) */}
+      <div className="sm:hidden absolute top-4 right-4 z-30 bg-black/50 p-2 rounded-full backdrop-blur-md">
+         <button 
+            onClick={() => setIsMuted(!isMuted)}
+            className="text-white"
+          >
+            {isMuted ? <VolumeX size={20} /> : <Volume2 size={20} />}
+         </button>
+      </div>
+
+    </div>
+  );
+}
