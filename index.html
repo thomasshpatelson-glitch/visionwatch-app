@@ -86,6 +86,26 @@
         .fade-in { animation: fadeIn 0.5s cubic-bezier(0.2, 0.8, 0.2, 1) forwards; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
 
+        /* Toast Animation */
+        @keyframes slideUpFade {
+            0% { opacity: 0; transform: translateY(20px) scale(0.95); }
+            10% { opacity: 1; transform: translateY(0) scale(1); }
+            90% { opacity: 1; transform: translateY(0) scale(1); }
+            100% { opacity: 0; transform: translateY(-10px) scale(0.95); }
+        }
+        
+        .toast-msg {
+            animation: slideUpFade 10s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+        }
+
+        /* Drawer Transition */
+        .drawer {
+            transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        .drawer.closed {
+            transform: translateX(100%);
+        }
+
         /* Custom UI Elements */
         .input-matte {
             background: rgba(0,0,0,0.4);
@@ -132,7 +152,7 @@
         }
     </style>
 </head>
-<body class="h-screen w-screen relative selection:bg-white/20">
+<body class="h-screen w-screen relative selection:bg-white/20 overflow-hidden">
 
     <div class="noise-bg"></div>
 
@@ -153,7 +173,6 @@
     <div id="login-screen" class="absolute inset-0 flex items-center justify-center p-4 z-50">
         <div class="matte-card rounded-3xl p-6 md:p-10 w-full max-w-md flex flex-col items-center gap-6 fade-in relative overflow-hidden">
             
-            <!-- Logo area -->
             <div class="text-center space-y-1 z-10">
                 <div class="w-12 h-12 bg-white rounded-xl flex items-center justify-center mx-auto mb-3 shadow-[0_0_20px_rgba(255,255,255,0.2)]">
                     <svg class="text-black" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>
@@ -162,15 +181,11 @@
                 <p class="text-secondary text-xs uppercase tracking-widest font-medium">Shared Streaming</p>
             </div>
 
-            <!-- Main Actions -->
             <div class="w-full space-y-3 z-10 mt-2">
-                
                 <!-- Create Section -->
                 <div class="bg-white/5 rounded-2xl p-4 border border-white/5 space-y-3">
                     <div class="flex items-center justify-between">
                         <span class="text-sm font-medium text-white">Создать комнату</span>
-                        
-                        <!-- Private Toggle -->
                         <div class="flex items-center gap-2">
                             <span class="text-[10px] text-secondary uppercase tracking-wider">Приватная</span>
                             <div class="relative inline-block w-10 mr-2 align-middle select-none transition duration-200 ease-in">
@@ -204,100 +219,99 @@
     </div>
 
     <!-- VIEW 2: APP INTERFACE -->
-    <div id="app-screen" class="hidden h-full w-full flex-col lg:flex-row fade-in relative z-10 bg-black/50">
+    <div id="app-screen" class="hidden h-full w-full relative fade-in z-10 bg-black">
         
-        <!-- HEADER (Mobile/Tablet) -->
-        <div class="lg:hidden flex items-center justify-between px-4 py-3 border-b border-white/5 bg-black/60 backdrop-blur-xl z-20 sticky top-0">
-            <div class="flex items-center gap-3">
-                <button id="btn-leave-mobile" class="text-red-400 hover:text-red-300 transition-colors">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+        <!-- HEADER (Overlay) -->
+        <div class="absolute top-0 left-0 right-0 p-4 md:p-6 z-30 flex justify-between items-start pointer-events-none">
+            <!-- Left: Controls -->
+            <div class="pointer-events-auto flex items-center gap-3">
+                <button id="btn-leave" class="group flex items-center gap-2 px-3 py-2 bg-black/40 hover:bg-red-500/20 backdrop-blur-md rounded-lg border border-white/10 hover:border-red-500/50 transition-all">
+                    <svg class="text-white/60 group-hover:text-red-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                    <span class="hidden md:inline text-xs font-medium text-white/60 group-hover:text-red-400">Выйти</span>
                 </button>
-                <div class="h-4 w-px bg-white/10"></div>
-                <span id="display-room-id-mobile" class="font-mono text-sm text-white tracking-widest opacity-80">...</span>
-            </div>
-            
-            <div class="flex items-center gap-3">
-                <div class="flex items-center gap-1.5 px-2 py-1 bg-white/5 rounded-md border border-white/5">
-                    <svg class="text-secondary" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-                    <span id="count-mobile" class="text-xs font-mono text-white">1</span>
+                
+                <div class="bg-black/40 backdrop-blur-md rounded-lg border border-white/10 px-4 py-2 flex items-center gap-4">
+                    <div class="flex items-center gap-2">
+                        <div class="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                        <span id="display-room-id" class="font-mono text-sm text-white font-bold tracking-widest">...</span>
+                    </div>
+                    <div class="h-3 w-px bg-white/20 hidden md:block"></div>
+                    <button id="btn-copy" class="hidden md:block text-xs text-secondary hover:text-white uppercase tracking-wider">Copy</button>
                 </div>
-                <button id="btn-copy-mobile" class="text-white/60 hover:text-white"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></button>
+            </div>
+
+            <!-- Right: Chat Toggle & Count -->
+            <div class="pointer-events-auto flex flex-col items-end gap-2">
+                <button id="btn-toggle-chat" class="relative w-12 h-12 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/10 rounded-full flex items-center justify-center transition-all shadow-lg">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="text-white"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                    <!-- Unread Dot (optional) -->
+                    <div id="unread-dot" class="hidden absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border-2 border-[#050505]"></div>
+                </button>
+                <div class="flex items-center gap-1.5 px-2 py-1 bg-black/40 backdrop-blur-md rounded-md border border-white/5 text-[10px] text-white/60 font-mono">
+                    <span id="participant-count">1</span> Users
+                </div>
             </div>
         </div>
 
-        <!-- MAIN CONTENT (Video) -->
-        <div class="flex-1 flex flex-col justify-center relative bg-black lg:border-r border-white/5">
-            <!-- Desktop Header Overlay -->
-            <div class="hidden lg:flex absolute top-0 left-0 right-0 p-6 justify-between items-start z-30 pointer-events-none">
-                <div class="pointer-events-auto flex items-center gap-4">
-                    <button id="btn-leave-desktop" class="group flex items-center gap-2 px-3 py-2 bg-black/40 hover:bg-red-500/20 backdrop-blur-md rounded-lg border border-white/10 hover:border-red-500/50 transition-all">
-                        <svg class="text-white/60 group-hover:text-red-400" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-                        <span class="text-xs font-medium text-white/60 group-hover:text-red-400">Выйти</span>
-                    </button>
-                </div>
-                
-                <div class="pointer-events-auto bg-black/40 backdrop-blur-md rounded-lg border border-white/10 px-4 py-2 flex items-center gap-4">
-                    <span id="display-room-id-desktop" class="font-mono text-sm text-white font-bold tracking-widest">...</span>
-                    <div class="h-3 w-px bg-white/20"></div>
-                    <button id="btn-copy-desktop" class="text-xs text-secondary hover:text-white uppercase tracking-wider">Copy Link</button>
-                </div>
-            </div>
-
-            <!-- Player Wrapper -->
-            <div class="w-full aspect-video bg-black relative shadow-2xl overflow-hidden group">
+        <!-- MAIN VIDEO LAYER -->
+        <div class="absolute inset-0 z-0">
+            <div id="player-wrapper" class="w-full h-full bg-black relative">
                 <div id="player-placeholder" class="absolute inset-0 flex items-center justify-center bg-[#080808] z-10">
                     <div class="w-8 h-8 border-2 border-white/20 border-t-white rounded-full animate-spin"></div>
                 </div>
                 <div id="youtube-player" class="w-full h-full"></div>
-                
-                <!-- Sync Notification -->
-                <div id="sync-badge" class="absolute bottom-6 left-6 px-3 py-1.5 bg-black/60 backdrop-blur-md rounded-lg border border-white/10 flex items-center gap-2 opacity-0 transition-opacity duration-300 pointer-events-none">
-                    <div class="w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_8px_#22c55e]"></div>
-                    <span class="text-[10px] font-bold uppercase tracking-widest text-white">Синхронизация</span>
-                </div>
-            </div>
-
-            <!-- Controls Bar -->
-            <div class="p-4 lg:absolute lg:bottom-0 lg:left-0 lg:right-0 lg:p-6 lg:bg-gradient-to-t lg:from-black/90 lg:to-transparent pointer-events-none">
-                <div class="pointer-events-auto flex gap-2 max-w-2xl mx-auto">
-                    <div class="flex-1 matte-card rounded-xl flex items-center px-1 py-1 focus-within:border-white/30 transition-colors">
-                        <input id="input-video-url" type="text" placeholder="Вставьте ссылку YouTube..." class="flex-1 bg-transparent px-3 text-sm text-white placeholder:text-secondary/50 outline-none min-w-0">
-                    </div>
-                    <button id="btn-change-video" class="btn-primary px-5 rounded-xl text-xs font-bold uppercase tracking-wide whitespace-nowrap shadow-lg">
-                        Play
-                    </button>
-                </div>
             </div>
         </div>
 
-        <!-- SIDEBAR (Chat) -->
-        <div class="h-[40vh] lg:h-full lg:w-96 flex flex-col bg-[#080808] border-t lg:border-t-0 lg:border-l border-white/5 shadow-2xl z-20">
-            <!-- Sidebar Header -->
-            <div class="px-5 py-4 border-b border-white/5 flex justify-between items-center bg-white/[0.01]">
-                <span class="text-xs font-bold uppercase tracking-widest text-secondary">Чат комнаты</span>
-                <div class="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-white/5 border border-white/5">
-                    <div class="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
-                    <span id="count-desktop" class="text-[10px] font-mono text-white/80">1/10</span>
-                </div>
+        <!-- TOAST CONTAINER (Ephemeral Messages) -->
+        <div id="toast-container" class="absolute bottom-24 left-4 right-4 md:left-8 md:right-auto md:w-96 flex flex-col-reverse gap-3 z-20 pointer-events-none">
+            <!-- Toasts will appear here -->
+        </div>
+
+        <!-- BOTTOM CONTROLS (Floating) -->
+        <div class="absolute bottom-6 left-0 right-0 px-4 md:px-0 z-30 flex justify-center pointer-events-none">
+            <div class="pointer-events-auto flex gap-2 w-full max-w-lg matte-card p-1.5 rounded-xl">
+                <input id="input-video-url" type="text" placeholder="Ссылка на YouTube..." class="flex-1 bg-transparent px-3 py-2 text-sm text-white placeholder:text-secondary/50 outline-none min-w-0">
+                <button id="btn-change-video" class="btn-primary px-5 rounded-lg text-xs font-bold uppercase tracking-wide whitespace-nowrap shadow-lg">
+                    Play
+                </button>
+            </div>
+        </div>
+
+        <!-- CHAT DRAWER (Sliding Menu) -->
+        <div id="chat-drawer" class="absolute top-0 right-0 bottom-0 w-80 md:w-96 bg-[#0a0a0a]/95 backdrop-blur-2xl border-l border-white/10 z-40 drawer closed flex flex-col shadow-2xl">
+            <!-- Drawer Header -->
+            <div class="px-5 py-4 border-b border-white/5 flex justify-between items-center bg-white/[0.02]">
+                <span class="text-xs font-bold uppercase tracking-widest text-secondary">Чат</span>
+                <button id="btn-close-chat" class="p-1 hover:bg-white/10 rounded-md transition-colors text-white/60">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
             </div>
 
-            <!-- Messages -->
+            <!-- Messages List -->
             <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth">
-                <div class="text-center py-4">
-                    <span class="text-[10px] text-white/20 uppercase tracking-widest">История пуста</span>
+                <div class="text-center py-8">
+                    <span class="text-[10px] text-white/20 uppercase tracking-widest">Комната создана</span>
                 </div>
             </div>
 
-            <!-- Input -->
-            <div class="p-3 bg-[#0a0a0a] border-t border-white/5">
+            <!-- Input Area -->
+            <div class="p-4 bg-black/20 border-t border-white/5">
                 <form id="chat-form" class="relative">
-                    <input id="chat-input" type="text" placeholder="Написать..." class="w-full input-matte rounded-xl pl-4 pr-10 py-3 text-sm" autocomplete="off">
+                    <input id="chat-input" type="text" placeholder="Сообщение..." class="w-full input-matte rounded-xl pl-4 pr-10 py-3 text-sm" autocomplete="off">
                     <button type="submit" class="absolute right-2 top-1/2 -translate-y-1/2 p-1.5 text-white/60 hover:text-white transition-colors">
                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
                     </button>
                 </form>
             </div>
         </div>
+
+        <!-- SYNC BADGE -->
+        <div id="sync-badge" class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 px-4 py-2 bg-black/60 backdrop-blur-md rounded-full border border-white/10 flex items-center gap-2 opacity-0 transition-opacity duration-300 pointer-events-none z-50">
+            <div class="w-1.5 h-1.5 bg-green-500 rounded-full shadow-[0_0_8px_#22c55e]"></div>
+            <span class="text-[10px] font-bold uppercase tracking-widest text-white">Sync</span>
+        </div>
+
     </div>
 
     <!-- SCRIPT -->
@@ -309,61 +323,66 @@
         let unsubscribeRoom = null;
         let unsubscribeChat = null;
         let suppressUpdate = false;
+        let isChatOpen = false;
         
-        // Modules
         const { doc, setDoc, onSnapshot, updateDoc, addDoc, collection, getDoc, arrayUnion, arrayRemove } = window.fbImports;
 
-        // UI Refs
         const ui = {
             login: document.getElementById('login-screen'),
             app: document.getElementById('app-screen'),
             modal: document.getElementById('password-modal'),
             
-            // Inputs/Buttons Login
+            // Login Elements
             togglePrivate: document.getElementById('toggle-private'),
             createPass: document.getElementById('create-password'),
             btnCreate: document.getElementById('btn-create'),
             btnJoin: document.getElementById('btn-join'),
             inputRoomId: document.getElementById('input-room-id'),
             
-            // Modal
+            // Modal Elements
             modalPassInput: document.getElementById('modal-password-input'),
             btnCancelAuth: document.getElementById('btn-cancel-auth'),
             btnSubmitAuth: document.getElementById('btn-submit-auth'),
             
-            // App UI
-            displayIdDesk: document.getElementById('display-room-id-desktop'),
-            displayIdMob: document.getElementById('display-room-id-mobile'),
-            countDesk: document.getElementById('count-desktop'),
-            countMob: document.getElementById('count-mobile'),
-            
-            btnLeaveDesk: document.getElementById('btn-leave-desktop'),
-            btnLeaveMob: document.getElementById('btn-leave-mobile'),
-            btnCopyDesk: document.getElementById('btn-copy-desktop'),
-            btnCopyMob: document.getElementById('btn-copy-mobile'),
-            
+            // App Elements
+            displayId: document.getElementById('display-room-id'),
+            participantCount: document.getElementById('participant-count'),
+            btnLeave: document.getElementById('btn-leave'),
+            btnCopy: document.getElementById('btn-copy'),
             videoInput: document.getElementById('input-video-url'),
             btnChangeVid: document.getElementById('btn-change-video'),
             
+            // Chat & Drawer
+            drawer: document.getElementById('chat-drawer'),
+            btnToggleChat: document.getElementById('btn-toggle-chat'),
+            btnCloseChat: document.getElementById('btn-close-chat'),
             chatForm: document.getElementById('chat-form'),
             chatInput: document.getElementById('chat-input'),
             chatMsgs: document.getElementById('chat-messages'),
+            toastContainer: document.getElementById('toast-container'),
+            
             syncBadge: document.getElementById('sync-badge'),
         };
 
-        // --- INITIALIZATION ---
+        // --- INIT ---
         window.onload = async () => {
-            // Setup UI Listeners
-            ui.togglePrivate.addEventListener('change', (e) => {
-                ui.createPass.classList.toggle('hidden', !e.target.checked);
-            });
+            // UI Setups
+            ui.togglePrivate.addEventListener('change', (e) => ui.createPass.classList.toggle('hidden', !e.target.checked));
             
-            // Check URL
+            // Chat Drawer Logic
+            const toggleChat = () => {
+                isChatOpen = !isChatOpen;
+                ui.drawer.classList.toggle('closed', !isChatOpen);
+            };
+            ui.btnToggleChat.addEventListener('click', toggleChat);
+            ui.btnCloseChat.addEventListener('click', toggleChat);
+
+            // URL Params
             const urlParams = new URLSearchParams(window.location.search);
             const roomParam = urlParams.get('room');
             if (roomParam) ui.inputRoomId.value = roomParam;
 
-            // Init Firebase
+            // Firebase Init
             const fb = await window.initFirebase();
             if (!fb) return alert("Firebase setup failed");
             
@@ -372,7 +391,7 @@
             appId = fb.appId;
             userId = auth.currentUser ? auth.currentUser.uid : 'user_' + Math.random().toString(36).substr(2, 5);
 
-            // Load YT
+            // Load YouTube
             const tag = document.createElement('script');
             tag.src = "https://www.youtube.com/iframe_api";
             document.body.appendChild(tag);
@@ -404,15 +423,13 @@
             }
         }
 
-        // --- CORE LOGIC ---
-
-        // 1. Create Room
+        // --- ROOM LOGIC ---
         ui.btnCreate.addEventListener('click', async () => {
             const newId = Math.random().toString(36).substr(2, 6).toUpperCase();
             const isPrivate = ui.togglePrivate.checked;
             const password = isPrivate ? ui.createPass.value.trim() : null;
 
-            if (isPrivate && !password) return alert("Введите пароль для приватной комнаты");
+            if (isPrivate && !password) return alert("Введите пароль");
 
             try {
                 await setDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', newId), {
@@ -422,89 +439,64 @@
                     lastUpdated: Date.now(),
                     createdBy: userId,
                     isPrivate: isPrivate,
-                    password: password, // In a real app, hash this!
+                    password: password,
                     participants: [userId]
                 });
                 joinSuccess(newId);
             } catch (e) {
                 console.error(e);
-                alert("Ошибка создания: " + e.message);
+                alert("Error: " + e.message);
             }
         });
 
-        // 2. Join Button Click
         ui.btnJoin.addEventListener('click', () => {
             const id = ui.inputRoomId.value.trim().toUpperCase();
             if(!id) return;
             checkRoomAndJoin(id);
         });
 
-        // 3. Room Validation & Join Logic
         async function checkRoomAndJoin(id, providedPassword = null) {
             const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', id);
             const snap = await getDoc(roomRef);
 
             if (!snap.exists()) return alert("Комната не найдена");
-            
             const data = snap.data();
 
-            // Capacity Check (Max 10)
-            const currentUsers = data.participants || [];
-            if (currentUsers.length >= 10 && !currentUsers.includes(userId)) {
-                return alert("Комната переполнена (макс. 10 человек)");
+            if ((data.participants || []).length >= 10 && !data.participants.includes(userId)) {
+                return alert("Комната переполнена");
             }
 
-            // Privacy Check
-            if (data.isPrivate) {
-                if (providedPassword === data.password) {
-                    // Pass correct
-                    finalizeJoin(id);
-                } else {
-                    // Need pass
+            if (data.isPrivate && providedPassword !== data.password) {
+                if (providedPassword === null) {
                     pendingRoomId = id;
                     ui.modal.classList.remove('hidden');
+                } else {
+                    alert("Неверный пароль");
                 }
             } else {
-                finalizeJoin(id);
+                await updateDoc(roomRef, { participants: arrayUnion(userId) });
+                joinSuccess(id);
             }
         }
 
-        // 4. Modal Logic
         let pendingRoomId = null;
         ui.btnCancelAuth.addEventListener('click', () => {
             ui.modal.classList.add('hidden');
             ui.modalPassInput.value = '';
-            pendingRoomId = null;
         });
-        
         ui.btnSubmitAuth.addEventListener('click', () => {
-            const pass = ui.modalPassInput.value.trim();
-            if(pendingRoomId && pass) {
-                checkRoomAndJoin(pendingRoomId, pass);
+            if(pendingRoomId) {
+                checkRoomAndJoin(pendingRoomId, ui.modalPassInput.value.trim());
                 ui.modal.classList.add('hidden');
                 ui.modalPassInput.value = '';
             }
         });
 
-        async function finalizeJoin(id) {
-            // Add user to participants list
-            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', id);
-            await updateDoc(roomRef, {
-                participants: arrayUnion(userId)
-            });
-            joinSuccess(id);
-        }
-
         function joinSuccess(id) {
             roomId = id;
-            
-            // Switch UI
             ui.login.classList.add('hidden');
             ui.app.classList.remove('hidden');
-            ui.app.classList.add('flex');
-            
-            ui.displayIdDesk.textContent = id;
-            ui.displayIdMob.textContent = id;
+            ui.displayId.textContent = id;
             
             const newUrl = `${window.location.pathname}?room=${id}`;
             window.history.pushState({path:newUrl},'',newUrl);
@@ -512,74 +504,84 @@
             startListeners(id);
         }
 
-        // 5. Leave Room
         const leaveRoom = async () => {
             if (!roomId) return;
-            
-            // Remove from participants
             try {
                 const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomId);
-                await updateDoc(roomRef, {
-                    participants: arrayRemove(userId)
-                });
-            } catch(e) { console.error("Error leaving", e); }
+                await updateDoc(roomRef, { participants: arrayRemove(userId) });
+            } catch(e) {}
 
-            // Stop Listeners
             if (unsubscribeRoom) unsubscribeRoom();
             if (unsubscribeChat) unsubscribeChat();
             
             roomId = null;
             ui.app.classList.add('hidden');
-            ui.app.classList.remove('flex');
             ui.login.classList.remove('hidden');
-            
-            // Reset URL
-            const cleanUrl = window.location.pathname;
-            window.history.pushState({path:cleanUrl},'',cleanUrl);
-            
-            // Stop Player
+            window.history.pushState({path:window.location.pathname},'',window.location.pathname);
             if(player) player.pauseVideo();
         };
-
-        ui.btnLeaveDesk.addEventListener('click', leaveRoom);
-        ui.btnLeaveMob.addEventListener('click', leaveRoom);
-        
-        // Window close handler
-        window.addEventListener('beforeunload', () => {
-            if(roomId) {
-                // Best effort remove
-                const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomId);
-                updateDoc(roomRef, { participants: arrayRemove(userId) });
-            }
-        });
+        ui.btnLeave.addEventListener('click', leaveRoom);
+        window.addEventListener('beforeunload', () => { if(roomId) leaveRoom(); });
 
 
-        // --- SYNC & LISTENERS ---
+        // --- LISTENERS ---
         function startListeners(id) {
-            const roomRef = doc(db, 'artifacts', appId, 'public', 'data', 'rooms', id);
-            
-            unsubscribeRoom = onSnapshot(roomRef, (snap) => {
+            unsubscribeRoom = onSnapshot(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', id), (snap) => {
                 if (snap.exists()) {
                     const data = snap.data();
                     syncPlayer(data);
-                    
-                    // Update Participant Count
-                    const count = data.participants ? data.participants.length : 1;
-                    ui.countDesk.textContent = `${count}/10`;
-                    ui.countMob.textContent = count;
+                    ui.participantCount.textContent = (data.participants || []).length;
                 } else {
-                    alert("Комната была удалена");
+                    alert("Комната удалена");
                     leaveRoom();
                 }
             });
 
+            // CHAT & TOASTS
             const chatCol = collection(db, 'artifacts', appId, 'public', 'data', 'chat_' + id);
             unsubscribeChat = onSnapshot(chatCol, (snap) => {
+                // 1. Detect NEW messages for Toasts
+                snap.docChanges().forEach((change) => {
+                    if (change.type === "added") {
+                        const msg = change.doc.data();
+                        // Only toast if message is very recent (< 10s ago)
+                        // This prevents spamming toasts when joining a room with history
+                        if (Date.now() - msg.createdAt < 10000) {
+                            showToast(msg);
+                        }
+                    }
+                });
+
+                // 2. Render Full History
                 const msgs = [];
                 snap.forEach(d => msgs.push(d.data()));
                 msgs.sort((a,b) => a.createdAt - b.createdAt);
                 renderChat(msgs);
             });
+        }
+
+        // --- TOAST SYSTEM ---
+        function showToast(msg) {
+            const isMe = msg.userId === userId;
+            // Optional: Don't show toast for my own messages if chat is open, etc.
+            // But usually nice to see confirmation.
+            
+            const toast = document.createElement('div');
+            toast.className = `toast-msg max-w-xs self-start p-3 rounded-2xl border border-white/10 backdrop-blur-xl shadow-xl flex gap-3 items-center pointer-events-auto ${isMe ? 'bg-white/10' : 'bg-black/60'}`;
+            
+            toast.innerHTML = `
+                <div class="flex-1 min-w-0">
+                    <p class="text-[10px] text-white/50 uppercase tracking-wider mb-0.5">${escapeHtml(msg.username)}</p>
+                    <p class="text-sm text-white font-medium truncate">${escapeHtml(msg.text)}</p>
+                </div>
+            `;
+            
+            ui.toastContainer.appendChild(toast);
+            
+            // Remove from DOM after animation finishes (10s)
+            setTimeout(() => {
+                toast.remove();
+            }, 10000);
         }
 
         function syncPlayer(data) {
@@ -616,7 +618,6 @@
             try { await updateDoc(doc(db, 'artifacts', appId, 'public', 'data', 'rooms', roomId), data); } catch (e) {}
         }
 
-        // --- CHAT & UTILS ---
         ui.chatForm.addEventListener('submit', async (e) => {
             e.preventDefault();
             const text = ui.chatInput.value.trim();
@@ -654,21 +655,18 @@
                 if (url.includes('v=')) vidId = new URL(url).searchParams.get('v');
                 else if (url.includes('youtu.be')) vidId = url.split('/').pop();
             } catch(e){}
-            
             if(vidId) {
                 updateRoomDoc({ videoId: vidId, timestamp: 0, isPlaying: true, lastUpdated: Date.now() });
                 ui.videoInput.value = '';
             }
         });
 
-        const copyLink = (btn) => {
+        ui.btnCopy.addEventListener('click', () => {
             navigator.clipboard.writeText(window.location.href);
-            const orig = btn.innerHTML;
-            btn.textContent = "Скопировано";
-            setTimeout(() => btn.innerHTML = orig, 1500);
-        };
-        ui.btnCopyDesk.addEventListener('click', () => copyLink(ui.btnCopyDesk));
-        ui.btnCopyMob.addEventListener('click', () => copyLink(ui.btnCopyMob));
+            const orig = ui.btnCopy.innerText;
+            ui.btnCopy.innerText = "COPIED";
+            setTimeout(() => ui.btnCopy.innerText = orig, 1500);
+        });
 
         function flashSync() {
             ui.syncBadge.style.opacity = '1';
