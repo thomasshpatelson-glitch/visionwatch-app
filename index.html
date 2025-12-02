@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
-    <title>Co-Watch | Chat Previews</title>
+    <title>Co-Watch | Батя Edition</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
@@ -72,7 +72,7 @@
         .seek-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #fff; cursor: pointer; box-shadow: 0 0 10px rgba(255,255,255,0.5); transition: transform 0.1s; }
         .seek-slider:hover::-webkit-slider-thumb { transform: scale(1.3); }
 
-        /* --- NOTIFICATION TOAST (FIXED BOTTOM-RIGHT) --- */
+        /* --- NOTIFICATION TOAST --- */
         #notification-area {
             position: fixed; 
             bottom: 30px; 
@@ -90,7 +90,7 @@
             backdrop-filter: blur(12px);
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            border-left: 4px solid #fff;
+            border-left: 4px solid #fbbf24; /* Yellow for Batya vibe */
             padding: 14px 20px;
             border-radius: 12px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.6);
@@ -109,17 +109,10 @@
             word-break: break-word;
         }
 
-        .toast b { color: #60a5fa; font-weight: 700; margin-right: 6px; }
+        .toast b { color: #fbbf24; font-weight: 700; margin-right: 6px; }
 
-        .toast.show {
-            opacity: 1;
-            transform: translateX(0);
-        }
-
-        .toast.hiding {
-            opacity: 0;
-            transform: scale(0.95) translateY(10px);
-        }
+        .toast.show { opacity: 1; transform: translateX(0); }
+        .toast.hiding { opacity: 0; transform: scale(0.95) translateY(10px); }
 
         /* ADMIN BADGE */
         .admin-crown { color: #fbbf24; text-shadow: 0 0 10px rgba(251, 191, 36, 0.5); }
@@ -156,7 +149,7 @@
         <div class="glass-panel p-10 rounded-[32px] max-w-sm w-full text-center pointer-events-auto relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
             <h1 class="text-5xl font-extrabold mb-2 tracking-tighter">Co-Watch</h1>
-            <p class="text-gray-400 mb-8 text-sm font-mono uppercase tracking-widest">Chat Preview Ed.</p>
+            <p class="text-gray-400 mb-8 text-sm font-mono uppercase tracking-widest">Batya Edition</p>
             
             <button id="btn-google-login" class="w-full bg-white text-black font-bold py-4 rounded-xl mb-3 hover:bg-gray-200 transition">
                 <i class="fa-brands fa-google mr-2"></i> Войти
@@ -172,7 +165,7 @@
             <div class="w-full md:w-1/3 glass-panel rounded-3xl p-8 flex flex-col items-center justify-center relative">
                 <img id="lobby-avatar" class="w-32 h-32 rounded-full mb-6 object-cover border-4 border-white/10 shadow-2xl">
                 <h2 class="text-2xl font-bold mb-2"><span id="lobby-username">Guest</span></h2>
-                <button id="btn-logout" class="text-xs text-red-400 hover:text-red-300 border border-red-500/20 px-4 py-2 rounded-full transition">Выйти</button>
+                <button id="btn-logout" class="text-xs text-red-400 hover:text-red-300 border border-red-500/20 px-4 py-2 rounded-full transition">Выйти из аккаунта</button>
             </div>
             
             <div class="w-full md:w-2/3 glass-panel rounded-3xl p-10 flex flex-col justify-center space-y-6 relative overflow-hidden">
@@ -196,7 +189,7 @@
                 <div class="w-24 h-24 rounded-full border border-white/10 flex items-center justify-center mb-6 animate-pulse">
                     <i class="fa-solid fa-film text-4xl text-white/30"></i>
                 </div>
-                <p class="text-white/30 font-mono tracking-[0.2em] text-sm">ВСТАВЬ ССЫЛКУ</p>
+                <p class="text-white/30 font-mono tracking-[0.2em] text-sm">ЖДЕМ ВИДЕО ОТ БАТИ</p>
             </div>
             <div id="player-yt" class="force-hidden z-10"></div>
             <div id="player-vk-container" class="force-hidden z-10"></div>
@@ -227,7 +220,7 @@
                         <i class="fa-solid fa-user-group"></i>
                         <span id="badge-users" class="absolute top-0 right-0 w-3 h-3 bg-red-500 rounded-full border border-black hidden"></span>
                     </button>
-                    <button id="btn-leave-room" class="glass-panel w-10 h-10 rounded-full flex items-center justify-center text-red-400 hover:bg-red-500/10"><i class="fa-solid fa-right-from-bracket"></i></button>
+                    <button id="btn-leave-room" class="glass-panel w-10 h-10 rounded-full flex items-center justify-center text-red-400 hover:bg-red-500/10" title="Покинуть комнату"><i class="fa-solid fa-right-from-bracket"></i></button>
                 </div>
             </div>
 
@@ -294,28 +287,24 @@
         const formatTime = (s) => { const m=Math.floor(s/60), sec=Math.floor(s%60); return `${m}:${sec<10?'0':''}${sec}`; };
         window.unlockAudio = () => { const a = new (window.AudioContext || window.webkitAudioContext)(); if(a.state==='suspended') a.resume(); };
 
-        // --- UX: NOTIFICATIONS (BOTTOM RIGHT FIXED) ---
+        // --- UX: NOTIFICATIONS ---
         window.showNotification = (text) => {
             const area = get('notification-area');
             if (!area) return;
 
             const toast = document.createElement('div');
             toast.className = 'toast';
-            toast.innerHTML = text; // Now supports HTML (for Bold user names)
+            toast.innerHTML = text; 
             
             area.appendChild(toast);
             
-            // Animation slide-in
-            requestAnimationFrame(() => {
-                toast.classList.add('show');
-            });
+            requestAnimationFrame(() => { toast.classList.add('show'); });
             
-            // Auto hide
             setTimeout(() => {
                 toast.classList.remove('show');
                 toast.classList.add('hiding');
                 setTimeout(() => toast.remove(), 600); 
-            }, 6000); // Сообщения чата висят 6 секунд, чтобы успеть прочитать
+            }, 6000);
         };
 
         // --- AUTH ---
@@ -342,7 +331,11 @@
         let currentUser = null;
         let myRole = 'viewer';
         let iAmMuted = false;
-        let chatInitialized = false; // Flag to stop notification spam on load
+        let chatInitialized = false;
+        let presenceUnsub = null;
+        let chatUnsub = null;
+        let roomUnsub = null;
+        let heartbeatInterval = null;
         
         get('btn-create-room').onclick = () => { const id = Math.random().toString(36).substring(2,7).toUpperCase(); joinRoom(id, true); };
         get('btn-join-room').onclick = () => { const id = get('input-room-id').value.trim().toUpperCase(); if(id) joinRoom(id); };
@@ -350,6 +343,42 @@
         get('copy-room-id').onclick = () => {
              navigator.clipboard.writeText(currentRoomId);
              showNotification(`<i class="fa-solid fa-check mr-2"></i> ID скопирован`);
+        };
+
+        // --- ВАЖНО: ЛОГИКА ВЫХОДА ИЗ КОМНАТЫ ---
+        get('btn-leave-room').onclick = async () => {
+            if (!currentRoomId || !currentUser) return;
+            
+            // 1. Отписываемся от слушателей
+            if (presenceUnsub) presenceUnsub();
+            if (chatUnsub) chatUnsub();
+            if (roomUnsub) roomUnsub();
+            if (heartbeatInterval) clearInterval(heartbeatInterval);
+
+            // 2. Удаляем себя из списка присутствующих
+            // Это триггернет 'onSnapshot' у остальных, и они выберут нового Батю
+            try {
+                await deleteDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', currentUser.uid));
+            } catch (e) {
+                console.error("Ошибка при выходе:", e);
+            }
+
+            // 3. Сбрасываем PeerJS и видео
+            if (peer) { peer.destroy(); peer = null; }
+            get('player-yt').innerHTML = '';
+            get('player-vk-container').innerHTML = '';
+            const vStream = get('player-stream');
+            vStream.srcObject = null;
+            vStream.classList.add('force-hidden');
+            
+            // 4. Сброс UI
+            get('screen-app').classList.add('force-hidden');
+            get('screen-lobby').classList.remove('force-hidden');
+            get('sidebar').classList.remove('active');
+            get('chat-messages').innerHTML = '';
+            currentRoomId = null;
+            myRole = 'viewer';
+            activeProvider = 'none';
         };
 
         async function joinRoom(id, isCreator = false) {
@@ -370,19 +399,15 @@
             });
 
             // Video Sync
-            onSnapshot(doc(db, 'artifacts', APP_ID, 'rooms', id), s => { if(s.exists()) syncState(s.data()); });
+            roomUnsub = onSnapshot(doc(db, 'artifacts', APP_ID, 'rooms', id), s => { if(s.exists()) syncState(s.data()); });
             
-            // --- CHAT WITH NOTIFICATIONS LOGIC ---
+            // Chat
             const chatQ = query(collection(db, 'artifacts', APP_ID, 'rooms', id, 'messages'), orderBy('createdAt', 'asc'), limit(50));
-            onSnapshot(chatQ, snapshot => {
+            chatUnsub = onSnapshot(chatQ, snapshot => {
                 const div = get('chat-messages');
-                
-                // Use docChanges to detect NEW messages
                 snapshot.docChanges().forEach(change => {
                     if (change.type === 'added') {
                         const msg = change.doc.data();
-                        
-                        // Render to Chat Window
                         const el = document.createElement('div');
                         el.className = 'chat-msg flex flex-col';
                         el.innerHTML = `<span class="text-[10px] font-bold text-white/50 mb-0.5">${msg.user}</span><span class="bg-white/10 p-2 rounded-xl rounded-tl-none self-start">${msg.text}</span>`;
@@ -391,21 +416,17 @@
                             el.innerHTML = `<span class="bg-blue-500/20 p-2 rounded-xl rounded-tr-none self-end">${msg.text}</span>`;
                         }
                         div.appendChild(el);
-
-                        // --- SHOW NOTIFICATION ---
-                        // Only show if: Chat is fully loaded AND Sender is not me
                         if (chatInitialized && msg.uid !== currentUser.uid) {
                              showNotification(`<b>${msg.user}:</b> ${msg.text}`);
                         }
                     }
                 });
-                
-                chatInitialized = true; // Mark as loaded after first batch
+                chatInitialized = true;
                 div.scrollTop = div.scrollHeight;
             });
 
             // Users & Admin Logic
-            onSnapshot(collection(db, 'artifacts', APP_ID, 'rooms', id, 'presence'), snapshot => {
+            presenceUnsub = onSnapshot(collection(db, 'artifacts', APP_ID, 'rooms', id, 'presence'), snapshot => {
                 const list = get('list-users');
                 list.innerHTML = '';
                 let users = [];
@@ -418,12 +439,11 @@
                     
                     if (u.uid === currentUser.uid) {
                         myRole = u.role;
-                        
                         // Check Mute
                         if (u.mutedByAdmin && !iAmMuted) {
                              iAmMuted = true;
                              muteMyMic(true);
-                             showNotification("<i class='fa-solid fa-microphone-slash mr-2 text-red-500'></i> Админ выключил вам микрофон");
+                             showNotification("<i class='fa-solid fa-microphone-slash mr-2 text-red-500'></i> Батя выключил вам микрофон");
                         } else if (!u.mutedByAdmin && iAmMuted) {
                              iAmMuted = false;
                              muteMyMic(false);
@@ -432,16 +452,19 @@
                     }
                 });
 
-                // ADMIN INHERITANCE
+                // --- ЛОГИКА ПЕРЕДАЧИ ПРАВ (НАСЛЕДОВАНИЕ) ---
                 if (!adminExists && users.length > 0) {
+                    // Сортируем: кто раньше зашел, тот и главный
                     users.sort((a, b) => {
                         const tA = a.joinedAt ? a.joinedAt.seconds : Date.now()/1000;
                         const tB = b.joinedAt ? b.joinedAt.seconds : Date.now()/1000;
-                        return tA - tB;
+                        return tA - tB; // По возрастанию (старые в начале)
                     });
+                    
+                    // Если я - самый старый в списке, я становлюсь Батей
                     if (users[0].uid === currentUser.uid) {
                         updateDoc(userRef, { role: 'admin' });
-                        showNotification("<i class='fa-solid fa-crown mr-2 text-yellow-500'></i> Вы стали администратором");
+                        showNotification("<i class='fa-solid fa-crown mr-2 text-yellow-500'></i> ТЕПЕРЬ ТЫ БАТЯ!");
                     }
                 }
 
@@ -451,6 +474,7 @@
                     el.className = "flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl cursor-pointer sidebar-item justify-between";
                     
                     let roleBadge = u.role === 'admin' ? '<i class="fa-solid fa-crown admin-crown ml-1"></i>' : '';
+                    let roleName = u.role === 'admin' ? 'БАТЯ' : 'ЗРИТЕЛЬ'; // Переименовали в UI
                     let muteBtn = '';
 
                     if (myRole === 'admin' && u.uid !== currentUser.uid) {
@@ -465,7 +489,7 @@
                             <img src="${u.photoURL}" class="w-8 h-8 rounded-full bg-white/10">
                             <div class="flex flex-col">
                                 <span class="text-xs font-bold">${u.displayName} ${roleBadge}</span>
-                                <span class="text-[9px] text-white/40 uppercase">${u.role}</span>
+                                <span class="text-[9px] text-white/40 uppercase font-bold tracking-wider">${roleName}</span>
                             </div>
                         </div>
                         ${muteBtn}
@@ -478,7 +502,7 @@
 
             get('screen-lobby').classList.add('force-hidden');
             get('screen-app').classList.remove('force-hidden');
-            setInterval(() => { setDoc(userRef, { lastActive: serverTimestamp() }, { merge: true }); }, 30000);
+            heartbeatInterval = setInterval(() => { setDoc(userRef, { lastActive: serverTimestamp() }, { merge: true }); }, 30000);
         }
 
         // --- ADMIN FUNCTIONS ---
@@ -532,7 +556,7 @@
 
         get('btn-load-video').onclick = () => {
             if (myRole !== 'admin') {
-                showNotification("<i class='fa-solid fa-lock mr-2'></i> Только админ может менять видео");
+                showNotification("<i class='fa-solid fa-lock mr-2'></i> Только Батя может ставить видео");
                 return;
             }
             const url = get('input-video-url').value.trim();
@@ -647,7 +671,7 @@
                 
                 if (myRole !== 'admin') {
                      if (e.code === 'Space' || e.code === 'ArrowRight' || e.code === 'ArrowLeft') {
-                         showNotification("<i class='fa-solid fa-lock mr-2'></i> Управление только для админа");
+                          showNotification("<i class='fa-solid fa-lock mr-2'></i> Рулит только Батя");
                      }
                      return;
                 }
@@ -672,7 +696,7 @@
         // --- CONTROLS ---
         window.togglePlay = () => {
             if (myRole !== 'admin') {
-                showNotification("<i class='fa-solid fa-lock mr-2'></i> Только админ может ставить паузу");
+                showNotification("<i class='fa-solid fa-lock mr-2'></i> Пауза доступна только Бате");
                 return;
             }
             if (activeProvider === 'yt' && ytPlayer) {
@@ -686,7 +710,7 @@
 
         get('seek-bar').oninput = (e) => {
              if (myRole !== 'admin') {
-                 showNotification("<i class='fa-solid fa-lock mr-2'></i> Перемотка только для админа");
+                 showNotification("<i class='fa-solid fa-lock mr-2'></i> Перемотка только для Бати");
                  return;
              }
              if (activeProvider === 'yt' && ytPlayer) {
