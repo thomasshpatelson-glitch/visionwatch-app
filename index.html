@@ -6,7 +6,7 @@
     
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
     
-    <title>Co-Watch | Final Visual Fix</title>
+    <title>Co-Watch | YouTube & Stream</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
@@ -57,15 +57,10 @@
         .ui-hidden { opacity: 0; pointer-events: none; transform: translateY(10px); }
         .transition-ui { transition: all 0.4s ease; }
 
-        /* VIDEO LAYERS - Z-INDEX HIERARCHY IS CRITICAL */
+        /* VIDEO LAYERS - FIXED Z-INDEX */
         #video-layer { position: fixed; inset: 0; z-index: 5; background: #000; display: flex; justify-content: center; align-items: center; }
-        
-        /* Players take full size */
-        #player-yt, #player-vk-container, #player-stream { width: 100%; height: 100%; position: absolute; inset: 0; border: none; }
-        
-        /* Placeholder */
+        #player-yt, #player-stream { width: 100%; height: 100%; position: absolute; inset: 0; border: none; }
         #player-placeholder { position: absolute; inset: 0; flex-direction: column; align-items: center; justify-content: center; text-align: center; z-index: 10; display: flex; background: #000; }
-        
         #click-overlay { position: absolute; inset: 0; z-index: 20; cursor: pointer; } 
         #ui-layer { position: fixed; inset: 0; z-index: 50; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 24px; }
         
@@ -89,10 +84,10 @@
     <div id="screen-auth" class="fixed inset-0 z-[100] flex items-center justify-center bg-[#050505] transition-opacity duration-500">
         <div class="glass-panel p-10 rounded-[40px] max-w-sm w-full text-center group">
             <div class="w-24 h-24 bg-white/5 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-white/10 shadow-2xl">
-                <i class="fa-solid fa-earth-americas text-4xl text-blue-500"></i>
+                <i class="fa-brands fa-youtube text-4xl text-red-500"></i>
             </div>
             <h1 class="text-5xl font-bold text-white mb-2 tracking-tighter">Co-Watch</h1>
-            <p class="text-white/40 text-sm mb-12 font-medium tracking-widest uppercase">v23 Visual Fix</p>
+            <p class="text-white/40 text-sm mb-12 font-medium tracking-widest uppercase">YouTube + Streaming</p>
             <button id="btn-guest-login" class="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-gray-200 transition">Войти</button>
         </div>
     </div>
@@ -126,12 +121,12 @@
     <div id="screen-app" class="fixed inset-0 bg-black force-hidden">
         <div id="video-layer">
             <div id="player-placeholder">
-                <i class="fa-solid fa-film text-9xl mb-6 text-white/80"></i>
-                <p class="font-mono text-xs tracking-[0.5em] uppercase text-white/50">Вставьте ссылку (YT / VK)</p>
+                <i class="fa-brands fa-youtube text-9xl mb-6 text-white/80"></i>
+                <p class="font-mono text-xs tracking-[0.5em] uppercase text-white/50">Вставьте ссылку YouTube</p>
+                <p class="text-xs text-white/30 mt-2">или включите стрим экрана</p>
             </div>
             
             <div id="player-yt" class="force-hidden z-10"></div>
-            <div id="player-vk-container" class="force-hidden z-10 w-full h-full"></div> 
             <video id="player-stream" class="force-hidden z-10 object-contain w-full h-full" autoplay playsinline></video>
 
             <div id="click-overlay" class="pointer-events-auto transition-opacity" onclick="togglePlay()"></div>
@@ -171,7 +166,7 @@
                     <i class="fa-regular fa-copy text-xs text-white/30 ml-2"></i>
                 </div>
                 <div class="glass-panel p-2 rounded-full flex items-center gap-2 w-full max-w-lg shadow-2xl">
-                    <input type="text" id="input-video-url" placeholder="YouTube / VK Video..." class="bg-transparent border-none text-white text-sm w-full focus:outline-none px-3 font-medium">
+                    <input type="text" id="input-video-url" placeholder="YouTube Link..." class="bg-transparent border-none text-white text-sm w-full focus:outline-none px-3 font-medium">
                     <button id="btn-load-video" class="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:bg-gray-200 transition flex-shrink-0"><i class="fa-solid fa-play text-xs ml-0.5"></i></button>
                 </div>
                 <button id="btn-leave-room" class="glass-panel w-12 h-12 rounded-full flex items-center justify-center text-white/50 hover:text-red-400 hover:bg-white/5 transition"><i class="fa-solid fa-right-from-bracket"></i></button>
@@ -197,7 +192,7 @@
                 <div class="glass-panel p-3 rounded-[32px] flex items-center gap-3 shadow-2xl self-center relative z-20">
                     <button id="btn-toggle-users" class="glass-btn w-14 h-14 rounded-2xl flex items-center justify-center text-xl text-white/70 hover:text-white"><i class="fa-solid fa-users"></i></button>
                     <button id="btn-toggle-voice" class="glass-btn w-20 h-20 rounded-[28px] flex items-center justify-center text-2xl text-white/70 -mt-10 border border-white/10 hover:border-white/40 bg-[#1a1a1a] shadow-xl relative overflow-hidden group"><i class="fa-solid fa-microphone-slash relative z-10 transition-transform group-hover:scale-110"></i></button>
-                    <button id="btn-screen-share" class="glass-btn w-14 h-14 rounded-2xl flex items-center justify-center text-xl text-white/70 hover:text-red-500 border-red-500/20" title="Стрим экрана"><i class="fa-solid fa-desktop"></i></button>
+                    <button id="btn-screen-share" class="glass-btn w-14 h-14 rounded-2xl flex items-center justify-center text-xl text-white/70 hover:text-red-500 border-red-500/20" title="Стрим экрана (Для любых сайтов)"><i class="fa-solid fa-desktop"></i></button>
                     <button id="btn-toggle-chat" class="glass-btn w-14 h-14 rounded-2xl flex items-center justify-center text-xl text-white/70 hover:text-white relative"><i class="fa-regular fa-comment-dots"></i><span id="chat-badge" class="absolute top-3 right-3 w-2.5 h-2.5 bg-blue-500 rounded-full shadow-[0_0_10px_#3b82f6] force-hidden"></span></button>
                     <div class="w-px h-8 bg-white/10"></div>
                     <button id="btn-toggle-cc" class="glass-btn w-14 h-14 rounded-2xl flex items-center justify-center text-lg text-white/50 hover:text-white font-bold tracking-tighter" onclick="toggleSubsMenu()">CC</button>
@@ -233,14 +228,14 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const APP_ID = 'cw-v23-visual-fix';
+        const APP_ID = 'cw-v24-final-lite';
 
         // STATE
         let currentUser=null, currentRoomId=null, unsubscribes=[], uiTimeout, activeCalls={};
         let myPeer=null, myStream=null, screenStream=null, isVoiceOn=false, isScreenSharing=false, isDragging=false, isExiting=false;
         let myPermissions = { role: 'viewer', canControlVideo: false, canSpeak: true };
         let activeRoomUsers = [];
-        let ytPlayer=null, vkPlayer=null, activeProvider = 'yt';
+        let ytPlayer=null, activeProvider = 'yt';
 
         // SAFE DOM HELPER
         const safeGet = (id) => {
@@ -327,7 +322,6 @@
         function updateMyInterface() {
             const hasControl = myPermissions.role === 'batya' || myPermissions.canControlVideo;
             const canSpeak = myPermissions.role === 'batya' || myPermissions.canSpeak;
-            safeGet('locked-controls').classList.toggle('force-hidden', hasControl);
             safeGet('click-overlay').style.pointerEvents = hasControl ? 'auto' : 'none';
             safeGet('input-video-url').disabled = !hasControl;
             safeGet('btn-load-video').disabled = !hasControl;
@@ -335,27 +329,18 @@
             const vBtn = safeGet('btn-toggle-voice'); vBtn.disabled = !canSpeak; if(!canSpeak) vBtn.style.opacity = 0.3; else vBtn.style.opacity = 1;
         }
 
-        // --- UNIVERSAL PLAYER LOGIC (VK FIX) ---
+        // --- UNIVERSAL PLAYER LOGIC ---
         safeGet('btn-load-video').onclick = () => {
             const url = safeGet('input-video-url').value.trim();
             if(!url) return;
             let provider='yt', videoId='';
             
             const ytMatch = url.match(/(?:v=|\/)([\w-]{11})/);
-            // ROBUST VK PARSER
-            const vkRaw = url.match(/vk\.com\/video(-?\d+)_(\d+)/); 
-            const vkEmbed = url.match(/vk\.com\/video_ext\.php/);
 
             if (ytMatch) {
                 provider = 'yt'; videoId = ytMatch[1];
-            } else if (vkEmbed) {
-                provider = 'vk'; videoId = url; // Use provided embed
-            } else if (vkRaw) {
-                // Manually construct embed URL from OID and ID
-                provider = 'vk';
-                videoId = `https://vk.com/video_ext.php?oid=${vkRaw[1]}&id=${vkRaw[2]}&hd=2`;
             } else {
-                alert("Ссылка не распознана. Используйте YouTube или VK.");
+                alert("Ссылка не распознана. Для YouTube используйте прямую ссылку. Для других сайтов используйте 'Стрим Экрана'");
                 return;
             }
 
@@ -364,7 +349,7 @@
         };
 
         function syncState(d) {
-            // CRITICAL: HIDE PLACEHOLDER IF VIDEO EXISTS
+            // HIDE PLACEHOLDER IF VIDEO EXISTS
             const ph = safeGet('player-placeholder');
             if (d.videoId) ph.style.display = 'none';
             else ph.style.display = 'flex';
@@ -372,16 +357,13 @@
             if(d.provider !== activeProvider) {
                 activeProvider = d.provider;
                 safeGet('player-yt').classList.add('force-hidden');
-                safeGet('player-vk-container').classList.add('force-hidden');
                 safeGet('player-stream').classList.add('force-hidden');
                 
                 if(d.provider === 'yt') safeGet('player-yt').classList.remove('force-hidden');
-                if(d.provider === 'vk') safeGet('player-vk-container').classList.remove('force-hidden');
                 if(d.provider === 'screen') safeGet('player-stream').classList.remove('force-hidden');
             }
 
             if(d.provider === 'yt') syncYT(d);
-            if(d.provider === 'vk') syncVK(d);
         }
 
         // --- YOUTUBE ---
@@ -401,20 +383,6 @@
             let t = d.timestamp; if(d.status === 'playing') t += (Date.now() - d.updatedAt)/1000;
             if(Math.abs(ytPlayer.getCurrentTime() - t) > 2) { isSyncing = true; ytPlayer.seekTo(t, true); d.status==='playing'?ytPlayer.playVideo():ytPlayer.pauseVideo(); setTimeout(()=>isSyncing=false, 1000); }
             else { if(d.status==='playing' && ytPlayer.getPlayerState()!==1) ytPlayer.playVideo(); if(d.status==='paused' && ytPlayer.getPlayerState()!==2) ytPlayer.pauseVideo(); }
-        }
-
-        // --- VK VIDEO ---
-        function syncVK(d) {
-            const container = safeGet('player-vk-container');
-            let iframe = container.querySelector('iframe');
-            
-            // Only update if SRC changed to avoid reloading
-            // We append &js_api=1
-            const targetSrc = d.videoId.includes('js_api') ? d.videoId : d.videoId + '&js_api=1';
-            
-            if(!iframe || iframe.src !== targetSrc) {
-                container.innerHTML = `<iframe src="${targetSrc}" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media; fullscreen; picture-in-picture;" allowfullscreen></iframe>`;
-            }
         }
 
         // --- SCREEN SHARE ---
@@ -518,10 +486,8 @@
         const togglePanel = (id, tr) => { 
             const p = safeGet(id);
             if(!p) return;
-            
             const h = p.classList.contains('force-hidden'); 
             window.closePanels(id); 
-            
             if(h){ 
                 if(pTimer[id]) clearTimeout(pTimer[id]); 
                 p.classList.remove('force-hidden'); 
@@ -553,11 +519,7 @@
             const i = safeGet('input-message');
             if(i && i.value.trim()) {
                 await addDoc(collection(db,'artifacts',APP_ID,'rooms',currentRoomId,'chat'), {
-                    text: i.value,
-                    sender: currentUser.displayName,
-                    photo: currentUser.photoURL,
-                    uid: currentUser.uid,
-                    ts: serverTimestamp()
+                    text: i.value, sender: currentUser.displayName, photo: currentUser.photoURL, uid: currentUser.uid, ts: serverTimestamp()
                 });
                 i.value='';
             }
@@ -566,14 +528,12 @@
         function renderMsg(m){
             const chatBox = safeGet('chat-messages');
             if(!chatBox) return;
-            
             const me = m.uid === currentUser.uid;
             const d = document.createElement('div');
             d.className = `flex gap-3 mb-4 ${me?'flex-row-reverse':''} fade-enter`;
             d.innerHTML = `<img src="${m.photo||'https://via.placeholder.com/30'}" class="w-8 h-8 rounded-full border border-white/10"><div class="${me?'bg-blue-600':'bg-white/10'} p-3 rounded-2xl max-w-[85%] text-sm border border-white/5"><p class="font-bold text-[10px] opacity-50 uppercase">${m.sender}</p>${m.text}</div>`;
             chatBox.appendChild(d);
             chatBox.scrollTop = 9e9;
-            
             const panel = safeGet('panel-chat');
             if(panel && panel.classList.contains('force-hidden') && !me) {
                 const badge = safeGet('chat-badge');
@@ -585,7 +545,6 @@
         function showToast(m){
             const area = safeGet('toast-area');
             if(!area) return;
-            
             const t = document.createElement('div');
             t.className = "glass-panel p-3 rounded-2xl flex items-center gap-3 mb-2 fade-enter w-full cursor-pointer hover:bg-white/10 border-l-4 border-blue-500";
             t.innerHTML = `<img src="${m.photo||'https://via.placeholder.com/30'}" class="w-8 h-8 rounded-full"><div class="overflow-hidden"><p class="text-xs font-bold truncate">${m.sender}</p><p class="text-xs opacity-50 truncate">${m.text}</p></div>`;
@@ -608,7 +567,6 @@
                 const usersPanel = safeGet('panel-users');
                 const subsMenu = safeGet('subs-menu');
                 
-                // Only proceed if elements exist
                 const op = (chatPanel && !chatPanel.classList.contains('force-hidden')) || 
                            (usersPanel && !usersPanel.classList.contains('force-hidden')) || 
                            (subsMenu && !subsMenu.classList.contains('force-hidden'));
