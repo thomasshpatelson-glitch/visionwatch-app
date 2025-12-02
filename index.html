@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     
-    <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'self' blob: data: gap:; style-src * 'self' 'unsafe-inline' blob: data: gap:; script-src * 'self' 'unsafe-eval' 'unsafe-inline' blob: data: gap:; object-src * 'self' blob: data: gap:; img-src * 'self' 'unsafe-inline' blob: data: gap:; connect-src * 'self' 'unsafe-inline' blob: data: gap:; media-src * 'self' blob: data: gap:; frame-src * 'self' blob: data: gap: https://www.youtube.com https://vk.com;">
     
-    <title>Co-Watch | VK Reborn</title>
+    <title>Co-Watch | Protocol Fix v27</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
@@ -22,7 +22,7 @@
         .noise-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; opacity: 0.04; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E"); }
         .vignette { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; background: radial-gradient(circle, rgba(0,0,0,0) 50%, rgba(0,0,0,0.8) 100%); }
 
-        /* === UI COMPONENTS === */
+        /* === UI === */
         .glass-panel { background: rgba(18, 18, 18, 0.9); backdrop-filter: blur(24px) saturate(140%); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 20px 50px rgba(0,0,0,0.6); }
         .glass-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.05); transition: all 0.2s; cursor: pointer; }
         .glass-btn:hover { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.4); }
@@ -57,12 +57,12 @@
         .ui-hidden { opacity: 0; pointer-events: none; transform: translateY(10px); }
         .transition-ui { transition: all 0.4s ease; }
 
-        /* VIDEO LAYERS - FIXED Z-INDEX */
+        /* VIDEO LAYERS */
         #video-layer { position: fixed; inset: 0; z-index: 5; background: #000; display: flex; justify-content: center; align-items: center; }
         
         /* Players take full size */
         #player-yt, #player-vk-container, #player-stream { width: 100%; height: 100%; position: absolute; inset: 0; border: none; }
-        /* VK Iframe specific styling to ensure full coverage */
+        /* VK Iframe specific */
         #player-vk-container iframe { width: 100%; height: 100%; border: 0; }
         
         /* Placeholder */
@@ -91,10 +91,10 @@
     <div id="screen-auth" class="fixed inset-0 z-[100] flex items-center justify-center bg-[#050505] transition-opacity duration-500">
         <div class="glass-panel p-10 rounded-[40px] max-w-sm w-full text-center group">
             <div class="w-24 h-24 bg-white/5 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-white/10 shadow-2xl">
-                <i class="fa-solid fa-circle-play text-4xl text-blue-500"></i>
+                <i class="fa-solid fa-earth-americas text-4xl text-blue-500"></i>
             </div>
             <h1 class="text-5xl font-bold text-white mb-2 tracking-tighter">Co-Watch</h1>
-            <p class="text-white/40 text-sm mb-12 font-medium tracking-widest uppercase">YouTube + VK + Stream</p>
+            <p class="text-white/40 text-sm mb-12 font-medium tracking-widest uppercase">v27 Protocol Fix</p>
             
             <div class="flex flex-col gap-3">
                 <button id="btn-google-login" class="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-gray-200 transition flex items-center justify-center gap-3">
@@ -140,11 +140,12 @@
             <div id="player-placeholder">
                 <i class="fa-solid fa-film text-9xl mb-6 text-white/80"></i>
                 <p class="font-mono text-xs tracking-[0.5em] uppercase text-white/50">Вставьте ссылку (YouTube / VK)</p>
-                <p class="text-xs text-white/30 mt-2">или включите Стрим Экрана</p>
+                <p class="text-xs text-white/30 mt-2">или используйте стрим экрана</p>
             </div>
             
             <div id="player-yt" class="force-hidden z-10"></div>
-            <div id="player-vk-container" class="force-hidden z-10"></div> <video id="player-stream" class="force-hidden z-10 object-contain w-full h-full" autoplay playsinline></video>
+            <div id="player-vk-container" class="force-hidden z-10 w-full h-full"></div> 
+            <video id="player-stream" class="force-hidden z-10 object-contain w-full h-full" autoplay playsinline></video>
 
             <div id="click-overlay" class="pointer-events-auto transition-opacity" onclick="togglePlay()"></div>
         </div>
@@ -245,7 +246,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const APP_ID = 'cw-v26-vk-reborn';
+        const APP_ID = 'cw-v27-protocol-fix';
 
         // STATE
         let currentUser=null, currentRoomId=null, unsubscribes=[], uiTimeout, activeCalls={};
@@ -253,6 +254,7 @@
         let myPermissions = { role: 'viewer', canControlVideo: false, canSpeak: true };
         let activeRoomUsers = [];
         let ytPlayer=null, activeProvider = 'yt';
+        let isPlayerReady = false;
 
         // SAFE DOM HELPER
         const safeGet = (id) => {
@@ -347,7 +349,6 @@
             const hasControl = myPermissions.role === 'batya' || myPermissions.canControlVideo;
             const canSpeak = myPermissions.role === 'batya' || myPermissions.canSpeak;
             
-            // Update overlay based on controls AND provider (VK/Screen share doesn't support granular timeline control via overlay well, but YT does)
             safeGet('click-overlay').style.pointerEvents = hasControl ? 'auto' : 'none';
             safeGet('input-video-url').disabled = !hasControl;
             safeGet('btn-load-video').disabled = !hasControl;
@@ -373,13 +374,12 @@
             let provider='yt', videoId='';
             
             const ytMatch = url.match(/(?:v=|\/)([\w-]{11})/);
-            const vkMatch = url.match(/video(-?\d+)_(\d+)/); // New Regex from React example
+            const vkMatch = url.match(/video(-?\d+)_(\d+)/); 
 
             if (ytMatch) {
                 provider = 'yt'; videoId = ytMatch[1];
             } else if (vkMatch) {
                 provider = 'vk'; 
-                // Construct embed URL as per React logic
                 const oid = vkMatch[1];
                 const id = vkMatch[2];
                 videoId = `https://vk.com/video_ext.php?oid=${oid}&id=${id}&hd=2&autoplay=1`;
@@ -409,7 +409,7 @@
                 if(d.provider === 'vk') safeGet('player-vk-container').classList.remove('force-hidden');
                 if(d.provider === 'screen') safeGet('player-stream').classList.remove('force-hidden');
                 
-                updateMyInterface(); // Re-evaluate controls visibility
+                updateMyInterface(); 
             }
 
             if(d.provider === 'yt') syncYT(d);
@@ -418,7 +418,24 @@
 
         // --- YOUTUBE ---
         if(!window.YT) { const t=document.createElement('script'); t.src="https://www.youtube.com/iframe_api"; document.body.appendChild(t); }
-        window.onYouTubeIframeAPIReady = () => { ytPlayer = new YT.Player('player-yt', { height:'100%', width:'100%', playerVars: { 'controls': 1, 'rel':0, 'modestbranding':1, 'origin':window.location.origin }, events: { 'onStateChange': onYTStateChange } }); };
+        window.onYouTubeIframeAPIReady = () => { 
+            ytPlayer = new YT.Player('player-yt', { 
+                height:'100%', 
+                width:'100%', 
+                playerVars: { 
+                    'controls': 1, 
+                    'rel':0, 
+                    'modestbranding':1, 
+                    'origin': window.location.origin,
+                    'host': 'https://www.youtube.com'
+                }, 
+                events: { 
+                    'onReady': () => { isPlayerReady = true; },
+                    'onStateChange': onYTStateChange,
+                    'onError': (e) => console.error('YT Error:', e)
+                } 
+            }); 
+        };
         
         let isSyncing = false;
         function onYTStateChange(e) {
@@ -428,7 +445,7 @@
             }
         }
         function syncYT(d) {
-            if(!ytPlayer || !ytPlayer.loadVideoById) return;
+            if(!isPlayerReady || !ytPlayer || !ytPlayer.loadVideoById) return;
             if(ytPlayer.getVideoData && ytPlayer.getVideoData().video_id !== d.videoId) ytPlayer.loadVideoById(d.videoId);
             let t = d.timestamp; if(d.status === 'playing') t += (Date.now() - d.updatedAt)/1000;
             if(Math.abs(ytPlayer.getCurrentTime() - t) > 2) { isSyncing = true; ytPlayer.seekTo(t, true); d.status==='playing'?ytPlayer.playVideo():ytPlayer.pauseVideo(); setTimeout(()=>isSyncing=false, 1000); }
@@ -440,9 +457,10 @@
             const container = safeGet('player-vk-container');
             let iframe = container.querySelector('iframe');
             
-            // Only reconstruct iframe if URL changed
-            if(!iframe || iframe.src !== d.videoId) {
-                container.innerHTML = `<iframe src="${d.videoId}" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media; fullscreen; picture-in-picture;" allowfullscreen></iframe>`;
+            const targetSrc = d.videoId.includes('js_api') ? d.videoId : d.videoId + '&js_api=1';
+            
+            if(!iframe || iframe.src !== targetSrc) {
+                container.innerHTML = `<iframe src="${targetSrc}" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media; fullscreen; picture-in-picture;" allowfullscreen></iframe>`;
             }
         }
 
@@ -467,7 +485,7 @@
 
         // --- GLOBAL CONTROLS ---
         window.togglePlay = () => {
-            if(activeProvider === 'yt' && ytPlayer) {
+            if(activeProvider === 'yt' && ytPlayer && isPlayerReady) {
                 const s = ytPlayer.getPlayerState();
                 const ns = s===1?'paused':'playing';
                 setDoc(doc(db,'artifacts',APP_ID,'rooms',currentRoomId), { status:ns, timestamp:ytPlayer.getCurrentTime(), updatedAt:Date.now() }, {merge:true});
