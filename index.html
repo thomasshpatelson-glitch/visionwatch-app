@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'self' blob: data: gap:; style-src * 'self' 'unsafe-inline' blob: data: gap:; script-src * 'self' 'unsafe-eval' 'unsafe-inline' blob: data: gap:; object-src * 'self' blob: data: gap:; img-src * 'self' 'unsafe-inline' blob: data: gap:; connect-src * 'self' 'unsafe-inline' blob: data: gap:; media-src * 'self' blob: data: gap:;">
     
-    <title>Co-Watch | Final Stable</title>
+    <title>Co-Watch | Final Robust</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
@@ -79,7 +79,7 @@
                 <i class="fa-solid fa-crown text-4xl text-yellow-500 ml-1 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]"></i>
             </div>
             <h1 class="text-5xl font-bold text-white mb-2 tracking-tighter">Co-Watch</h1>
-            <p class="text-white/40 text-sm mb-12 font-medium tracking-widest uppercase">Stable Edition v15</p>
+            <p class="text-white/40 text-sm mb-12 font-medium tracking-widest uppercase">Stable Build v16</p>
             <button id="btn-guest-login" class="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-gray-200 transition shadow-lg">Войти</button>
             <div id="auth-status" class="mt-6 text-xs text-white/20 h-4 font-mono"></div>
         </div>
@@ -216,11 +216,11 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const APP_ID = 'cw-v15-final-stable';
+        const APP_ID = 'cw-v16-final-robust';
 
         // STATE
         let currentUser=null, currentRoomId=null, player=null, unsubscribes=[], uiTimeout, activeCalls={};
-        let myPeer=null, myStream=null, isVoiceOn=false, isDragging = false;
+        let myPeer=null, myStream=null, isVoiceOn=false, isDragging = false, isExiting = false;
         let myPermissions = { role: 'viewer', canControlVideo: false, canSpeak: true };
         let activeRoomUsers = [];
 
@@ -259,6 +259,7 @@
 
         async function joinRoom(id, isCreator = false) {
             currentRoomId=id; document.getElementById('display-room-id').textContent=id;
+            isExiting = false; // Reset exit flag
             initVoiceEngine(currentUser.uid);
             const initialRole = isCreator ? 'batya' : 'viewer';
             const initialControl = isCreator ? true : false;
@@ -273,23 +274,22 @@
 
         // --- NEW LEAVE LOGIC (FIXED) ---
         async function exitRoom() {
+            isExiting = true;
             if(currentRoomId && currentUser) {
-                // Delete my presence doc explicitly
+                if(myPeer) myPeer.destroy(); // Kill connections
                 await deleteDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', currentUser.uid));
             }
             window.location.reload();
         }
         document.getElementById('btn-leave-room').onclick = exitRoom;
-        // Best effort for tab close
         window.addEventListener('beforeunload', () => { if(currentRoomId && currentUser) deleteDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', currentUser.uid)); });
 
-        // BATYA SYSTEM (TWO-PASS FIX)
+        // BATYA SYSTEM (ROBUST)
         let currentAdminTarget = null;
         function handlePresence(snap) {
             const l = document.getElementById('users-list-container'); l.innerHTML=''; 
             let activeRoomUsers=[]; let allUsers = []; let meFound = false; let hasBatya = false;
 
-            // PASS 1: Identify self and Batya status
             snap.forEach(d => {
                 const u = d.data();
                 allUsers.push(u);
@@ -301,7 +301,6 @@
                 }
             });
 
-            // PASS 2: Render List (Now myPermissions is guaranteed correct)
             allUsers.forEach(u => { 
                 activeRoomUsers.push(u.uid);
                 const isMe = u.uid === currentUser.uid;
@@ -322,15 +321,24 @@
                 if(isVoiceOn && !isMe && !activeCalls[u.uid]) connectPeer(u.uid);
             });
 
-            // HOST MIGRATION (AUTO BATYA)
+            // HOST MIGRATION (AUTO BATYA + NOTIFICATION)
             if(!hasBatya && allUsers.length > 0) {
                 allUsers.sort((a,b) => a.uid.localeCompare(b.uid));
                 if(allUsers[0].uid === currentUser.uid) {
+                    // I AM THE CAPTAIN NOW
                     updateDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', currentUser.uid), { role: 'batya', canControlVideo: true, canSpeak: true });
+                    // Send system message
+                    addDoc(collection(db,'artifacts',APP_ID,'rooms',currentRoomId,'chat'), {
+                        text: `👑 ${currentUser.displayName} теперь Батя комнаты!`,
+                        sender: 'System', photo: '', uid: 'system', ts: serverTimestamp()
+                    });
                     showToast({sender:'System', text:'Вы теперь Батя!', photo:''});
                 }
             }
-            if(!meFound && activeRoomUsers.length > 0 && currentRoomId) { alert("Вас выгнал Батя"); window.location.reload(); }
+            // KICK CHECK (Ignored if isExiting is true)
+            if(!meFound && activeRoomUsers.length > 0 && currentRoomId && !isExiting) { 
+                alert("Вас выгнал Батя"); window.location.reload(); 
+            }
         }
 
         window.openAdminModal = (user) => {
@@ -391,13 +399,9 @@
         function initVoiceEngine(uid) {
             myPeer = new Peer(uid);
             myPeer.on('call', call => {
-                // FIXED: Answer incoming call correctly even if muted
                 if(myStream) call.answer(myStream);
                 else call.answer(); 
-                
-                call.on('stream', userStream => {
-                    playAudioStream(userStream, call.peer);
-                });
+                call.on('stream', userStream => { playAudioStream(userStream, call.peer); });
             });
         }
 
@@ -413,41 +417,24 @@
         document.getElementById('btn-toggle-voice').onclick = async () => {
             const btn = document.getElementById('btn-toggle-voice');
             if (isVoiceOn) {
-                // OFF
-                isVoiceOn = false;
-                if(myStream) myStream.getTracks().forEach(t => t.stop());
-                myStream = null;
-                btn.classList.remove('voice-active');
-                btn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i>';
+                isVoiceOn = false; if(myStream) myStream.getTracks().forEach(t => t.stop()); myStream = null;
+                btn.classList.remove('voice-active'); btn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i>';
                 updateDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', currentUser.uid), { voiceActive: false });
                 Object.values(activeCalls).forEach(call => call.close());
             } else {
-                // ON
                 try {
                     myStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     isVoiceOn = true;
-                    btn.classList.add('voice-active');
-                    btn.innerHTML = '<i class="fa-solid fa-microphone animate-pulse"></i>';
+                    btn.classList.add('voice-active'); btn.innerHTML = '<i class="fa-solid fa-microphone animate-pulse"></i>';
                     updateDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', currentUser.uid), { voiceActive: true });
-                    
-                    // Call everyone in room
-                    activeRoomUsers.forEach(uid => {
-                        if (uid !== currentUser.uid) connectPeer(uid);
-                    });
-                } catch (e) {
-                    alert("Разрешите доступ к микрофону!");
-                }
+                    activeRoomUsers.forEach(uid => { if (uid !== currentUser.uid) connectPeer(uid); });
+                } catch (e) { alert("Разрешите доступ к микрофону!"); }
             }
         };
 
         function playAudioStream(stream, id) {
-            const container = document.getElementById('audio-streams');
-            if (document.getElementById(`audio-${id}`)) return;
-            const audio = document.createElement('audio');
-            audio.id = `audio-${id}`;
-            audio.srcObject = stream;
-            audio.autoplay = true;
-            container.appendChild(audio);
+            const container = document.getElementById('audio-streams'); if (document.getElementById(`audio-${id}`)) return;
+            const audio = document.createElement('audio'); audio.id = `audio-${id}`; audio.srcObject = stream; audio.autoplay = true; container.appendChild(audio);
         }
         function removeAudio(id) { const el = document.getElementById(`audio-${id}`); if(el) el.remove(); }
 
@@ -457,7 +444,7 @@
         const togglePanel=(id,tr)=>{ const p=document.getElementById(id); const h=p.classList.contains('force-hidden'); window.closePanels(id); if(h){ if(pTimer[id])clearTimeout(pTimer[id]); p.classList.remove('force-hidden'); setTimeout(()=>{p.classList.remove(tr,'opacity-0');p.classList.add('translate-x-0');},10); if(id.includes('chat')){document.getElementById('chat-badge').classList.add('force-hidden');setTimeout(()=>document.getElementById('input-message').focus(),100);} } else window.closePanels(); };
         document.getElementById('btn-toggle-chat').onclick=()=>togglePanel('panel-chat','translate-x-10'); document.getElementById('btn-toggle-users').onclick=()=>togglePanel('panel-users','-translate-x-10'); document.getElementById('btn-leave-room').onclick=()=>window.location.reload(); document.getElementById('copy-room-id').onclick=()=>{navigator.clipboard.writeText(currentRoomId);const el=document.getElementById('display-room-id');const o=el.textContent;el.textContent="COPIED";setTimeout(()=>el.textContent=o,1000);};
         document.getElementById('form-chat').onsubmit=async(e)=>{e.preventDefault();const i=document.getElementById('input-message');if(i.value.trim())await addDoc(collection(db,'artifacts',APP_ID,'rooms',currentRoomId,'chat'),{text:i.value,sender:currentUser.displayName,photo:currentUser.photoURL,uid:currentUser.uid,ts:serverTimestamp()});i.value='';};
-        function renderMsg(m){const me=m.uid===currentUser.uid;const d=document.createElement('div');d.className=`flex gap-3 mb-4 ${me?'flex-row-reverse':''} fade-enter`;d.innerHTML=`<img src="${m.photo}" class="w-8 h-8 rounded-full border border-white/10"><div class="${me?'bg-blue-600':'bg-white/10'} p-3 rounded-2xl max-w-[85%] text-sm border border-white/5"><p class="font-bold text-[10px] opacity-50 uppercase">${m.sender}</p>${m.text}</div>`;document.getElementById('chat-messages').appendChild(d);document.getElementById('chat-messages').scrollTop=9e9;if(document.getElementById('panel-chat').classList.contains('force-hidden')&&!me){document.getElementById('chat-badge').classList.remove('force-hidden');showToast(m);}}
+        function renderMsg(m){const me=m.uid===currentUser.uid;const d=document.createElement('div');d.className=`flex gap-3 mb-4 ${me?'flex-row-reverse':''} fade-enter`;d.innerHTML=`<img src="${m.photo||'https://via.placeholder.com/30'}" class="w-8 h-8 rounded-full border border-white/10"><div class="${me?'bg-blue-600':'bg-white/10'} p-3 rounded-2xl max-w-[85%] text-sm border border-white/5"><p class="font-bold text-[10px] opacity-50 uppercase">${m.sender}</p>${m.text}</div>`;document.getElementById('chat-messages').appendChild(d);document.getElementById('chat-messages').scrollTop=9e9;if(document.getElementById('panel-chat').classList.contains('force-hidden')&&!me){document.getElementById('chat-badge').classList.remove('force-hidden');showToast(m);}}
         function showToast(m){const t=document.createElement('div');t.className="glass-panel p-3 rounded-2xl flex items-center gap-3 mb-2 fade-enter w-full cursor-pointer hover:bg-white/10 border-l-4 border-blue-500";t.innerHTML=`<img src="${m.photo||'https://via.placeholder.com/30'}" class="w-8 h-8 rounded-full"><div class="overflow-hidden"><p class="text-xs font-bold truncate">${m.sender}</p><p class="text-xs opacity-50 truncate">${m.text}</p></div>`;t.onclick=()=>document.getElementById('btn-toggle-chat').click();document.getElementById('toast-area').appendChild(t);setTimeout(()=>t.remove(),4000);}
         document.addEventListener('mousemove',()=>{ const tb=document.getElementById('top-bar'), bb=document.getElementById('bottom-bar'); tb.classList.remove('ui-hidden'); tb.classList.add('ui-visible'); bb.classList.remove('ui-hidden'); bb.classList.add('ui-visible'); clearTimeout(uiTimeout); uiTimeout=setTimeout(()=>{ const op=!document.getElementById('panel-chat').classList.contains('force-hidden')||!document.getElementById('panel-users').classList.contains('force-hidden')||!document.getElementById('subs-menu').classList.contains('force-hidden'); if(!op && document.activeElement.tagName!=='INPUT'){ tb.classList.remove('ui-visible'); tb.classList.add('ui-hidden'); bb.classList.remove('ui-visible'); bb.classList.add('ui-hidden'); } },3000); });
     </script>
