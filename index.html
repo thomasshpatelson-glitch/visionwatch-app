@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     
-    <meta http-equiv="Content-Security-Policy" content="default-src * data: blob: filesystem: about: ws: wss: 'unsafe-inline' 'unsafe-eval' 'unsafe-dynamic'; script-src * data: blob: 'unsafe-inline' 'unsafe-eval'; connect-src * data: blob: 'unsafe-inline'; img-src * data: blob: 'unsafe-inline'; frame-src * data: blob: ; style-src * data: blob: 'unsafe-inline'; font-src * data: blob: 'unsafe-inline';">
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'self' blob: data: gap:; style-src * 'self' 'unsafe-inline' blob: data: gap:; script-src * 'self' 'unsafe-eval' 'unsafe-inline' blob: data: gap:; object-src * 'self' blob: data: gap:; img-src * 'self' 'unsafe-inline' blob: data: gap:; connect-src * 'self' 'unsafe-inline' blob: data: gap:; media-src * 'self' blob: data: gap:; frame-src * 'self' blob: data: gap:;">
     
-    <title>Co-Watch v20 | Final Fix</title>
+    <title>Co-Watch | v21 Stable</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
@@ -29,6 +29,7 @@
         .glass-btn:hover { background: rgba(255,255,255,0.15); transform: translateY(-2px); border-color: rgba(255,255,255,0.3); }
         .glass-btn:active { transform: scale(0.95); }
         .glass-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+        
         .btn-active { background: #fff !important; color: #000 !important; box-shadow: 0 0 20px rgba(255,255,255,0.3); }
         .voice-active { background: #22c55e !important; color: #000 !important; border-color: #22c55e !important; box-shadow: 0 0 30px rgba(34, 197, 94, 0.5); }
         .stream-active { background: #ef4444 !important; color: #fff !important; border-color: #ef4444 !important; box-shadow: 0 0 30px rgba(239, 68, 68, 0.5); }
@@ -86,7 +87,7 @@
                 <i class="fa-solid fa-earth-americas text-4xl text-blue-500"></i>
             </div>
             <h1 class="text-5xl font-bold text-white mb-2 tracking-tighter">Co-Watch</h1>
-            <p class="text-white/40 text-sm mb-12 font-medium tracking-widest uppercase">Universal + VK Fix</p>
+            <p class="text-white/40 text-sm mb-12 font-medium tracking-widest uppercase">v21 Stable</p>
             <button id="btn-guest-login" class="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-gray-200 transition">Войти</button>
         </div>
     </div>
@@ -227,7 +228,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const APP_ID = 'cw-v20-vk-fix';
+        const APP_ID = 'cw-v21-final-polish';
 
         // STATE
         let currentUser=null, currentRoomId=null, unsubscribes=[], uiTimeout, activeCalls={};
@@ -336,14 +337,13 @@
             let provider='yt', videoId='';
             
             const ytMatch = url.match(/(?:v=|\/)([\w-]{11})/);
-            // NEW VK REGEX
+            const vkMatch = url.match(/vk\.com\/video_ext\.php\?oid=([-0-9]+)&id=([0-9]+)&hash=([a-z0-9]+)/);
             const vkRaw = url.match(/vk\.com\/video([-0-9]+)_([0-9]+)/);
-            const vkEmbed = url.match(/vk\.com\/video_ext\.php/);
 
             if (ytMatch) {
                 provider = 'yt'; videoId = ytMatch[1];
-            } else if (vkEmbed) {
-                provider = 'vk'; videoId = url; // Use provided embed
+            } else if (vkMatch) {
+                provider = 'vk'; videoId = url; // Use full embed link
             } else if (vkRaw) {
                 // Auto-convert standard link to Embed
                 provider = 'vk';
@@ -396,8 +396,14 @@
         function syncVK(d) {
             const container = safeGet('player-vk-container');
             let iframe = container.querySelector('iframe');
-            if(!iframe || iframe.src !== d.videoId) {
-                container.innerHTML = `<iframe src="${d.videoId}" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media; fullscreen; picture-in-picture;" allowfullscreen></iframe>`;
+            
+            // Only update if SRC changed to avoid reloading
+            // We append &js_api=1 to ensure controls work if possible
+            const targetSrc = d.videoId.includes('js_api') ? d.videoId : d.videoId + '&js_api=1';
+            
+            if(!iframe || iframe.src !== targetSrc) {
+                container.innerHTML = `<iframe src="${targetSrc}" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media; fullscreen; picture-in-picture;" allowfullscreen></iframe>`;
+                // VK Control is limited without full OAuth app, basic embed here
             }
         }
 
@@ -573,7 +579,7 @@
             const t = document.createElement('div');
             t.className = "glass-panel p-3 rounded-2xl flex items-center gap-3 mb-2 fade-enter w-full cursor-pointer hover:bg-white/10 border-l-4 border-blue-500";
             t.innerHTML = `<img src="${m.photo||'https://via.placeholder.com/30'}" class="w-8 h-8 rounded-full"><div class="overflow-hidden"><p class="text-xs font-bold truncate">${m.sender}</p><p class="text-xs opacity-50 truncate">${m.text}</p></div>`;
-            t.onclick = () => document.getElementById('btn-toggle-chat').click();
+            t.onclick = () => safeGet('btn-toggle-chat').click();
             area.appendChild(t);
             setTimeout(() => t.remove(), 4000);
         }
@@ -629,10 +635,9 @@
             if(!menu) return;
             
             if(menu.classList.contains('force-hidden')) {
-                // Logic to populate list...
                 const list = safeGet('subs-list');
-                if(list && player && player.getOption) {
-                     // ... (existing logic) ...
+                if(list && ytPlayer && ytPlayer.getOption) {
+                     // Add logic to populate list if needed
                 }
                 window.closePanels();
                 menu.classList.remove('force-hidden');
