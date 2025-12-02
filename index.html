@@ -131,6 +131,15 @@
             transition: opacity 0.3s ease;
         }
 
+        .ui-invisible {
+            opacity: 0 !important;
+            pointer-events: none !important;
+        }
+
+        .ui-invisible * {
+            pointer-events: none !important;
+        }
+
         #top-bar,
         #bottom-bar,
         #sidebar,
@@ -914,7 +923,7 @@
         window.onYouTubeIframeAPIReady = () => {
             ytPlayer = new YT.Player('player-yt', {
                 height: '100%', width: '100%',
-                playerVars: { 'controls': 0, 'rel': 0, 'origin': window.location.origin },
+                playerVars: { 'controls': 1, 'rel': 0, 'origin': window.location.origin },
                 events: {
                     'onStateChange': (e) => {
                         if (!currentRoomId || isNativeMode) return;
@@ -972,12 +981,11 @@
             const overlay = get('click-overlay');
 
             if (isNativeMode) {
-                ui.style.opacity = '0';
-                ui.style.pointerEvents = 'none';
+                ui.classList.add('ui-invisible');
                 overlay.style.display = 'none';
                 showNotification("Режим Native: UI скрыт");
             } else {
-                ui.style.opacity = '1';
+                ui.classList.remove('ui-invisible');
                 overlay.style.display = 'block';
             }
         };
@@ -1040,7 +1048,7 @@
         const resetUi = () => {
             if (isNativeMode) return;
             const ui = get('ui-layer');
-            ui.style.opacity = '1';
+            ui.classList.remove('ui-invisible');
             clearTimeout(uiTimer);
 
             // On mobile, keep UI visible if typing or modal open
@@ -1048,7 +1056,7 @@
 
             uiTimer = setTimeout(() => {
                 if (document.activeElement.tagName !== 'INPUT' && !get('sidebar').classList.contains('active')) {
-                    ui.style.opacity = '0';
+                    ui.classList.add('ui-invisible');
                 }
             }, 4000);
         };
