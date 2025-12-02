@@ -4,9 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     
-    <meta http-equiv="Content-Security-Policy" content="default-src * 'self' blob: data: gap:; style-src * 'self' 'unsafe-inline' blob: data: gap:; script-src * 'self' 'unsafe-eval' 'unsafe-inline' blob: data: gap:; object-src * 'self' blob: data: gap:; img-src * 'self' 'unsafe-inline' blob: data: gap:; connect-src * 'self' 'unsafe-inline' blob: data: gap:; media-src * 'self' blob: data: gap:; frame-src * 'self' blob: data: gap:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src * data: blob: filesystem: about: ws: wss: 'unsafe-inline' 'unsafe-eval'; script-src * data: blob: 'unsafe-inline' 'unsafe-eval'; connect-src * data: blob: 'unsafe-inline'; img-src * data: blob: 'unsafe-inline'; frame-src * data: blob: ; style-src * data: blob: 'unsafe-inline'; font-src * data: blob: 'unsafe-inline';">
     
-    <title>Co-Watch | v21 Stable</title>
+    <title>Co-Watch | Final Fix v22</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
@@ -23,13 +23,11 @@
         .noise-bg { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 1; opacity: 0.04; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E"); }
         .vignette { position: fixed; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; z-index: 2; background: radial-gradient(circle, rgba(0,0,0,0) 50%, rgba(0,0,0,0.8) 100%); }
 
-        /* === UI === */
-        .glass-panel { background: rgba(18, 18, 18, 0.85); backdrop-filter: blur(24px) saturate(140%); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 20px 50px rgba(0,0,0,0.6); }
-        .glass-btn { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.05); transition: all 0.2s; cursor: pointer; }
-        .glass-btn:hover { background: rgba(255,255,255,0.15); transform: translateY(-2px); border-color: rgba(255,255,255,0.3); }
+        /* === UI COMPONENTS === */
+        .glass-panel { background: rgba(18, 18, 18, 0.9); backdrop-filter: blur(24px) saturate(140%); border: 1px solid rgba(255, 255, 255, 0.08); box-shadow: 0 20px 50px rgba(0,0,0,0.6); }
+        .glass-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.05); transition: all 0.2s; cursor: pointer; }
+        .glass-btn:hover { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.4); }
         .glass-btn:active { transform: scale(0.95); }
-        .glass-btn:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
-        
         .btn-active { background: #fff !important; color: #000 !important; box-shadow: 0 0 20px rgba(255,255,255,0.3); }
         .voice-active { background: #22c55e !important; color: #000 !important; border-color: #22c55e !important; box-shadow: 0 0 30px rgba(34, 197, 94, 0.5); }
         .stream-active { background: #ef4444 !important; color: #fff !important; border-color: #ef4444 !important; box-shadow: 0 0 30px rgba(239, 68, 68, 0.5); }
@@ -59,8 +57,15 @@
         .ui-hidden { opacity: 0; pointer-events: none; transform: translateY(10px); }
         .transition-ui { transition: all 0.4s ease; }
 
-        #video-layer { position: fixed; inset: 0; z-index: 0; background: #000; display: flex; justify-content: center; align-items: center; }
-        #player-yt, #player-vk-container, #player-stream { width: 100%; height: 100%; position: absolute; inset: 0; }
+        /* VIDEO LAYERS - FIXED Z-INDEX */
+        #video-layer { position: fixed; inset: 0; z-index: 5; background: #000; display: flex; justify-content: center; align-items: center; }
+        
+        /* Players take full size */
+        #player-yt, #player-vk-container, #player-stream { width: 100%; height: 100%; position: absolute; inset: 0; border: none; }
+        
+        /* Placeholder MUST be below players if active, or hidden */
+        #player-placeholder { position: absolute; inset: 0; flex-direction: column; align-items: center; justify-content: center; text-align: center; opacity: 0.4; pointer-events: none; z-index: 1; display: flex; }
+        
         #click-overlay { position: absolute; inset: 0; z-index: 20; cursor: pointer; } 
         #ui-layer { position: fixed; inset: 0; z-index: 50; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 24px; }
         
@@ -87,7 +92,7 @@
                 <i class="fa-solid fa-earth-americas text-4xl text-blue-500"></i>
             </div>
             <h1 class="text-5xl font-bold text-white mb-2 tracking-tighter">Co-Watch</h1>
-            <p class="text-white/40 text-sm mb-12 font-medium tracking-widest uppercase">v21 Stable</p>
+            <p class="text-white/40 text-sm mb-12 font-medium tracking-widest uppercase">Ironclad Fix v22</p>
             <button id="btn-guest-login" class="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-gray-200 transition">Войти</button>
         </div>
     </div>
@@ -120,7 +125,7 @@
 
     <div id="screen-app" class="fixed inset-0 bg-black force-hidden">
         <div id="video-layer">
-            <div id="player-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-center opacity-40 select-none z-0">
+            <div id="player-placeholder">
                 <i class="fa-solid fa-film text-9xl mb-6 text-white/80"></i>
                 <p class="font-mono text-xs tracking-[0.5em] uppercase text-white/50">Вставьте ссылку (YT / VK)</p>
             </div>
@@ -228,7 +233,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const APP_ID = 'cw-v21-final-polish';
+        const APP_ID = 'cw-v22-ironclad';
 
         // STATE
         let currentUser=null, currentRoomId=null, unsubscribes=[], uiTimeout, activeCalls={};
@@ -330,22 +335,24 @@
             const vBtn = safeGet('btn-toggle-voice'); vBtn.disabled = !canSpeak; if(!canSpeak) vBtn.style.opacity = 0.3; else vBtn.style.opacity = 1;
         }
 
-        // --- UNIVERSAL PLAYER LOGIC (VK FIX) ---
+        // --- UNIVERSAL PLAYER LOGIC ---
         safeGet('btn-load-video').onclick = () => {
             const url = safeGet('input-video-url').value.trim();
             if(!url) return;
             let provider='yt', videoId='';
             
             const ytMatch = url.match(/(?:v=|\/)([\w-]{11})/);
-            const vkMatch = url.match(/vk\.com\/video_ext\.php\?oid=([-0-9]+)&id=([0-9]+)&hash=([a-z0-9]+)/);
+            // VK MATCHERS
             const vkRaw = url.match(/vk\.com\/video([-0-9]+)_([0-9]+)/);
+            const vkEmbed = url.match(/vk\.com\/video_ext\.php/);
 
             if (ytMatch) {
                 provider = 'yt'; videoId = ytMatch[1];
-            } else if (vkMatch) {
-                provider = 'vk'; videoId = url; // Use full embed link
+            } else if (vkEmbed) {
+                provider = 'vk'; videoId = url; // Already embed
             } else if (vkRaw) {
                 // Auto-convert standard link to Embed
+                // Format: https://vk.com/video_ext.php?oid={oid}&id={id}&hd=2
                 provider = 'vk';
                 videoId = `https://vk.com/video_ext.php?oid=${vkRaw[1]}&id=${vkRaw[2]}&hd=2`;
             } else {
@@ -358,6 +365,11 @@
         };
 
         function syncState(d) {
+            // HIDE PLACEHOLDER IF VIDEO EXISTS
+            const ph = safeGet('player-placeholder');
+            if (d.videoId) ph.style.display = 'none';
+            else ph.style.display = 'flex';
+
             if(d.provider !== activeProvider) {
                 activeProvider = d.provider;
                 safeGet('player-yt').classList.add('force-hidden');
@@ -397,13 +409,12 @@
             const container = safeGet('player-vk-container');
             let iframe = container.querySelector('iframe');
             
-            // Only update if SRC changed to avoid reloading
-            // We append &js_api=1 to ensure controls work if possible
+            // Only update if SRC changed
+            // We append &js_api=1
             const targetSrc = d.videoId.includes('js_api') ? d.videoId : d.videoId + '&js_api=1';
             
             if(!iframe || iframe.src !== targetSrc) {
                 container.innerHTML = `<iframe src="${targetSrc}" width="100%" height="100%" frameborder="0" allow="autoplay; encrypted-media; fullscreen; picture-in-picture;" allowfullscreen></iframe>`;
-                // VK Control is limited without full OAuth app, basic embed here
             }
         }
 
@@ -495,11 +506,9 @@
                 if(id===ex) return; 
                 const e = safeGet(id);
                 if(!e) return;
-                
                 e.classList.remove('translate-x-0'); 
                 if(id.includes('chat')) e.classList.add('translate-x-10','opacity-0'); 
                 else e.classList.add('-translate-x-10','opacity-0'); 
-                
                 if(pTimer[id]) clearTimeout(pTimer[id]); 
                 pTimer[id] = setTimeout(() => e.classList.add('force-hidden'), 300); 
             }); 
@@ -508,29 +517,18 @@
         const togglePanel = (id, tr) => { 
             const p = safeGet(id);
             if(!p) return;
-            
             const h = p.classList.contains('force-hidden'); 
             window.closePanels(id); 
-            
             if(h){ 
                 if(pTimer[id]) clearTimeout(pTimer[id]); 
                 p.classList.remove('force-hidden'); 
-                setTimeout(() => {
-                    p.classList.remove(tr, 'opacity-0');
-                    p.classList.add('translate-x-0');
-                }, 10); 
-                
+                setTimeout(() => { p.classList.remove(tr, 'opacity-0'); p.classList.add('translate-x-0'); }, 10); 
                 if(id.includes('chat')){
                     const badge = safeGet('chat-badge');
                     if(badge) badge.classList.add('force-hidden');
-                    setTimeout(() => {
-                        const input = safeGet('input-message');
-                        if(input) input.focus();
-                    }, 100);
+                    setTimeout(() => { const input = safeGet('input-message'); if(input) input.focus(); }, 100);
                 } 
-            } else {
-                window.closePanels(); 
-            }
+            } else { window.closePanels(); }
         };
         
         safeGet('btn-toggle-chat').onclick = () => togglePanel('panel-chat','translate-x-10'); 
@@ -543,11 +541,7 @@
             const i = safeGet('input-message');
             if(i && i.value.trim()) {
                 await addDoc(collection(db,'artifacts',APP_ID,'rooms',currentRoomId,'chat'), {
-                    text: i.value,
-                    sender: currentUser.displayName,
-                    photo: currentUser.photoURL,
-                    uid: currentUser.uid,
-                    ts: serverTimestamp()
+                    text: i.value, sender: currentUser.displayName, photo: currentUser.photoURL, uid: currentUser.uid, ts: serverTimestamp()
                 });
                 i.value='';
             }
@@ -556,14 +550,12 @@
         function renderMsg(m){
             const chatBox = safeGet('chat-messages');
             if(!chatBox) return;
-            
             const me = m.uid === currentUser.uid;
             const d = document.createElement('div');
             d.className = `flex gap-3 mb-4 ${me?'flex-row-reverse':''} fade-enter`;
             d.innerHTML = `<img src="${m.photo||'https://via.placeholder.com/30'}" class="w-8 h-8 rounded-full border border-white/10"><div class="${me?'bg-blue-600':'bg-white/10'} p-3 rounded-2xl max-w-[85%] text-sm border border-white/5"><p class="font-bold text-[10px] opacity-50 uppercase">${m.sender}</p>${m.text}</div>`;
             chatBox.appendChild(d);
             chatBox.scrollTop = 9e9;
-            
             const panel = safeGet('panel-chat');
             if(panel && panel.classList.contains('force-hidden') && !me) {
                 const badge = safeGet('chat-badge');
@@ -575,7 +567,6 @@
         function showToast(m){
             const area = safeGet('toast-area');
             if(!area) return;
-            
             const t = document.createElement('div');
             t.className = "glass-panel p-3 rounded-2xl flex items-center gap-3 mb-2 fade-enter w-full cursor-pointer hover:bg-white/10 border-l-4 border-blue-500";
             t.innerHTML = `<img src="${m.photo||'https://via.placeholder.com/30'}" class="w-8 h-8 rounded-full"><div class="overflow-hidden"><p class="text-xs font-bold truncate">${m.sender}</p><p class="text-xs opacity-50 truncate">${m.text}</p></div>`;
@@ -635,9 +626,10 @@
             if(!menu) return;
             
             if(menu.classList.contains('force-hidden')) {
+                // Logic to populate list...
                 const list = safeGet('subs-list');
                 if(list && ytPlayer && ytPlayer.getOption) {
-                     // Add logic to populate list if needed
+                     // ... (existing logic) ...
                 }
                 window.closePanels();
                 menu.classList.remove('force-hidden');
