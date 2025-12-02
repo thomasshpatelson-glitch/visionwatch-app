@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
-    <title>Co-Watch | Final Admin & UX</title>
+    <title>Co-Watch | Chat Previews</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
@@ -91,21 +91,25 @@
             -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.1);
             border-left: 4px solid #fff;
-            padding: 16px 24px;
+            padding: 14px 20px;
             border-radius: 12px;
             box-shadow: 0 10px 40px rgba(0,0,0,0.6);
             color: #fff;
-            font-size: 14px;
-            font-weight: 600;
+            font-size: 13px;
+            font-weight: 500;
             display: flex;
             align-items: center;
+            max-width: 300px;
             
             /* Animation start state */
             opacity: 0;
             transform: translateX(100px);
             transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
             pointer-events: auto;
+            word-break: break-word;
         }
+
+        .toast b { color: #60a5fa; font-weight: 700; margin-right: 6px; }
 
         .toast.show {
             opacity: 1;
@@ -152,7 +156,7 @@
         <div class="glass-panel p-10 rounded-[32px] max-w-sm w-full text-center pointer-events-auto relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
             <h1 class="text-5xl font-extrabold mb-2 tracking-tighter">Co-Watch</h1>
-            <p class="text-gray-400 mb-8 text-sm font-mono uppercase tracking-widest">Admin Edition</p>
+            <p class="text-gray-400 mb-8 text-sm font-mono uppercase tracking-widest">Chat Preview Ed.</p>
             
             <button id="btn-google-login" class="w-full bg-white text-black font-bold py-4 rounded-xl mb-3 hover:bg-gray-200 transition">
                 <i class="fa-brands fa-google mr-2"></i> Войти
@@ -284,7 +288,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const APP_ID = 'cw-admin-ux-final';
+        const APP_ID = 'cw-admin-ux-final-v2';
 
         const get = (id) => document.getElementById(id);
         const formatTime = (s) => { const m=Math.floor(s/60), sec=Math.floor(s%60); return `${m}:${sec<10?'0':''}${sec}`; };
@@ -297,21 +301,21 @@
 
             const toast = document.createElement('div');
             toast.className = 'toast';
-            toast.innerHTML = `<i class="fa-solid fa-circle-info mr-3 text-white/50"></i> ${text}`; 
+            toast.innerHTML = text; // Now supports HTML (for Bold user names)
             
             area.appendChild(toast);
             
-            // Задержка для анимации появления (slide-in)
+            // Animation slide-in
             requestAnimationFrame(() => {
                 toast.classList.add('show');
             });
             
-            // 20 секунд висит, потом исчезает
+            // Auto hide
             setTimeout(() => {
                 toast.classList.remove('show');
                 toast.classList.add('hiding');
                 setTimeout(() => toast.remove(), 600); 
-            }, 20000); 
+            }, 6000); // Сообщения чата висят 6 секунд, чтобы успеть прочитать
         };
 
         // --- AUTH ---
@@ -336,21 +340,23 @@
         // --- ROOMS & ADMIN SYSTEM ---
         let currentRoomId = null;
         let currentUser = null;
-        let myRole = 'viewer'; // 'admin' | 'viewer'
+        let myRole = 'viewer';
         let iAmMuted = false;
+        let chatInitialized = false; // Flag to stop notification spam on load
         
         get('btn-create-room').onclick = () => { const id = Math.random().toString(36).substring(2,7).toUpperCase(); joinRoom(id, true); };
         get('btn-join-room').onclick = () => { const id = get('input-room-id').value.trim().toUpperCase(); if(id) joinRoom(id); };
         
         get('copy-room-id').onclick = () => {
              navigator.clipboard.writeText(currentRoomId);
-             showNotification(`ID комнаты ${currentRoomId} скопирован!`);
+             showNotification(`<i class="fa-solid fa-check mr-2"></i> ID скопирован`);
         };
 
         async function joinRoom(id, isCreator = false) {
             currentRoomId = id;
             currentUser = auth.currentUser;
             get('display-room-id').textContent = id;
+            chatInitialized = false;
             
             const userRef = doc(db, 'artifacts', APP_ID, 'rooms', id, 'presence', currentUser.uid);
             await setDoc(userRef, {
@@ -366,21 +372,35 @@
             // Video Sync
             onSnapshot(doc(db, 'artifacts', APP_ID, 'rooms', id), s => { if(s.exists()) syncState(s.data()); });
             
-            // Chat
+            // --- CHAT WITH NOTIFICATIONS LOGIC ---
             const chatQ = query(collection(db, 'artifacts', APP_ID, 'rooms', id, 'messages'), orderBy('createdAt', 'asc'), limit(50));
             onSnapshot(chatQ, snapshot => {
                 const div = get('chat-messages');
-                div.innerHTML = '';
-                snapshot.forEach(doc => {
-                    const msg = doc.data();
-                    const el = document.createElement('div');
-                    el.className = 'chat-msg flex flex-col';
-                    el.innerHTML = `<span class="text-[10px] font-bold text-white/50 mb-0.5">${msg.user}</span><span class="bg-white/10 p-2 rounded-xl rounded-tl-none self-start">${msg.text}</span>`;
-                    if(msg.uid === currentUser.uid) {
-                        el.innerHTML = `<span class="bg-blue-500/20 p-2 rounded-xl rounded-tr-none self-end">${msg.text}</span>`;
+                
+                // Use docChanges to detect NEW messages
+                snapshot.docChanges().forEach(change => {
+                    if (change.type === 'added') {
+                        const msg = change.doc.data();
+                        
+                        // Render to Chat Window
+                        const el = document.createElement('div');
+                        el.className = 'chat-msg flex flex-col';
+                        el.innerHTML = `<span class="text-[10px] font-bold text-white/50 mb-0.5">${msg.user}</span><span class="bg-white/10 p-2 rounded-xl rounded-tl-none self-start">${msg.text}</span>`;
+                        
+                        if(msg.uid === currentUser.uid) {
+                            el.innerHTML = `<span class="bg-blue-500/20 p-2 rounded-xl rounded-tr-none self-end">${msg.text}</span>`;
+                        }
+                        div.appendChild(el);
+
+                        // --- SHOW NOTIFICATION ---
+                        // Only show if: Chat is fully loaded AND Sender is not me
+                        if (chatInitialized && msg.uid !== currentUser.uid) {
+                             showNotification(`<b>${msg.user}:</b> ${msg.text}`);
+                        }
                     }
-                    div.appendChild(el);
                 });
+                
+                chatInitialized = true; // Mark as loaded after first batch
                 div.scrollTop = div.scrollHeight;
             });
 
@@ -403,11 +423,11 @@
                         if (u.mutedByAdmin && !iAmMuted) {
                              iAmMuted = true;
                              muteMyMic(true);
-                             showNotification("Администратор отключил вам микрофон");
+                             showNotification("<i class='fa-solid fa-microphone-slash mr-2 text-red-500'></i> Админ выключил вам микрофон");
                         } else if (!u.mutedByAdmin && iAmMuted) {
                              iAmMuted = false;
                              muteMyMic(false);
-                             showNotification("Микрофон снова доступен");
+                             showNotification("<i class='fa-solid fa-microphone mr-2 text-green-500'></i> Микрофон доступен");
                         }
                     }
                 });
@@ -421,7 +441,7 @@
                     });
                     if (users[0].uid === currentUser.uid) {
                         updateDoc(userRef, { role: 'admin' });
-                        showNotification("Вы стали администратором комнаты!");
+                        showNotification("<i class='fa-solid fa-crown mr-2 text-yellow-500'></i> Вы стали администратором");
                     }
                 }
 
@@ -512,7 +532,7 @@
 
         get('btn-load-video').onclick = () => {
             if (myRole !== 'admin') {
-                showNotification("Только администратор может менять видео");
+                showNotification("<i class='fa-solid fa-lock mr-2'></i> Только админ может менять видео");
                 return;
             }
             const url = get('input-video-url').value.trim();
@@ -627,7 +647,7 @@
                 
                 if (myRole !== 'admin') {
                      if (e.code === 'Space' || e.code === 'ArrowRight' || e.code === 'ArrowLeft') {
-                         showNotification("Управление доступно только админу");
+                         showNotification("<i class='fa-solid fa-lock mr-2'></i> Управление только для админа");
                      }
                      return;
                 }
@@ -652,7 +672,7 @@
         // --- CONTROLS ---
         window.togglePlay = () => {
             if (myRole !== 'admin') {
-                showNotification("Только админ может ставить на паузу");
+                showNotification("<i class='fa-solid fa-lock mr-2'></i> Только админ может ставить паузу");
                 return;
             }
             if (activeProvider === 'yt' && ytPlayer) {
@@ -666,7 +686,7 @@
 
         get('seek-bar').oninput = (e) => {
              if (myRole !== 'admin') {
-                 showNotification("Перемотка доступна только админу");
+                 showNotification("<i class='fa-solid fa-lock mr-2'></i> Перемотка только для админа");
                  return;
              }
              if (activeProvider === 'yt' && ytPlayer) {
@@ -688,7 +708,7 @@
                 ui.style.pointerEvents = 'none';
                 overlay.style.display = 'none';
                 hint.style.opacity = '1';
-                showNotification("Режим Native: UI скрыт, полный контроль");
+                showNotification("Режим Native: UI скрыт");
             } else {
                 ui.style.opacity = '1';
                 overlay.style.display = 'block';
