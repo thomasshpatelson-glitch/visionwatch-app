@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'self' blob: data: gap:; style-src * 'self' 'unsafe-inline' blob: data: gap:; script-src * 'self' 'unsafe-eval' 'unsafe-inline' blob: data: gap:; object-src * 'self' blob: data: gap:; img-src * 'self' 'unsafe-inline' blob: data: gap:; connect-src * 'self' 'unsafe-inline' blob: data: gap:; media-src * 'self' blob: data: gap:;">
     
-    <title>Co-Watch | Host Migration</title>
+    <title>Co-Watch | Final Stable</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
@@ -79,7 +79,7 @@
                 <i class="fa-solid fa-crown text-4xl text-yellow-500 ml-1 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]"></i>
             </div>
             <h1 class="text-5xl font-bold text-white mb-2 tracking-tighter">Co-Watch</h1>
-            <p class="text-white/40 text-sm mb-12 font-medium tracking-widest uppercase">Auto-Admin Migration</p>
+            <p class="text-white/40 text-sm mb-12 font-medium tracking-widest uppercase">Stable Edition v15</p>
             <button id="btn-guest-login" class="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-gray-200 transition shadow-lg">Войти</button>
             <div id="auth-status" class="mt-6 text-xs text-white/20 h-4 font-mono"></div>
         </div>
@@ -216,7 +216,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const APP_ID = 'cw-v14-final';
+        const APP_ID = 'cw-v15-final-stable';
 
         // STATE
         let currentUser=null, currentRoomId=null, player=null, unsubscribes=[], uiTimeout, activeCalls={};
@@ -271,17 +271,40 @@
             showScreen('screen-app');
         }
 
-        // BATYA SYSTEM
+        // --- NEW LEAVE LOGIC (FIXED) ---
+        async function exitRoom() {
+            if(currentRoomId && currentUser) {
+                // Delete my presence doc explicitly
+                await deleteDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', currentUser.uid));
+            }
+            window.location.reload();
+        }
+        document.getElementById('btn-leave-room').onclick = exitRoom;
+        // Best effort for tab close
+        window.addEventListener('beforeunload', () => { if(currentRoomId && currentUser) deleteDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', currentUser.uid)); });
+
+        // BATYA SYSTEM (TWO-PASS FIX)
         let currentAdminTarget = null;
         function handlePresence(snap) {
             const l = document.getElementById('users-list-container'); l.innerHTML=''; 
-            let hasBatya = false; let allUsers = []; activeRoomUsers=[];
-            
-            snap.forEach(d=>{ 
-                const u=d.data(); allUsers.push(u); activeRoomUsers.push(u.uid);
+            let activeRoomUsers=[]; let allUsers = []; let meFound = false; let hasBatya = false;
+
+            // PASS 1: Identify self and Batya status
+            snap.forEach(d => {
+                const u = d.data();
+                allUsers.push(u);
                 if(u.role === 'batya') hasBatya = true;
-                const isMe=u.uid===currentUser.uid;
-                if(isMe) { myPermissions = { role: u.role, canControlVideo: u.canControlVideo, canSpeak: u.canSpeak }; updateMyInterface(); }
+                if(u.uid === currentUser.uid) { 
+                    meFound = true; 
+                    myPermissions = { role: u.role, canControlVideo: u.canControlVideo, canSpeak: u.canSpeak }; 
+                    updateMyInterface(); 
+                }
+            });
+
+            // PASS 2: Render List (Now myPermissions is guaranteed correct)
+            allUsers.forEach(u => { 
+                activeRoomUsers.push(u.uid);
+                const isMe = u.uid === currentUser.uid;
                 
                 let badges = '';
                 if(u.role === 'batya') badges += '<span class="badge badge-batya"><i class="fa-solid fa-crown mr-1"></i>БАТЯ</span> ';
@@ -293,9 +316,9 @@
                 const el = document.createElement('div');
                 el.className = `user-item ${myPermissions.role === 'batya' && !isMe ? 'clickable' : ''}`;
                 el.innerHTML = `<div class="relative"><img src="${u.photoURL}" class="w-10 h-10 rounded-full object-cover ${ring}"></div><div class="flex-1 overflow-hidden"><div class="flex flex-col"><div class="flex items-center gap-2"><p class="text-sm font-bold text-white truncate">${u.displayName} ${isMe?'(Вы)':''}</p></div><div class="mt-1 flex flex-wrap gap-1">${badges}</div></div></div>`;
+                
                 if(myPermissions.role === 'batya' && !isMe) { el.onclick = () => openAdminModal(u); }
                 l.appendChild(el);
-                
                 if(isVoiceOn && !isMe && !activeCalls[u.uid]) connectPeer(u.uid);
             });
 
@@ -307,6 +330,7 @@
                     showToast({sender:'System', text:'Вы теперь Батя!', photo:''});
                 }
             }
+            if(!meFound && activeRoomUsers.length > 0 && currentRoomId) { alert("Вас выгнал Батя"); window.location.reload(); }
         }
 
         window.openAdminModal = (user) => {
