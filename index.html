@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'self' blob: data: gap:; style-src * 'self' 'unsafe-inline' blob: data: gap:; script-src * 'self' 'unsafe-eval' 'unsafe-inline' blob: data: gap:; object-src * 'self' blob: data: gap:; img-src * 'self' 'unsafe-inline' blob: data: gap:; connect-src * 'self' 'unsafe-inline' blob: data: gap:; media-src * 'self' blob: data: gap:;">
     
-    <title>Co-Watch | Multi-Language</title>
+    <title>Co-Watch | Fullscreen</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
@@ -53,24 +53,29 @@
 
         .btn-active { background: #fff !important; color: #000 !important; box-shadow: 0 0 20px rgba(255,255,255,0.3); }
         .voice-active { background: #22c55e !important; color: #000 !important; border-color: #22c55e !important; box-shadow: 0 0 30px rgba(34, 197, 94, 0.5); }
-        
-        /* === SUBTITLE MENU === */
+        .cc-active { color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+
+        /* === POPUP MENUS === */
+        /* Исправлено позиционирование меню: теперь оно фиксировано относительно экрана */
         .subs-menu {
-            position: absolute; bottom: 80px; right: 0;
-            width: 280px; max-height: 300px;
+            position: absolute; 
+            bottom: 120px; /* Над панелью управления */
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px; max-height: 40vh;
             overflow-y: auto;
-            border-radius: 20px;
+            border-radius: 24px;
             display: flex; flex-direction: column; gap: 4px;
             padding: 8px;
-            transform-origin: bottom right;
+            z-index: 100; /* Поверх всего */
             transition: all 0.2s ease;
         }
         .sub-item {
-            padding: 10px 16px; border-radius: 12px;
-            font-size: 13px; color: #ccc; cursor: pointer;
-            transition: background 0.2s; text-align: left;
+            padding: 12px 16px; border-radius: 16px;
+            font-size: 14px; color: #ccc; cursor: pointer;
+            transition: background 0.2s; text-align: center;
         }
-        .sub-item:hover { background: rgba(255,255,255,0.1); color: white; }
+        .sub-item:hover { background: rgba(255,255,255,0.15); color: white; }
         .sub-item.active { background: white; color: black; font-weight: bold; }
 
         /* === SLIDER === */
@@ -93,9 +98,7 @@
         .transition-ui { transition: all 0.4s ease; }
         
         #video-layer { position: fixed; inset: 0; z-index: 0; background: #000; }
-        /* Блокируем клики по видео, чтобы работала наша пауза, но разрешаем когда Native Mode */
         #click-overlay { position: absolute; inset: 0; z-index: 10; cursor: pointer; } 
-        
         #ui-layer { position: fixed; inset: 0; z-index: 50; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 24px; }
 
         /* SCROLLBAR */
@@ -115,7 +118,7 @@
                 <i class="fa-solid fa-play text-4xl text-white ml-1"></i>
             </div>
             <h1 class="text-5xl font-bold text-white mb-2 tracking-tighter">Co-Watch</h1>
-            <p class="text-white/40 text-sm mb-12 font-medium tracking-widest uppercase">Multi-Language</p>
+            <p class="text-white/40 text-sm mb-12 font-medium tracking-widest uppercase">Cinema Experience</p>
             <button id="btn-guest-login" class="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-gray-200 transition shadow-lg">Войти как Гость</button>
             <div id="auth-status" class="mt-6 text-xs text-white/20 h-4 font-mono"></div>
         </div>
@@ -156,7 +159,7 @@
 
         <div id="native-exit-btn" class="fixed top-6 left-1/2 -translate-x-1/2 z-[999] force-hidden">
             <button onclick="toggleNativeControls()" class="glass-panel px-6 py-3 rounded-full font-bold text-sm hover:bg-white hover:text-black transition flex items-center gap-2">
-                <i class="fa-solid fa-arrow-left"></i> Вернуться к Co-Watch
+                <i class="fa-solid fa-arrow-left"></i> Вернуться к интерфейсу
             </button>
         </div>
 
@@ -179,13 +182,13 @@
                 <div id="toast-area" class="flex flex-col gap-3 items-end w-80"></div>
             </div>
 
+            <div id="subs-menu" class="glass-panel subs-menu force-hidden pointer-events-auto">
+                <div class="p-2 text-xs font-bold text-white/40 uppercase tracking-widest text-center border-b border-white/10 mb-2">Субтитры</div>
+                <div id="subs-list"></div>
+            </div>
+
             <div class="flex flex-col gap-4 pointer-events-auto transition-ui ui-visible w-full max-w-4xl mx-auto relative" id="bottom-bar">
                 
-                <div id="subs-menu" class="glass-panel subs-menu force-hidden">
-                    <div class="p-2 text-xs font-bold text-white/40 uppercase tracking-widest text-center">Доступные субтитры</div>
-                    <div id="subs-list"></div>
-                </div>
-
                 <div class="glass-panel px-6 py-4 rounded-[24px] flex items-center gap-4 shadow-2xl w-full">
                     <button id="btn-play-pause" class="text-white hover:text-blue-400 transition w-8 text-center" onclick="togglePlay()">
                         <i class="fa-solid fa-play text-xl" id="icon-play"></i>
@@ -208,12 +211,12 @@
                     
                     <div class="w-px h-8 bg-white/10"></div>
 
-                    <button id="btn-toggle-cc" class="glass-btn w-14 h-14 rounded-2xl flex items-center justify-center text-lg text-white/50 hover:text-white font-bold tracking-tighter" onclick="toggleSubsMenu()" title="Выбрать субтитры">
-                        CC
-                    </button>
+                    <button id="btn-toggle-cc" class="glass-btn w-14 h-14 rounded-2xl flex items-center justify-center text-lg text-white/50 hover:text-white font-bold tracking-tighter" onclick="toggleSubsMenu()" title="Субтитры">CC</button>
 
-                    <button id="btn-native-controls" class="glass-btn w-14 h-14 rounded-2xl flex items-center justify-center text-xl text-white/50 hover:text-white" onclick="toggleNativeControls()" title="Сменить озвучку / Качество">
-                        <i class="fa-solid fa-gear"></i>
+                    <button id="btn-native-controls" class="glass-btn w-14 h-14 rounded-2xl flex items-center justify-center text-xl text-white/50 hover:text-white" onclick="toggleNativeControls()" title="Сменить озвучку / Качество"><i class="fa-solid fa-gear"></i></button>
+
+                    <button id="btn-fullscreen" class="glass-btn w-14 h-14 rounded-2xl flex items-center justify-center text-xl text-white/50 hover:text-white" onclick="toggleFullscreen()" title="На весь экран">
+                        <i class="fa-solid fa-expand" id="icon-fullscreen"></i>
                     </button>
                 </div>
             </div>
@@ -236,18 +239,15 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, query, orderBy, limit, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // FIREBASE CONFIG
         const firebaseConfig = { apiKey: "AIzaSyBrm8hgy9LGFFL_7CdlnR6jxyolqy94AQA", authDomain: "upbeat-orb-479013-p8.firebaseapp.com", projectId: "upbeat-orb-479013-p8", storageBucket: "upbeat-orb-479013-p8.firebasestorage.app", messagingSenderId: "547138498300", appId: "1:547138498300:web:a03c11d6aafd5f027cf179" };
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const APP_ID = 'cw-v7-hybrid';
+        const APP_ID = 'cw-v8-final';
 
-        // STATE
         let currentUser=null, currentRoomId=null, player=null, unsubscribes=[], uiTimeout, activeCalls={};
         let myPeer=null, myStream=null, isVoiceOn=false, isDragging = false;
 
-        // AUTH
         onAuthStateChanged(auth, u => {
             if(u) { currentUser=u; document.getElementById('lobby-username').textContent=u.displayName; document.getElementById('lobby-avatar').src=u.photoURL; showScreen('screen-lobby'); }
             else showScreen('screen-auth');
@@ -257,7 +257,6 @@
             signInAnonymously(auth).then(c=>{ updateProfile(c.user, {displayName:"Guest "+Math.floor(Math.random()*1000), photoURL:`https://api.dicebear.com/7.x/notionists/svg?seed=${Math.random()}&backgroundColor=000`}); });
         };
 
-        // ROOM
         document.getElementById('btn-create-room').onclick = () => joinRoom(Math.random().toString(36).substring(2,7).toUpperCase());
         document.getElementById('form-join-room').onsubmit = (e) => { e.preventDefault(); const id=document.getElementById('input-room-id').value.trim().toUpperCase(); if(id) joinRoom(id); };
 
@@ -273,14 +272,23 @@
             showScreen('screen-app');
         }
 
-        // --- PLAYER CONTROLS LOGIC ---
-        
+        // FULLSCREEN
+        window.toggleFullscreen = () => {
+            const icon = document.getElementById('icon-fullscreen');
+            if (!document.fullscreenElement) {
+                document.documentElement.requestFullscreen();
+                icon.className = 'fa-solid fa-compress';
+            } else {
+                if(document.exitFullscreen) document.exitFullscreen();
+                icon.className = 'fa-solid fa-expand';
+            }
+        };
+
+        // CONTROLS
         window.togglePlay = () => {
             if(!player || !currentRoomId) return;
             const state = player.getPlayerState();
-            setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), {
-                status: (state === 1) ? 'paused' : 'playing', timestamp: player.getCurrentTime(), updatedAt: Date.now(), videoId: player.getVideoData().video_id
-            }, { merge: true });
+            setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), { status: (state === 1) ? 'paused' : 'playing', timestamp: player.getCurrentTime(), updatedAt: Date.now(), videoId: player.getVideoData().video_id }, { merge: true });
         };
 
         const seekBar = document.getElementById('seek-bar');
@@ -289,9 +297,7 @@
             isDragging = false;
             const newTime = parseFloat(seekBar.value);
             player.seekTo(newTime, true);
-            setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), {
-                status: 'playing', timestamp: newTime, updatedAt: Date.now(), videoId: player.getVideoData().video_id
-            }, { merge: true });
+            setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), { status: 'playing', timestamp: newTime, updatedAt: Date.now(), videoId: player.getVideoData().video_id }, { merge: true });
         };
 
         setInterval(() => {
@@ -312,29 +318,20 @@
             return `${m}:${sec<10?'0'+sec:sec}`;
         }
 
-        // --- NEW SUBTITLE LOGIC ---
         window.toggleSubsMenu = () => {
             const menu = document.getElementById('subs-menu');
             if(menu.classList.contains('force-hidden')) {
-                // Load tracks
                 if(player) {
                     const tracks = player.getOption('captions', 'tracklist') || [];
                     const list = document.getElementById('subs-list');
                     list.innerHTML = '';
                     
-                    // Option: OFF
                     const offBtn = document.createElement('div');
                     offBtn.className = 'sub-item';
                     offBtn.textContent = 'Выкл. субтитры';
-                    offBtn.onclick = () => {
-                         player.unloadModule("captions");
-                         player.setOption("captions", "track", {}); 
-                         document.getElementById('btn-toggle-cc').classList.remove('cc-active');
-                         menu.classList.add('force-hidden');
-                    };
+                    offBtn.onclick = () => { player.unloadModule("captions"); player.setOption("captions", "track", {}); document.getElementById('btn-toggle-cc').classList.remove('cc-active'); menu.classList.add('force-hidden'); };
                     list.appendChild(offBtn);
 
-                    // List Tracks
                     if(tracks.length > 0) {
                         tracks.forEach(track => {
                             const item = document.createElement('div');
@@ -350,9 +347,7 @@
                             list.appendChild(item);
                         });
                     } else {
-                        const empty = document.createElement('div');
-                        empty.className='sub-item'; empty.textContent='Нет субтитров';
-                        list.appendChild(empty);
+                        const empty = document.createElement('div'); empty.className='sub-item'; empty.textContent='Нет субтитров'; list.appendChild(empty);
                     }
                 }
                 menu.classList.remove('force-hidden');
@@ -361,40 +356,30 @@
             }
         };
 
-        // --- NATIVE CONTROLS (AUDIO TRACK HACK) ---
         window.toggleNativeControls = () => {
             const ui = document.getElementById('ui-layer');
             const overlay = document.getElementById('click-overlay');
             const exitBtn = document.getElementById('native-exit-btn');
             
             if(ui.style.display === 'none') {
-                // Turn Custom UI ON
                 ui.style.display = 'flex';
-                overlay.style.pointerEvents = 'auto'; // Block clicks again
+                overlay.style.pointerEvents = 'auto';
                 exitBtn.classList.add('force-hidden');
             } else {
-                // Turn Custom UI OFF (Native Mode)
                 ui.style.display = 'none';
-                overlay.style.pointerEvents = 'none'; // Pass clicks to YouTube
+                overlay.style.pointerEvents = 'none';
                 exitBtn.classList.remove('force-hidden');
-                
                 showToast({sender:'System', text:'Используйте меню плеера для смены озвучки', photo:''});
             }
         };
 
-        // --- YOUTUBE API ---
+        document.getElementById('volume-bar').oninput = (e) => { if(player) player.setVolume(e.target.value); };
+
         if(!window.YT) { const t=document.createElement('script'); t.src="https://www.youtube.com/iframe_api"; document.body.appendChild(t); }
         window.onYouTubeIframeAPIReady = () => {
             player = new YT.Player('player', {
                 height:'100%', width:'100%',
-                playerVars: { 
-                    'controls': 1, // ENABLED but hidden by overlay usually
-                    'rel':0, 'modestbranding':1, 'disablekb':0, 'origin':window.location.origin, 'host':'https://www.youtube.com',
-                    'cc_load_policy': 1, 
-                    'fs': 1,
-                    'iv_load_policy': 3,
-                    'autohide': 0
-                },
+                playerVars: { 'controls': 1, 'rel':0, 'modestbranding':1, 'disablekb':0, 'origin':window.location.origin, 'host':'https://www.youtube.com', 'cc_load_policy': 1, 'fs': 1, 'iv_load_policy': 3, 'autohide': 0 },
                 events: { 'onStateChange': onPlayerStateChange }
             });
         };
@@ -407,9 +392,7 @@
 
             if(isSyncing || !currentRoomId) return;
             if(e.data===1 || e.data===2) { 
-                setDoc(doc(db,'artifacts',APP_ID,'rooms',currentRoomId), {
-                    status: e.data===1?'playing':'paused', timestamp: player.getCurrentTime(), updatedAt: Date.now(), videoId: player.getVideoData().video_id
-                }, {merge:true});
+                setDoc(doc(db,'artifacts',APP_ID,'rooms',currentRoomId), { status: e.data===1?'playing':'paused', timestamp: player.getCurrentTime(), updatedAt: Date.now(), videoId: player.getVideoData().video_id }, {merge:true});
             }
         }
 
@@ -436,7 +419,6 @@
             document.getElementById('input-video-url').value='';
         };
 
-        // --- VOICE ---
         function initVoiceEngine(uid) {
             myPeer = new Peer(uid);
             myPeer.on('call', c => { c.answer(myStream); c.on('stream', s => playAudio(s, c.peer)); });
@@ -477,7 +459,6 @@
             }
         };
 
-        // --- UTILS ---
         function showScreen(id) { ['screen-auth','screen-lobby','screen-app'].forEach(s=>document.getElementById(s).classList.add('force-hidden')); document.getElementById(id).classList.remove('force-hidden'); }
         let pTimer={}; 
         window.closePanels=(ex)=>{ ['panel-chat','panel-users'].forEach(id=>{ if(id===ex)return; const e=document.getElementById(id); e.classList.remove('translate-x-0'); if(id.includes('chat'))e.classList.add('translate-x-10','opacity-0'); else e.classList.add('-translate-x-10','opacity-0'); if(pTimer[id])clearTimeout(pTimer[id]); pTimer[id]=setTimeout(()=>e.classList.add('force-hidden'),300); }); };
@@ -488,7 +469,6 @@
         document.getElementById('btn-leave-room').onclick=()=>window.location.reload();
         document.getElementById('copy-room-id').onclick=()=>{navigator.clipboard.writeText(currentRoomId);const el=document.getElementById('display-room-id');const o=el.textContent;el.textContent="COPIED";setTimeout(()=>el.textContent=o,1000);};
 
-        // CHAT & AUTO HIDE
         document.getElementById('form-chat').onsubmit=async(e)=>{e.preventDefault();const i=document.getElementById('input-message');if(i.value.trim())await addDoc(collection(db,'artifacts',APP_ID,'rooms',currentRoomId,'chat'),{text:i.value,sender:currentUser.displayName,photo:currentUser.photoURL,uid:currentUser.uid,ts:serverTimestamp()});i.value='';};
         function renderMsg(m){const me=m.uid===currentUser.uid;const d=document.createElement('div');d.className=`flex gap-3 mb-4 ${me?'flex-row-reverse':''} fade-enter`;d.innerHTML=`<img src="${m.photo}" class="w-8 h-8 rounded-full border border-white/10"><div class="${me?'bg-blue-600':'bg-white/10'} p-3 rounded-2xl max-w-[85%] text-sm border border-white/5"><p class="font-bold text-[10px] opacity-50 uppercase">${m.sender}</p>${m.text}</div>`;document.getElementById('chat-messages').appendChild(d);document.getElementById('chat-messages').scrollTop=9e9;if(document.getElementById('panel-chat').classList.contains('force-hidden')&&!me){document.getElementById('chat-badge').classList.remove('force-hidden');showToast(m);}}
         function showToast(m){const t=document.createElement('div');t.className="glass-panel p-3 rounded-2xl flex items-center gap-3 mb-2 fade-enter w-full cursor-pointer hover:bg-white/10 border-l-4 border-blue-500";t.innerHTML=`<img src="${m.photo||'https://via.placeholder.com/30'}" class="w-8 h-8 rounded-full"><div class="overflow-hidden"><p class="text-xs font-bold truncate">${m.sender}</p><p class="text-xs opacity-50 truncate">${m.text}</p></div>`;t.onclick=()=>document.getElementById('btn-toggle-chat').click();document.getElementById('toast-area').appendChild(t);setTimeout(()=>t.remove(),4000);}
@@ -500,7 +480,8 @@
             clearTimeout(uiTimeout);
             uiTimeout=setTimeout(()=>{
                 const op=!document.getElementById('panel-chat').classList.contains('force-hidden')||!document.getElementById('panel-users').classList.contains('force-hidden');
-                if(!op && document.activeElement.tagName!=='INPUT'){ tb.classList.remove('ui-visible'); tb.classList.add('ui-hidden'); bb.classList.remove('ui-visible'); bb.classList.add('ui-hidden'); document.getElementById('subs-menu').classList.add('force-hidden'); }
+                const subs=document.getElementById('subs-menu').classList.contains('force-hidden');
+                if(!op && subs && document.activeElement.tagName!=='INPUT'){ tb.classList.remove('ui-visible'); tb.classList.add('ui-hidden'); bb.classList.remove('ui-visible'); bb.classList.add('ui-hidden'); }
             },3000);
         });
     </script>
