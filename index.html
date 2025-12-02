@@ -145,6 +145,10 @@
         #sidebar,
         #mobile-url-modal {
             pointer-events: auto;
+            z-index: 60;
+            /* Ensure above video layer */
+            position: relative;
+            /* Needed for z-index */
         }
 
         /* SIDEBAR (CHAT) - Mobile optimized */
@@ -321,14 +325,6 @@
         input {
             font-size: 16px !important;
         }
-
-        #click-overlay {
-            position: absolute;
-            inset: 0;
-            z-index: 20;
-            cursor: default;
-            display: block;
-        }
     </style>
 </head>
 
@@ -403,8 +399,6 @@
             <div id="player-vk-container" class="force-hidden z-10"></div>
             <video id="player-stream" class="force-hidden z-10 object-contain w-full h-full" autoplay
                 playsinline></video>
-
-            <div id="click-overlay" class="absolute inset-0 z-20 cursor-default" style="display:block;"></div>
         </div>
 
         <div id="ui-layer">
@@ -978,15 +972,12 @@
         window.toggleNativeMode = () => {
             isNativeMode = !isNativeMode;
             const ui = get('ui-layer');
-            const overlay = get('click-overlay');
 
             if (isNativeMode) {
                 ui.classList.add('ui-invisible');
-                overlay.style.display = 'none';
                 showNotification("Режим Native: UI скрыт");
             } else {
                 ui.classList.remove('ui-invisible');
-                overlay.style.display = 'block';
             }
         };
 
