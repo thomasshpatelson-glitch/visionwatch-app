@@ -2,231 +2,221 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Co-Watch Pro</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Co-Watch Pro | Sync & Voice</title>
     
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <!-- Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
-        body { font-family: 'Inter', sans-serif; background-color: #050505; color: #e5e5e5; }
+        :root { --glass-bg: rgba(15, 15, 15, 0.85); --glass-border: rgba(255, 255, 255, 0.08); --accent: #ffffff; }
+        body { font-family: 'Outfit', sans-serif; background-color: #000; color: #eee; overflow: hidden; }
         
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #111; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #555; }
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
 
-        .min-input {
-            background: #111;
+        /* Glassmorphism Classes */
+        .glass-panel {
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+        }
+        
+        .glass-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: all 0.2s ease;
+        }
+        .glass-btn:hover { background: rgba(255,255,255,0.15); transform: translateY(-1px); }
+        .glass-btn.active { background: white; color: black; box-shadow: 0 0 15px rgba(255,255,255,0.3); }
+
+        /* Inputs */
+        .pro-input {
+            background: rgba(0,0,0,0.5);
             border: 1px solid #333;
             color: white;
-            transition: all 0.2s;
+            transition: 0.3s;
         }
-        .min-input:focus {
-            border-color: #666;
-            outline: none;
-            background: #1a1a1a;
+        .pro-input:focus { border-color: #777; outline: none; background: rgba(0,0,0,0.8); }
+
+        /* Animations */
+        .fade-enter { animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
+        
+        .slide-up { animation: slideUp 5s ease-in-out forwards; }
+        @keyframes slideUp { 
+            0% { transform: translateY(100%); opacity: 0; } 
+            10% { transform: translateY(0); opacity: 1; }
+            90% { transform: translateY(0); opacity: 1; }
+            100% { transform: translateY(20px); opacity: 0; pointer-events: none;} 
         }
 
-        .glass {
-            background: rgba(10, 10, 10, 0.95);
-            backdrop-filter: blur(10px);
+        /* Voice Pulse Animation */
+        .speaking-ring { box-shadow: 0 0 0 2px #22c55e; }
+        .speaking-visualizer span {
+            display: inline-block; width: 3px; height: 10px; background: #22c55e; margin: 0 1px;
+            animation: equalize 0.5s infinite;
         }
+        @keyframes equalize { 0% { height: 6px; } 50% { height: 14px; } 100% { height: 6px; } }
 
-        /* Анимация перехода экранов */
-        .fade-in { animation: fadeIn 0.5s ease-out forwards; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        /* Hide UI controls when idle (handled by JS) */
+        .ui-idle .auto-hide { opacity: 0; pointer-events: none; transition: opacity 0.5s; }
+        .auto-hide { transition: opacity 0.2s; }
     </style>
 </head>
-<body class="h-screen flex flex-col overflow-hidden text-gray-200">
+<body class="h-screen w-full relative selection:bg-white selection:text-black">
 
-    <!-- 1. AUTH SCREEN -->
-    <div id="screen-auth" class="fixed inset-0 z-50 flex items-center justify-center glass fade-in">
-        <div class="bg-black border border-gray-800 p-8 rounded-xl max-w-sm w-full shadow-2xl text-center">
-            <i class="fa-brands fa-youtube text-5xl mb-4 text-white"></i>
-            <h1 class="text-2xl font-bold mb-1">Co-Watch</h1>
-            <p class="text-gray-500 text-sm mb-8">Смотрите видео вместе</p>
-
-            <button id="btn-google-login" class="w-full bg-white text-black font-bold py-3 px-4 rounded hover:bg-gray-200 transition flex items-center justify-center gap-3 mb-4">
-                <i class="fa-brands fa-google"></i> Войти через Google
-            </button>
-            
-            <div class="relative py-2 mb-4">
-                <div class="absolute inset-0 flex items-center"><span class="w-full border-t border-gray-800"></span></div>
-                <div class="relative flex justify-center text-xs uppercase"><span class="bg-black px-2 text-gray-500">или</span></div>
+    <div id="screen-auth" class="fixed inset-0 z-50 flex items-center justify-center bg-[url('https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=2564&auto=format&fit=crop')] bg-cover bg-center fade-enter">
+        <div class="absolute inset-0 bg-black/80 backdrop-blur-sm"></div>
+        <div class="relative glass-panel p-8 rounded-2xl max-w-sm w-full text-center shadow-2xl border-t border-white/10">
+            <div class="w-16 h-16 bg-white rounded-full flex items-center justify-center mx-auto mb-6 shadow-[0_0_20px_rgba(255,255,255,0.2)]">
+                <i class="fa-solid fa-play text-2xl text-black ml-1"></i>
             </div>
+            <h1 class="text-3xl font-bold mb-2 tracking-tight">Co-Watch Pro</h1>
+            <p class="text-gray-400 text-sm mb-8">Синхронный просмотр без задержек</p>
 
-            <button id="btn-guest-login" class="w-full bg-gray-900 text-gray-300 font-medium py-3 px-4 rounded hover:bg-gray-800 transition border border-gray-800">
+            <button id="btn-google-login" class="w-full bg-white text-black font-bold py-3.5 rounded-xl hover:bg-gray-200 transition flex items-center justify-center gap-3 mb-4">
+                <i class="fa-brands fa-google text-lg"></i> Google Auth
+            </button>
+            <button id="btn-guest-login" class="w-full glass-btn py-3.5 rounded-xl text-gray-300 font-medium text-sm">
                 Войти как Гость
             </button>
         </div>
     </div>
 
-    <!-- 2. LOBBY SCREEN (Create/Join Room) -->
-    <div id="screen-lobby" class="fixed inset-0 z-40 flex items-center justify-center bg-[#050505] hidden">
-        <div class="w-full max-w-md p-6 fade-in">
-            <div class="text-center mb-8">
-                <div class="w-16 h-16 bg-gray-900 rounded-full mx-auto mb-4 flex items-center justify-center border border-gray-800">
-                    <img id="lobby-avatar" src="" class="w-full h-full rounded-full object-cover p-1">
-                </div>
-                <h2 class="text-xl font-bold">Привет, <span id="lobby-username" class="text-white">...</span></h2>
-                <p class="text-sm text-gray-500 mt-1">Куда отправимся?</p>
+    <div id="screen-lobby" class="fixed inset-0 z-40 flex items-center justify-center bg-black hidden">
+        <div class="w-full max-w-md p-6 fade-enter relative z-10">
+            <div class="text-center mb-10">
+                <img id="lobby-avatar" src="" class="w-20 h-20 rounded-full mx-auto mb-4 border-2 border-white/20 p-1 object-cover">
+                <h2 class="text-2xl font-bold">Добро пожаловать, <span id="lobby-username">...</span></h2>
             </div>
 
-            <div class="bg-black border border-gray-800 rounded-xl p-6 space-y-6">
-                <div>
-                    <label class="text-xs font-bold text-gray-500 uppercase tracking-wider mb-2 block">Создать комнату</label>
-                    <button id="btn-create-room" class="w-full bg-white text-black font-bold py-4 rounded hover:bg-gray-200 transition flex items-center justify-center gap-2">
-                        <i class="fa-solid fa-plus"></i> Новая комната
+            <div class="glass-panel rounded-2xl p-1 overflow-hidden">
+                <div class="grid grid-cols-2 gap-1 p-1 bg-black/40 rounded-xl mb-4">
+                    <button id="tab-join" class="py-2 rounded-lg text-sm font-bold bg-white text-black transition">Войти</button>
+                    <button id="tab-create" class="py-2 rounded-lg text-sm font-bold text-gray-500 hover:text-white transition">Создать</button>
+                </div>
+
+                <div id="panel-join" class="p-4 pt-2">
+                    <label class="text-xs text-gray-500 uppercase font-bold mb-2 block">ID Комнаты</label>
+                    <form id="form-join-room" class="flex gap-2">
+                        <input type="text" id="input-room-id" placeholder="A1B2C3" class="pro-input flex-1 p-3 rounded-lg font-mono text-center uppercase tracking-widest text-lg" maxlength="6" required>
+                        <button type="submit" class="bg-white text-black w-14 rounded-lg hover:bg-gray-200 transition">
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+            
+            <button id="btn-logout" class="absolute bottom-8 left-0 right-0 text-center text-xs text-red-500/70 hover:text-red-500 transition">Выйти из аккаунта</button>
+        </div>
+    </div>
+
+    <div id="screen-app" class="fixed inset-0 bg-black hidden flex flex-col">
+        
+        <div class="absolute inset-0 z-0 flex items-center justify-center">
+            <div id="player-placeholder" class="text-center text-gray-600 select-none">
+                <i class="fa-brands fa-youtube text-6xl mb-4 opacity-30"></i>
+                <p class="text-sm font-mono tracking-widest opacity-50">WAITING FOR LINK</p>
+            </div>
+            <div id="player" class="w-full h-full pointer-events-auto"></div>
+        </div>
+
+        <div id="ui-layer" class="absolute inset-0 z-10 pointer-events-none flex flex-col justify-between p-4 md:p-6 transition-opacity duration-300">
+            
+            <div class="flex justify-between items-start auto-hide pointer-events-auto">
+                <div class="glass-panel px-4 py-2 rounded-full flex items-center gap-3 cursor-pointer hover:bg-white/10 transition" id="copy-room-id">
+                    <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span class="font-mono font-bold text-sm tracking-widest" id="display-room-id">...</span>
+                    <i class="fa-regular fa-copy text-xs opacity-50"></i>
+                </div>
+
+                <div class="glass-panel p-1.5 rounded-full flex items-center gap-2 max-w-lg w-full mx-4 shadow-lg">
+                    <div class="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center flex-shrink-0">
+                        <i class="fa-brands fa-youtube text-white text-xs"></i>
+                    </div>
+                    <input type="text" id="input-video-url" placeholder="Вставьте ссылку YouTube..." class="bg-transparent border-none text-white text-sm w-full focus:outline-none px-2">
+                    <button id="btn-load-video" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white text-white hover:text-black flex items-center justify-center transition">
+                        <i class="fa-solid fa-play text-xs ml-0.5"></i>
                     </button>
                 </div>
 
-                <div class="relative flex py-2 items-center">
-                    <div class="flex-grow border-t border-gray-800"></div>
-                    <span class="flex-shrink mx-4 text-gray-600 text-xs uppercase">Вход по ID</span>
-                    <div class="flex-grow border-t border-gray-800"></div>
+                <div class="relative group">
+                    <img id="app-user-avatar" src="" class="w-10 h-10 rounded-full border border-white/20 object-cover cursor-pointer hover:scale-105 transition shadow-lg">
+                    <div class="absolute right-0 top-12 w-40 glass-panel rounded-xl py-2 opacity-0 group-hover:opacity-100 transition pointer-events-none group-hover:pointer-events-auto">
+                        <button id="btn-leave-room" class="w-full text-left px-4 py-2 text-xs hover:bg-white/10 text-red-400">
+                            <i class="fa-solid fa-door-open mr-2"></i>Выйти
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex justify-center items-end pb-4 auto-hide pointer-events-auto">
+                <div class="glass-panel p-2 rounded-2xl flex gap-2 shadow-2xl">
+                    <button id="btn-toggle-voice" class="glass-btn w-12 h-12 rounded-xl flex items-center justify-center relative">
+                        <i class="fa-solid fa-microphone-slash text-gray-400"></i>
+                    </button>
+                    
+                    <div class="w-px bg-white/10 mx-1"></div>
+
+                    <button id="btn-toggle-chat" class="glass-btn w-12 h-12 rounded-xl flex items-center justify-center relative">
+                        <i class="fa-regular fa-comment-dots"></i>
+                        <span id="chat-badge" class="absolute top-2 right-2 w-2 h-2 bg-red-500 rounded-full hidden"></span>
+                    </button>
+
+                    <button id="btn-toggle-users" class="glass-btn w-12 h-12 rounded-xl flex items-center justify-center">
+                        <i class="fa-solid fa-users"></i>
+                    </button>
+                </div>
+            </div>
+
+            <div id="notification-area" class="absolute bottom-24 right-6 w-72 flex flex-col items-end gap-2 pointer-events-none">
                 </div>
 
-                <form id="form-join-room" class="flex gap-2">
-                    <input type="text" id="input-room-id" placeholder="ID комнаты (например: 4812)" class="min-input flex-1 p-3 rounded font-mono text-center uppercase tracking-widest" required maxlength="6">
-                    <button type="submit" class="bg-gray-800 text-white px-6 rounded hover:bg-gray-700 font-bold border border-gray-700">
-                        <i class="fa-solid fa-arrow-right"></i>
-                    </button>
+            <div id="panel-chat" class="absolute top-20 bottom-24 right-6 w-80 glass-panel rounded-2xl flex flex-col shadow-2xl translate-x-[120%] transition-transform duration-300 pointer-events-auto z-20 overflow-hidden">
+                <div class="p-3 border-b border-white/10 flex justify-between items-center bg-black/20">
+                    <span class="text-xs font-bold uppercase tracking-widest opacity-70">Чат комнаты</span>
+                    <button onclick="togglePanel('chat')" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
+                <form id="form-chat" class="p-3 bg-black/40 border-t border-white/5 flex gap-2">
+                    <input type="text" id="input-message" placeholder="Сообщение..." class="w-full bg-transparent text-sm text-white focus:outline-none" autocomplete="off">
+                    <button type="submit" class="text-gray-400 hover:text-white"><i class="fa-solid fa-paper-plane"></i></button>
                 </form>
             </div>
-            
-            <button id="btn-logout" class="w-full text-center text-xs text-red-500 mt-8 hover:text-red-400">Выйти из аккаунта</button>
-        </div>
-    </div>
 
-    <!-- 3. MAIN APP SCREEN -->
-    <div id="screen-app" class="flex-1 flex flex-col md:flex-row h-full hidden">
-        
-        <!-- SIDEBAR: Users -->
-        <div class="w-full md:w-64 bg-black border-r border-gray-800 flex flex-col hidden md:flex">
-            <div class="p-4 border-b border-gray-800">
-                <h1 class="font-bold text-lg tracking-tight">Co-Watch</h1>
-                <div class="flex items-center gap-2 mt-1 cursor-pointer hover:text-white text-gray-500 text-xs" id="copy-room-id">
-                    <span class="bg-gray-900 px-2 py-1 rounded border border-gray-800 font-mono" id="display-room-id">...</span>
-                    <i class="fa-regular fa-copy"></i>
+            <div id="panel-users" class="absolute top-20 bottom-24 left-6 w-64 glass-panel rounded-2xl flex flex-col shadow-2xl -translate-x-[120%] transition-transform duration-300 pointer-events-auto z-20 overflow-hidden">
+                <div class="p-3 border-b border-white/10 flex justify-between items-center bg-black/20">
+                    <span class="text-xs font-bold uppercase tracking-widest opacity-70">Участники</span>
+                    <button onclick="togglePanel('users')" class="text-gray-400 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
                 </div>
-            </div>
-            
-            <div class="flex-1 overflow-y-auto p-2">
-                <div class="text-xs font-bold text-gray-600 mb-2 px-2 mt-2">ОНЛАЙН</div>
-                <div id="users-list" class="space-y-1"></div>
-            </div>
-
-            <!-- My Profile Mini -->
-            <div class="p-4 border-t border-gray-800 bg-gray-900/20 hover:bg-gray-900/50 cursor-pointer transition" id="btn-open-profile">
-                <div class="flex items-center gap-3">
-                    <img id="app-user-avatar" src="" class="w-9 h-9 rounded bg-gray-800 border border-gray-700 object-cover">
-                    <div class="overflow-hidden">
-                        <p id="app-user-name" class="text-sm font-bold truncate text-white">...</p>
-                        <p class="text-xs text-green-500 flex items-center gap-1"><span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span> В сети</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <!-- CENTER: Video Player -->
-        <div class="flex-1 flex flex-col bg-[#050505] relative">
-            <!-- Mobile Header -->
-            <div class="md:hidden h-14 bg-black border-b border-gray-800 flex items-center justify-between px-4">
-                <span class="font-bold">Co-Watch</span>
-                <button id="btn-mobile-users" class="text-gray-400"><i class="fa-solid fa-users"></i></button>
-            </div>
-
-            <!-- Search Bar -->
-            <div class="p-4 border-b border-gray-800 flex gap-2 bg-black/50 backdrop-blur-sm absolute top-0 left-0 right-0 z-10 transition-transform duration-300" id="video-controls">
-                <div class="flex-1 relative">
-                    <i class="fa-brands fa-youtube absolute left-3 top-3 text-gray-500"></i>
-                    <input type="text" id="input-video-url" placeholder="Вставьте ссылку на YouTube" class="min-input w-full pl-10 pr-4 py-2 rounded text-sm">
-                </div>
-                <button id="btn-load-video" class="bg-white text-black px-4 py-2 rounded font-bold text-sm hover:bg-gray-200">
-                    <i class="fa-solid fa-play"></i>
-                </button>
-            </div>
-
-            <!-- Player Area -->
-            <div class="flex-1 flex items-center justify-center bg-black relative w-full h-full">
-                <div id="player-placeholder" class="text-center text-gray-700">
-                    <i class="fa-brands fa-youtube text-7xl mb-4 opacity-20"></i>
-                    <p class="text-sm font-mono">ROOM ID: <span id="placeholder-room-id">...</span></p>
-                    <p class="text-xs mt-2 opacity-50">Вставьте ссылку сверху, чтобы начать</p>
-                </div>
-                <div id="player" class="w-full h-full absolute inset-0 hidden"></div>
-            </div>
-        </div>
-
-        <!-- RIGHT: Chat -->
-        <div class="w-full md:w-80 bg-black border-l border-gray-800 flex flex-col h-[35vh] md:h-auto">
-            <div class="p-3 border-b border-gray-800 bg-black flex justify-between items-center">
-                <span class="font-bold text-sm text-gray-400">ЧАТ КОМНАТЫ</span>
-                <button id="btn-leave-room" class="text-xs text-red-900 hover:text-red-500 transition px-2 py-1 rounded border border-transparent hover:border-red-900/50">
-                    <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                </button>
-            </div>
-            
-            <div id="chat-container" class="flex-1 overflow-y-auto p-4 space-y-4 bg-[#080808]">
-                <!-- Messages go here -->
-            </div>
-
-            <form id="form-chat" class="p-3 border-t border-gray-800 bg-black flex gap-2">
-                <input type="text" id="input-message" placeholder="Написать..." class="min-input flex-1 p-2 rounded text-sm bg-[#111]" autocomplete="off">
-                <button type="submit" class="bg-gray-800 text-white w-10 h-10 rounded hover:bg-gray-700 transition flex items-center justify-center">
-                    <i class="fa-solid fa-paper-plane text-xs"></i>
-                </button>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL: Profile Settings -->
-    <div id="modal-profile" class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 hidden">
-        <div class="bg-[#111] border border-gray-700 p-6 rounded-xl w-full max-w-sm relative">
-            <button id="btn-close-profile" class="absolute top-4 right-4 text-gray-500 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
-            <h3 class="text-lg font-bold mb-6 text-center">Редактировать профиль</h3>
-            
-            <form id="form-profile" class="space-y-5">
-                <div class="flex justify-center">
-                    <div class="relative group cursor-pointer" id="avatar-trigger">
-                        <img id="edit-avatar-preview" src="" class="w-24 h-24 rounded-full border-2 border-gray-600 object-cover">
-                        <div class="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition">
-                            <i class="fa-solid fa-dice text-2xl text-white"></i>
-                        </div>
-                    </div>
-                </div>
-                <p class="text-center text-xs text-gray-500">Нажми на аватар, чтобы сгенерировать новый</p>
                 
-                <div>
-                    <label class="text-xs text-gray-500 uppercase font-bold mb-1 block">Имя</label>
-                    <input type="text" id="edit-name" class="min-input w-full p-3 rounded" required minlength="2">
+                <div class="p-4 bg-green-500/5 border-b border-green-500/10 hidden" id="voice-active-area">
+                    <div class="flex items-center gap-3 text-green-400 mb-2">
+                        <i class="fa-solid fa-tower-broadcast animate-pulse"></i>
+                        <span class="text-xs font-bold">ГОЛОСОВОЙ ЧАТ</span>
+                    </div>
+                    <div id="voice-users-list" class="flex flex-wrap gap-2"></div>
                 </div>
 
-                <button type="submit" class="w-full bg-white text-black font-bold py-3 rounded hover:bg-gray-200 transition">Сохранить</button>
-            </form>
+                <div id="users-list-container" class="flex-1 overflow-y-auto p-2 space-y-1"></div>
+            </div>
+
         </div>
     </div>
 
-    <!-- TOAST -->
-    <div id="toast" class="fixed top-4 left-1/2 -translate-x-1/2 bg-white text-black px-6 py-3 rounded-full shadow-2xl text-sm font-bold transform -translate-y-20 transition-transform duration-300 z-[100] flex items-center gap-2">
-        <i class="fa-solid fa-circle-info text-blue-600"></i>
-        <span id="toast-msg">Notification</span>
-    </div>
-
-    <!-- FIREBASE LOGIC -->
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signInAnonymously, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, getDoc, onSnapshot, addDoc, query, orderBy, limit, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, query, orderBy, limit, serverTimestamp, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // CONFIG
+        // === CONFIG (Замените на свои данные если нужно) ===
         const firebaseConfig = {
           apiKey: "AIzaSyBrm8hgy9LGFFL_7CdlnR6jxyolqy94AQA",
           authDomain: "upbeat-orb-479013-p8.firebaseapp.com",
@@ -236,277 +226,219 @@
           appId: "1:547138498300:web:a03c11d6aafd5f027cf179"
         };
         
-        const APP_ID = 'cw-pro-v1'; // Namespace for this app version
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
+        const APP_ID = 'cw-pro-v2';
 
-        // STATE
+        // === STATE ===
         let currentUser = null;
         let currentRoomId = null;
-        let unsubscribeRoom = null;
-        let unsubscribeChat = null;
-        let unsubscribeUsers = null;
         let player = null;
-        let isPlayerReady = false;
-        let usersCache = {};
+        let unsubscribe = { room: null, chat: null, users: null, voice: null };
+        let uiTimeout;
+        let voiceActive = false;
         
-        // DOM ELEMENTS
-        const screens = {
-            auth: document.getElementById('screen-auth'),
-            lobby: document.getElementById('screen-lobby'),
-            app: document.getElementById('screen-app')
+        // === DOM ELEMENTS ===
+        const els = {
+            screens: { auth: document.getElementById('screen-auth'), lobby: document.getElementById('screen-lobby'), app: document.getElementById('screen-app') },
+            panels: { chat: document.getElementById('panel-chat'), users: document.getElementById('panel-users') },
+            inputs: { room: document.getElementById('input-room-id'), video: document.getElementById('input-video-url'), chat: document.getElementById('input-message') },
+            btns: { voice: document.getElementById('btn-toggle-voice'), chat: document.getElementById('btn-toggle-chat'), users: document.getElementById('btn-toggle-users') }
         };
-        
-        // --- AUTHENTICATION FLOW ---
-        
-        onAuthStateChanged(auth, (user) => {
+
+        // === AUTH ===
+        onAuthStateChanged(auth, user => {
             if (user) {
                 currentUser = user;
-                initUserInDb(user).then(() => {
-                    showScreen('lobby');
-                    updateLobbyUI(user);
-                });
+                initUserInDb(user);
+                updateLobbyUI(user);
+                showScreen('lobby');
             } else {
                 currentUser = null;
                 showScreen('auth');
             }
         });
 
-        document.getElementById('btn-google-login').onclick = () => {
-            signInWithPopup(auth, new GoogleAuthProvider()).catch(e => showToast(e.message));
-        };
-
+        document.getElementById('btn-google-login').onclick = () => signInWithPopup(auth, new GoogleAuthProvider());
         document.getElementById('btn-guest-login').onclick = () => {
-    const guestName = "Гость";            if(!guestName) return;
             signInAnonymously(auth).then(cred => {
-                updateProfile(cred.user, { 
-                    displayName: guestName,
-                    photoURL: `https://api.dicebear.com/7.x/initials/svg?seed=${guestName}&backgroundColor=111`
-                });
-            }).catch(e => showToast(e.message));
+                const name = "Гость " + Math.floor(Math.random()*1000);
+                updateProfile(cred.user, { displayName: name, photoURL: `https://api.dicebear.com/7.x/initials/svg?seed=${name}` });
+            });
         };
-
         document.getElementById('btn-logout').onclick = () => signOut(auth);
 
         async function initUserInDb(user) {
-            const userRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'users', user.uid);
-            await setDoc(userRef, {
-                uid: user.uid,
-                displayName: user.displayName || 'Anon',
-                photoURL: user.photoURL,
-                email: user.email || 'guest',
-                lastSeen: serverTimestamp()
+            await setDoc(doc(db, 'artifacts', APP_ID, 'users', user.uid), {
+                uid: user.uid, displayName: user.displayName, photoURL: user.photoURL, lastSeen: serverTimestamp()
             }, { merge: true });
         }
 
-        // --- LOBBY LOGIC ---
-
+        // === LOBBY ===
         function updateLobbyUI(user) {
             document.getElementById('lobby-username').textContent = user.displayName;
             document.getElementById('lobby-avatar').src = user.photoURL;
+            document.getElementById('app-user-avatar').src = user.photoURL;
         }
 
-        document.getElementById('btn-create-room').onclick = () => {
-            const newRoomId = Math.random().toString(36).substring(2, 8).toUpperCase();
-            enterRoom(newRoomId);
+        document.getElementById('tab-create').onclick = () => {
+            const id = Math.random().toString(36).substring(2, 8).toUpperCase();
+            els.inputs.room.value = id;
+            enterRoom(id);
         };
-
+        
         document.getElementById('form-join-room').onsubmit = (e) => {
             e.preventDefault();
-            const id = document.getElementById('input-room-id').value.trim().toUpperCase();
-            if(id.length < 3) return showToast("Слишком короткий ID");
-            enterRoom(id);
+            enterRoom(els.inputs.room.value.trim().toUpperCase());
         };
 
         async function enterRoom(roomId) {
+            if(roomId.length < 3) return;
             currentRoomId = roomId;
-            
-            // 1. Update Room DB Entry (Create if needed)
-            const roomRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'rooms', roomId);
-            // We just ensure it exists or update last accessed
-            await setDoc(roomRef, { active: true }, { merge: true });
-
-            // 2. Add user to room's active user list (Virtual concept, handled via presence)
-            // For simplicity in this structure, we just update local state and listeners
-            
             document.getElementById('display-room-id').textContent = roomId;
-            document.getElementById('placeholder-room-id').textContent = roomId;
             
-            showScreen('app');
+            // Register presence in room
+            await setDoc(doc(db, 'artifacts', APP_ID, 'rooms', roomId, 'presence', currentUser.uid), {
+                uid: currentUser.uid, displayName: currentUser.displayName, photoURL: currentUser.photoURL, state: 'online'
+            });
+
             initRoomListeners(roomId);
-            showToast(`Вход в комнату: ${roomId}`);
+            showScreen('app');
         }
 
-        document.getElementById('btn-leave-room').onclick = () => {
-            if(unsubscribeRoom) unsubscribeRoom();
-            if(unsubscribeChat) unsubscribeChat();
-            if(unsubscribeUsers) unsubscribeUsers(); // In a real app we'd scope users by room
+        document.getElementById('btn-leave-room').onclick = leaveRoom;
+
+        async function leaveRoom() {
+            if(!currentRoomId) return;
+            // Clean up listeners
+            Object.values(unsubscribe).forEach(u => u && u());
+            
+            // Remove presence
+            await deleteDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', currentUser.uid));
             
             if(player && player.stopVideo) player.stopVideo();
-            document.getElementById('player').classList.add('hidden');
-            document.getElementById('player-placeholder').classList.remove('hidden');
-            
-            showScreen('lobby');
             currentRoomId = null;
-        };
+            showScreen('lobby');
+        }
 
-        // --- MAIN APP LOGIC ---
-
+        // === SYNC ENGINE (SMART TIME CALC) ===
         function initRoomListeners(roomId) {
-            // 1. SYNC VIDEO
-            const roomRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'rooms', roomId);
-            unsubscribeRoom = onSnapshot(roomRef, (snap) => {
-                if(!snap.exists()) return;
-                const data = snap.data();
-                syncPlayer(data);
+            // 1. VIDEO STATE
+            unsubscribe.room = onSnapshot(doc(db, 'artifacts', APP_ID, 'rooms', roomId), (snap) => {
+                if(snap.exists()) syncPlayer(snap.data());
             });
 
-            // 2. CHAT (Using a specific collection for this room to follow constraints)
-            // We use a collection named `messages_${roomId}` to keep data isolated flatly
-            const chatColId = `messages_${roomId}`; 
-            const chatRef = collection(db, 'artifacts', APP_ID, 'public', 'data', chatColId);
-            const q = query(chatRef, orderBy('timestamp', 'asc'), limit(100));
-            
-            const chatContainer = document.getElementById('chat-container');
-            chatContainer.innerHTML = ''; // Clear old
-
-            unsubscribeChat = onSnapshot(q, (snapshot) => {
+            // 2. CHAT
+            const chatQ = query(collection(db, 'artifacts', APP_ID, 'rooms', roomId, 'chat'), orderBy('ts', 'asc'), limit(50));
+            unsubscribe.chat = onSnapshot(chatQ, (snapshot) => {
                 snapshot.docChanges().forEach(change => {
-                    if (change.type === "added") {
-                        renderMessage(change.doc.data());
-                    }
+                    if (change.type === "added") handleIncomingMessage(change.doc.data());
                 });
-                chatContainer.scrollTop = chatContainer.scrollHeight;
             });
 
-            // 3. USERS (Global list for demo, or filter client side if we added roomId to user doc)
-            // For this demo, we'll just show all online users in the system, 
-            // but in production you'd add 'currentRoom' field to user doc.
-            const usersRef = collection(db, 'artifacts', APP_ID, 'public', 'data', 'users');
-            unsubscribeUsers = onSnapshot(usersRef, (snapshot) => {
-                const list = document.getElementById('users-list');
+            // 3. PRESENCE
+            unsubscribe.users = onSnapshot(collection(db, 'artifacts', APP_ID, 'rooms', roomId, 'presence'), (snap) => {
+                const list = document.getElementById('users-list-container');
                 list.innerHTML = '';
-                snapshot.forEach(doc => {
-                    const u = doc.data();
-                    usersCache[u.uid] = u; // Cache for chat avatars
-                    
-                    // Optional: Filter by room if we added that field. 
-                    // For now showing all gives a sense of community or we can pretend.
-                    
-                    const isMe = u.uid === currentUser.uid;
-                    const el = document.createElement('div');
-                    el.className = `flex items-center gap-3 p-2 rounded hover:bg-gray-900 transition ${isMe ? 'bg-gray-900/50' : ''}`;
-                    el.innerHTML = `
-                        <img src="${u.photoURL}" class="w-8 h-8 rounded-full bg-gray-800 object-cover border border-gray-800">
-                        <span class="text-sm font-medium ${isMe ? 'text-white' : 'text-gray-400'} truncate">${u.displayName}</span>
-                    `;
-                    list.appendChild(el);
-                    
-                    if(isMe) {
-                        document.getElementById('app-user-name').textContent = u.displayName;
-                        document.getElementById('app-user-avatar').src = u.photoURL;
+                const voiceList = document.getElementById('voice-users-list');
+                voiceList.innerHTML = '';
+                let voiceCount = 0;
+
+                snap.forEach(d => {
+                    const u = d.data();
+                    renderUser(u, list);
+                    if(u.voiceActive) {
+                        renderVoiceUser(u, voiceList);
+                        voiceCount++;
                     }
                 });
+                
+                document.getElementById('voice-active-area').style.display = voiceCount > 0 ? 'block' : 'none';
             });
         }
 
-        // --- VIDEO PLAYER ---
-        
-        let lastServerTime = 0;
-        let isSyncing = false;
-
-        // Init Youtube API
-        const tag = document.createElement('script');
-        tag.src = "https://www.youtube.com/iframe_api";
-        document.body.appendChild(tag);
+        // --- VIDEO LOGIC ---
+        // Load YouTube API
+        if(!window.YT) {
+            const tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
+            document.body.appendChild(tag);
+        }
 
         window.onYouTubeIframeAPIReady = () => {
             player = new YT.Player('player', {
-                height: '100%',
-                width: '100%',
-                playerVars: { 'playsinline': 1, 'controls': 1, 'rel': 0, 'modestbranding': 1 },
+                height: '100%', width: '100%',
+                playerVars: { 'controls': 0, 'rel': 0, 'modestbranding': 1, 'disablekb': 1 },
                 events: {
-                    'onReady': (e) => { isPlayerReady = true; },
+                    'onReady': () => {},
                     'onStateChange': onPlayerStateChange
                 }
             });
         };
 
-        function onPlayerStateChange(event) {
+        let isSyncing = false;
+        
+        function onPlayerStateChange(e) {
             if(isSyncing || !currentRoomId) return;
-            
-            // Only sync Play (1) and Pause (2)
-            // We debounce to prevent loops
-            const state = event.data;
-            if(state === YT.PlayerState.PLAYING || state === YT.PlayerState.PAUSED) {
-                const status = state === YT.PlayerState.PLAYING ? 'playing' : 'paused';
-                const time = player.getCurrentTime();
-                
-                // Update Firestore
+            // Only Leader logic or democratic logic needed here. 
+            // Simplified: Anyone pauses/plays -> updates DB.
+            const state = e.data;
+            if(state === 1 || state === 2) { // Play or Pause
                 updateRoomState({
-                    status: status,
-                    timestamp: time,
-                    videoId: player.getVideoData().video_id,
-                    lastUpdated: Date.now()
+                    status: state === 1 ? 'playing' : 'paused',
+                    timestamp: player.getCurrentTime(),
+                    updatedAt: Date.now() // Client timestamp for drift calc
                 });
             }
         }
 
         async function updateRoomState(data) {
-            const roomRef = doc(db, 'artifacts', APP_ID, 'public', 'data', 'rooms', currentRoomId);
-            await setDoc(roomRef, data, { merge: true });
+            await setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), data, { merge: true });
         }
 
         function syncPlayer(data) {
-            if(!data.videoId || !player || !isPlayerReady) return;
-
-            // Load new video
+            if(!player || !data || !data.videoId) return;
+            
+            // 1. Check Video ID
             const currentVid = player.getVideoData() ? player.getVideoData().video_id : null;
             if(currentVid !== data.videoId) {
                 player.loadVideoById(data.videoId);
-                document.getElementById('player').classList.remove('hidden');
-                document.getElementById('player-placeholder').classList.add('hidden');
             }
 
-            // Sync Time & State
-            // Ignore updates if they are old or if we just sent them
-            if(Math.abs(Date.now() - data.lastUpdated) > 5000 && data.status === 'playing') {
-                // If update is old, just let it play, don't jump back
+            // 2. SMART TIME SYNC
+            const serverState = data.status;
+            let targetTime = data.timestamp;
+
+            // If playing, calculate time elapsed since update (Drift Compensation)
+            if(serverState === 'playing') {
+                const timePassedSeconds = (Date.now() - data.updatedAt) / 1000;
+                targetTime += timePassedSeconds;
             }
-            
-            const diff = Math.abs(player.getCurrentTime() - data.timestamp);
-            if(diff > 2) {
+
+            const diff = Math.abs(player.getCurrentTime() - targetTime);
+
+            // Sync if difference is > 1.5s
+            if(diff > 1.5) {
                 isSyncing = true;
-                player.seekTo(data.timestamp);
+                player.seekTo(targetTime, true);
+                if(serverState === 'playing') player.playVideo();
+                else player.pauseVideo();
                 setTimeout(() => isSyncing = false, 1000);
-            }
-
-            const pState = player.getPlayerState();
-            if(data.status === 'paused' && pState !== YT.PlayerState.PAUSED) {
-                isSyncing = true;
-                player.pauseVideo();
-                setTimeout(() => isSyncing = false, 500);
-            } else if(data.status === 'playing' && pState !== YT.PlayerState.PLAYING) {
-                isSyncing = true;
-                player.playVideo();
-                setTimeout(() => isSyncing = false, 500);
+            } else {
+                // Fine tuning status if time is close
+                const pState = player.getPlayerState();
+                if(serverState === 'paused' && pState !== 2) player.pauseVideo();
+                if(serverState === 'playing' && pState !== 1) player.playVideo();
             }
         }
 
         document.getElementById('btn-load-video').onclick = () => {
-            const url = document.getElementById('input-video-url').value;
-            const vidId = extractVideoId(url);
-            if(vidId && currentRoomId) {
-                updateRoomState({
-                    videoId: vidId,
-                    status: 'playing',
-                    timestamp: 0,
-                    lastUpdated: Date.now()
-                });
-                document.getElementById('input-video-url').value = '';
-            } else {
-                showToast("Некорректная ссылка");
+            const url = els.inputs.video.value;
+            const id = extractVideoId(url);
+            if(id && currentRoomId) {
+                updateRoomState({ videoId: id, status: 'playing', timestamp: 0, updatedAt: Date.now() });
+                els.inputs.video.value = '';
             }
         };
 
@@ -515,96 +447,158 @@
             return (m && m[2].length === 11) ? m[2] : null;
         }
 
-        // --- CHAT & UTILS ---
-
+        // --- CHAT & NOTIFICATIONS ---
         document.getElementById('form-chat').onsubmit = async (e) => {
             e.preventDefault();
-            const input = document.getElementById('input-message');
-            const txt = input.value.trim();
-            if(!txt || !currentRoomId) return;
-
-            const chatColId = `messages_${currentRoomId}`;
-            await addDoc(collection(db, 'artifacts', APP_ID, 'public', 'data', chatColId), {
-                text: txt,
-                senderId: currentUser.uid,
-                timestamp: serverTimestamp()
+            const txt = els.inputs.chat.value.trim();
+            if(!txt) return;
+            await addDoc(collection(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'chat'), {
+                text: txt, sender: currentUser.displayName, uid: currentUser.uid, photo: currentUser.photoURL, ts: serverTimestamp()
             });
-            input.value = '';
+            els.inputs.chat.value = '';
         };
 
-        function renderMessage(msg) {
-            const isMe = msg.senderId === currentUser.uid;
-            const sender = usersCache[msg.senderId] || { displayName: '...', photoURL: 'https://via.placeholder.com/30' };
-            
+        function handleIncomingMessage(msg) {
+            // Render in Panel
+            const isMe = msg.uid === currentUser.uid;
             const div = document.createElement('div');
-            div.className = `flex gap-3 mb-4 ${isMe ? 'flex-row-reverse' : ''}`;
+            div.className = `flex gap-2 ${isMe ? 'flex-row-reverse' : ''}`;
             div.innerHTML = `
-                <img src="${sender.photoURL}" class="w-8 h-8 rounded-full bg-gray-800 flex-shrink-0 mt-1">
-                <div class="max-w-[75%]">
-                    <div class="text-[10px] text-gray-500 mb-1 ${isMe ? 'text-right' : ''}">${sender.displayName}</div>
-                    <div class="px-3 py-2 rounded-lg text-sm ${isMe ? 'bg-white text-black' : 'bg-gray-800 text-gray-200'}">
-                        ${msg.text}
-                    </div>
+                <img src="${msg.photo}" class="w-6 h-6 rounded-full border border-gray-600">
+                <div class="bg-white/10 p-2 rounded-lg max-w-[80%] text-sm break-words">
+                    <span class="text-[10px] text-gray-400 block mb-0.5 ${isMe ? 'text-right' : ''}">${msg.sender}</span>
+                    ${msg.text}
                 </div>
             `;
-            document.getElementById('chat-container').appendChild(div);
-        }
+            const container = document.getElementById('chat-messages');
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
 
-        // --- PROFILE EDIT ---
-
-        document.getElementById('btn-open-profile').onclick = () => {
-            document.getElementById('modal-profile').classList.remove('hidden');
-            document.getElementById('edit-name').value = currentUser.displayName;
-            document.getElementById('edit-avatar-preview').src = currentUser.photoURL;
-        };
-
-        document.getElementById('btn-close-profile').onclick = () => {
-            document.getElementById('modal-profile').classList.add('hidden');
-        };
-
-        document.getElementById('avatar-trigger').onclick = () => {
-            const seed = Math.random().toString(36);
-            document.getElementById('edit-avatar-preview').src = `https://api.dicebear.com/7.x/initials/svg?seed=${seed}&backgroundColor=111`;
-        };
-
-        document.getElementById('form-profile').onsubmit = async (e) => {
-            e.preventDefault();
-            const newName = document.getElementById('edit-name').value;
-            const newPic = document.getElementById('edit-avatar-preview').src;
-            
-            try {
-                await updateProfile(currentUser, { displayName: newName, photoURL: newPic });
-                await updateDoc(doc(db, 'artifacts', APP_ID, 'public', 'data', 'users', currentUser.uid), {
-                    displayName: newName,
-                    photoURL: newPic
-                });
-                updateLobbyUI(currentUser);
-                document.getElementById('modal-profile').classList.add('hidden');
-                showToast("Профиль сохранен");
-            } catch(err) {
-                showToast(err.message);
+            // Notification Logic (If panel closed & not me)
+            const chatPanelOpen = els.panels.chat.style.transform === 'translateX(0%)';
+            if(!isMe && !chatPanelOpen) {
+                showToast(msg);
+                document.getElementById('chat-badge').classList.remove('hidden');
             }
-        };
-
-        // --- SYSTEM ---
-
-        function showScreen(name) {
-            Object.values(screens).forEach(s => s.classList.add('hidden'));
-            screens[name].classList.remove('hidden');
         }
 
         function showToast(msg) {
-            const t = document.getElementById('toast');
-            document.getElementById('toast-msg').textContent = msg;
-            t.classList.remove('-translate-y-20');
-            setTimeout(() => t.classList.add('-translate-y-20'), 3000);
+            const area = document.getElementById('notification-area');
+            const toast = document.createElement('div');
+            toast.className = "bg-white/10 backdrop-blur-md border border-white/10 p-3 rounded-xl flex gap-3 shadow-2xl slide-up pointer-events-auto w-full";
+            toast.innerHTML = `
+                <img src="${msg.photo}" class="w-8 h-8 rounded-full">
+                <div class="overflow-hidden">
+                    <h4 class="font-bold text-xs text-white truncate">${msg.sender}</h4>
+                    <p class="text-xs text-gray-300 truncate">${msg.text}</p>
+                </div>
+            `;
+            area.appendChild(toast);
+            setTimeout(() => toast.remove(), 5000); // Auto remove after 5s
         }
 
-        document.getElementById('copy-room-id').onclick = () => {
-            navigator.clipboard.writeText(currentRoomId);
-            showToast("ID скопирован");
+        // --- VOICE UI LOGIC ---
+        els.btns.voice.onclick = async () => {
+            voiceActive = !voiceActive;
+            const btn = els.btns.voice;
+            
+            if(voiceActive) {
+                btn.classList.add('active');
+                btn.innerHTML = '<i class="fa-solid fa-microphone text-green-600"></i>';
+                // Simulate "Joining" voice channel in DB
+                await updateDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', currentUser.uid), { voiceActive: true });
+            } else {
+                btn.classList.remove('active');
+                btn.innerHTML = '<i class="fa-solid fa-microphone-slash text-gray-400"></i>';
+                await updateDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', currentUser.uid), { voiceActive: false });
+            }
         };
 
+        function renderVoiceUser(u, container) {
+            const div = document.createElement('div');
+            // Randomly animate visualizer for effect
+            const isSpeaking = Math.random() > 0.5; 
+            div.className = "flex flex-col items-center w-12";
+            div.innerHTML = `
+                <div class="relative">
+                    <img src="${u.photoURL}" class="w-8 h-8 rounded-full border border-green-500 ${isSpeaking ? 'speaking-ring' : ''}">
+                </div>
+                <div class="speaking-visualizer h-3 mt-1 flex items-end ${isSpeaking ? '' : 'opacity-0'}">
+                    <span></span><span></span><span></span>
+                </div>
+            `;
+            container.appendChild(div);
+        }
+
+        function renderUser(u, container) {
+            const div = document.createElement('div');
+            div.className = "flex items-center gap-3 p-2 hover:bg-white/5 rounded-lg transition";
+            div.innerHTML = `
+                <img src="${u.photoURL}" class="w-8 h-8 rounded-full bg-gray-800 object-cover">
+                <div class="flex-1 min-w-0">
+                    <p class="text-sm font-medium truncate text-white">${u.displayName}</p>
+                    <p class="text-[10px] ${u.state === 'online' ? 'text-green-500' : 'text-gray-500'}">
+                        ${u.state === 'online' ? '● Online' : 'Offline'}
+                    </p>
+                </div>
+                ${u.voiceActive ? '<i class="fa-solid fa-microphone text-green-500 text-xs"></i>' : ''}
+            `;
+            container.appendChild(div);
+        }
+
+        // --- UI UTILS ---
+        window.togglePanel = (name) => {
+            const panel = els.panels[name];
+            const btn = els.btns[name];
+            const isHidden = panel.classList.contains('-translate-x-[120%]') || panel.classList.contains('translate-x-[120%]'); // Check logic based on side
+            
+            // Simple logic: Toggle Transform
+            if(name === 'chat') {
+                if(panel.style.transform === 'translateX(0%)') {
+                    panel.style.transform = 'translateX(120%)';
+                    btn.classList.remove('active');
+                } else {
+                    panel.style.transform = 'translateX(0%)';
+                    btn.classList.add('active');
+                    document.getElementById('chat-badge').classList.add('hidden');
+                }
+            } else {
+                if(panel.style.transform === 'translateX(0%)') {
+                    panel.style.transform = 'translateX(-120%)';
+                    btn.classList.remove('active');
+                } else {
+                    panel.style.transform = 'translateX(0%)';
+                    btn.classList.add('active');
+                }
+            }
+        };
+
+        // Auto Hide UI
+        document.addEventListener('mousemove', () => {
+            document.getElementById('ui-layer').classList.remove('ui-idle');
+            clearTimeout(uiTimeout);
+            uiTimeout = setTimeout(() => {
+                if(document.getElementById('input-video-url') !== document.activeElement && 
+                   document.getElementById('input-message') !== document.activeElement) {
+                    document.getElementById('ui-layer').classList.add('ui-idle');
+                }
+            }, 3000);
+        });
+
+        // Copy
+        document.getElementById('copy-room-id').onclick = () => {
+            navigator.clipboard.writeText(currentRoomId);
+            const el = document.getElementById('display-room-id');
+            const orig = el.textContent;
+            el.textContent = "COPIED";
+            setTimeout(() => el.textContent = orig, 1000);
+        };
+
+        // Helpers
+        function showScreen(name) {
+            Object.values(els.screens).forEach(s => s.classList.add('hidden'));
+            els.screens[name].classList.remove('hidden');
+        }
     </script>
 </body>
 </html>
