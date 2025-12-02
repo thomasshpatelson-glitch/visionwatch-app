@@ -278,8 +278,7 @@
         };
 
         document.getElementById('btn-guest-login').onclick = () => {
-            const guestName = prompt("Как вас называть?", "Гость");
-            if(!guestName) return;
+    const guestName = "Гость";            if(!guestName) return;
             signInAnonymously(auth).then(cred => {
                 updateProfile(cred.user, { 
                     displayName: guestName,
