@@ -5,186 +5,215 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'self' blob: data: gap:; style-src * 'self' 'unsafe-inline' blob: data: gap:; script-src * 'self' 'unsafe-eval' 'unsafe-inline' blob: data: gap:; object-src * 'self' blob: data: gap:; img-src * 'self' 'unsafe-inline' blob: data: gap:; connect-src 'self' * 'unsafe-inline' blob: data: gap:; frame-src * 'self' blob: data: gap:;">
     
-    <title>Co-Watch Final</title>
+    <title>Co-Watch v3.0 | Stable</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
-        /* BASE RESET */
+        /* === GLOBAL RESET === */
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         html, body { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
-            overflow: hidden; background-color: #000; 
+            overflow: hidden; background-color: #050505; 
             font-family: 'Outfit', sans-serif; 
         }
 
-        /* UTILS */
-        .hidden-force { display: none !important; }
-        .fade-in { animation: fadeIn 0.5s ease forwards; }
-        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        /* === UTILS === */
+        .force-hidden { display: none !important; }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
 
-        /* GLASSMORPHISM */
+        /* === GLASS UI === */
         .glass-panel {
-            background: rgba(18, 18, 18, 0.85);
-            backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
+            background: rgba(15, 15, 15, 0.85); /* Темный полупрозрачный фон */
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
             border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
         }
-        
+
         .glass-btn {
             background: rgba(255,255,255,0.05);
             border: 1px solid rgba(255,255,255,0.05);
-            transition: all 0.2s;
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
             cursor: pointer;
         }
-        .glass-btn:active { transform: scale(0.96); }
-        .glass-btn.active { background: white; color: black; }
+        .glass-btn:hover { background: rgba(255,255,255,0.15); transform: translateY(-1px); }
+        .glass-btn:active { transform: scale(0.95); }
+        
+        /* Active States */
+        .btn-active { background: #fff !important; color: #000 !important; box-shadow: 0 0 15px rgba(255,255,255,0.3); }
+        .voice-active { background: #22c55e !important; color: #000 !important; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4); }
 
         .pro-input {
-            background: rgba(0,0,0,0.5);
-            border: 1px solid #333;
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.1);
             color: white;
             font-family: monospace;
         }
-        .pro-input:focus { border-color: #777; outline: none; background: rgba(0,0,0,0.8); }
+        .pro-input:focus { border-color: #fff; outline: none; background: rgba(0,0,0,0.7); }
 
-        /* YOUTUBE LAYER */
-        .video-layer {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; z-index: 0;
-            display: flex; align-items: center; justify-content: center; background: black;
+        /* === VOICE CHAT ANIMATIONS === */
+        .voice-ring {
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+            animation: pulse-green 1.5s infinite;
         }
-        .ui-layer {
-            position: fixed; inset: 0; z-index: 50; pointer-events: none;
-            display: flex; flex-col: column; justify-content: space-between; padding: 1rem;
+        @keyframes pulse-green {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
         }
-        .pointer-auto { pointer-events: auto; }
+
+        /* === LAYOUT FIXES === */
+        /* Видео всегда на весь экран, под интерфейсом */
+        #video-layer { position: absolute; inset: 0; z-index: 0; background: #000; display: flex; align-items: center; justify-content: center; }
+        /* Интерфейс поверх видео */
+        #ui-layer { position: absolute; inset: 0; z-index: 50; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 16px; }
+        .interactive { pointer-events: auto; }
     </style>
 </head>
 <body>
 
     <div id="screen-auth" class="fixed inset-0 z-[100] flex items-center justify-center bg-black transition-opacity duration-300">
-        <div class="glass-panel p-8 rounded-2xl max-w-sm w-full text-center mx-4">
-            <div class="w-16 h-16 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 border border-white/10">
-                <i class="fa-solid fa-play text-2xl text-white"></i>
+        <div class="glass-panel p-8 rounded-3xl max-w-sm w-full text-center mx-4 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
+            
+            <div class="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 border border-white/10 shadow-xl">
+                <i class="fa-solid fa-play text-3xl text-white ml-1"></i>
             </div>
-            <h1 class="text-3xl font-bold text-white mb-2">Co-Watch</h1>
-            <p class="text-gray-400 text-sm mb-8">Синхронный просмотр видео</p>
-            <button id="btn-guest-login" class="w-full bg-white text-black font-bold py-3.5 rounded-xl hover:bg-gray-200 transition">
+            <h1 class="text-4xl font-bold text-white mb-2 tracking-tight">Co-Watch</h1>
+            <p class="text-gray-400 text-sm mb-8 font-light">Кинотеатр для друзей</p>
+            
+            <button id="btn-guest-login" class="w-full bg-white text-black font-bold py-4 rounded-xl hover:bg-gray-200 transition transform hover:scale-[1.02] shadow-lg">
                 Войти как Гость
             </button>
             <div id="auth-status" class="mt-4 text-xs text-gray-500 min-h-[1rem]"></div>
         </div>
     </div>
 
-    <div id="screen-lobby" class="fixed inset-0 z-[90] flex items-center justify-center bg-black hidden-force">
-        <div class="w-full max-w-md p-6 relative z-10 fade-in">
+    <div id="screen-lobby" class="fixed inset-0 z-[90] flex items-center justify-center bg-black force-hidden">
+        <div class="w-full max-w-md p-4 relative z-10 fade-in">
             <div class="text-center mb-8">
-                <img id="lobby-avatar" src="" class="w-20 h-20 rounded-full mx-auto mb-4 border-2 border-gray-800 object-cover bg-gray-900">
-                <h2 class="text-xl font-bold text-white">Привет, <span id="lobby-username">...</span></h2>
+                <div class="relative inline-block">
+                    <img id="lobby-avatar" src="" class="w-24 h-24 rounded-full border-4 border-[#1a1a1a] shadow-2xl object-cover bg-gray-900">
+                    <div class="absolute bottom-0 right-0 w-6 h-6 bg-green-500 rounded-full border-4 border-[#1a1a1a]"></div>
+                </div>
+                <h2 class="text-2xl font-bold text-white mt-4">Привет, <span id="lobby-username" class="text-blue-400">...</span></h2>
             </div>
 
-            <div class="glass-panel rounded-xl p-6 space-y-6">
-                <button id="btn-create-room" class="w-full py-4 rounded-lg bg-white text-black font-bold text-lg hover:bg-gray-200 transition shadow-lg">
-                    Создать комнату
+            <div class="glass-panel rounded-2xl p-6 space-y-6">
+                <button id="btn-create-room" class="w-full py-4 rounded-xl bg-white text-black font-bold text-lg hover:bg-gray-200 transition shadow-lg flex items-center justify-center gap-2">
+                    <i class="fa-solid fa-plus"></i> Создать комнату
                 </button>
                 
                 <div class="flex items-center gap-3">
                     <div class="h-px bg-white/10 flex-1"></div>
-                    <span class="text-[10px] text-gray-500 uppercase font-bold tracking-widest">ИЛИ ВОЙТИ ПО ID</span>
+                    <span class="text-[10px] text-gray-500 uppercase font-bold tracking-[0.2em]">ИЛИ ID</span>
                     <div class="h-px bg-white/10 flex-1"></div>
                 </div>
                 
-                <form id="form-join-room" class="flex gap-2 h-12">
-                    <input type="text" id="input-room-id" placeholder="ID: A1B2C" class="pro-input flex-1 px-4 rounded-lg text-center uppercase tracking-widest text-lg font-bold" required maxlength="6">
-                    <button type="submit" class="bg-gray-800 text-white w-14 rounded-lg hover:bg-gray-700 border border-gray-700 flex items-center justify-center transition">
-                        <i class="fa-solid fa-arrow-right"></i>
+                <form id="form-join-room" class="flex gap-2 h-14">
+                    <input type="text" id="input-room-id" placeholder="A1B2C" class="pro-input flex-1 px-4 rounded-xl text-center uppercase tracking-widest text-xl font-bold" required maxlength="6">
+                    <button type="submit" class="bg-[#222] text-white w-16 rounded-xl hover:bg-[#333] border border-white/10 flex items-center justify-center transition">
+                        <i class="fa-solid fa-arrow-right text-lg"></i>
                     </button>
                 </form>
             </div>
         </div>
     </div>
 
-    <div id="screen-app" class="fixed inset-0 bg-black hidden-force">
+    <div id="screen-app" class="fixed inset-0 bg-black force-hidden">
         
-        <div class="video-layer">
-            <div id="player-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-gray-800 z-10 pointer-events-none">
-                <i class="fa-brands fa-youtube text-8xl mb-4 opacity-20"></i>
-                <p class="font-mono text-xs opacity-50 tracking-[0.3em]">WAITING FOR VIDEO</p>
+        <div id="video-layer">
+            <div id="player-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-gray-500 z-10 select-none">
+                <i class="fa-brands fa-youtube text-7xl mb-6 opacity-30 animate-bounce"></i>
+                <p class="font-mono text-xs opacity-50 tracking-[0.4em] uppercase">Ожидание ссылки</p>
             </div>
             <div id="player" class="w-full h-full absolute inset-0 z-20"></div>
         </div>
 
-        <div id="ui-layer" class="ui-layer transition-opacity duration-300">
+        <div id="ui-layer">
             
-            <div class="flex flex-col md:flex-row justify-between items-center gap-3 pointer-auto" id="top-bar">
-                <div class="glass-panel px-4 py-2 rounded-full flex items-center gap-3 cursor-pointer hover:bg-white/5 active:scale-95 transition select-none" id="copy-room-id">
-                    <div class="relative w-2 h-2">
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 interactive opacity-0 hover:opacity-100 transition-opacity duration-300" id="top-bar">
+                
+                <div class="glass-panel px-4 py-2 rounded-full flex items-center gap-3 cursor-pointer hover:bg-white/5 active:scale-95 transition" id="copy-room-id">
+                    <div class="relative w-2.5 h-2.5">
                         <span class="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-75"></span>
-                        <span class="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
                     </div>
                     <span class="font-mono font-bold text-sm text-white tracking-widest" id="display-room-id">...</span>
-                    <i class="fa-regular fa-copy text-xs text-gray-500"></i>
+                    <i class="fa-regular fa-copy text-xs text-gray-500 ml-1"></i>
                 </div>
 
-                <div class="glass-panel p-1.5 rounded-full flex items-center gap-2 w-full max-w-lg shadow-xl">
-                    <input type="text" id="input-video-url" placeholder="Ссылка YouTube (youtu.be/...)" class="bg-transparent border-none text-white text-sm w-full focus:outline-none px-3 h-full">
+                <div class="glass-panel p-1.5 rounded-full flex items-center gap-2 w-full max-w-lg shadow-2xl">
+                    <div class="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center flex-shrink-0">
+                        <i class="fa-brands fa-youtube text-white text-xs"></i>
+                    </div>
+                    <input type="text" id="input-video-url" placeholder="Вставьте ссылку (youtu.be/...)" class="bg-transparent border-none text-white text-sm w-full focus:outline-none px-2 h-full placeholder-gray-500">
                     <button id="btn-load-video" class="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center hover:bg-gray-200 transition flex-shrink-0">
                         <i class="fa-solid fa-play text-xs ml-0.5"></i>
                     </button>
                 </div>
 
-                <button id="btn-leave-room" class="glass-panel w-10 h-10 rounded-full flex items-center justify-center text-red-400 hover:text-red-500 hover:bg-white/10 transition">
+                <button id="btn-leave-room" class="glass-panel w-10 h-10 rounded-full flex items-center justify-center text-red-400 hover:text-red-500 hover:bg-white/10 transition shadow-lg">
                     <i class="fa-solid fa-right-from-bracket"></i>
                 </button>
             </div>
 
-            <div class="flex justify-center items-end pointer-auto" id="bottom-bar">
-                <div class="glass-panel p-2 rounded-2xl flex gap-2 shadow-2xl">
-                    <button id="btn-toggle-users" class="glass-btn w-12 h-12 rounded-xl flex items-center justify-center text-xl text-gray-300 hover:text-white">
+            <div class="flex-1 flex flex-col justify-end items-end pb-20 pointer-events-none">
+                <div id="toast-area" class="flex flex-col gap-2 w-72 items-end"></div>
+            </div>
+
+            <div class="flex justify-center items-end interactive" id="bottom-bar">
+                <div class="glass-panel p-2 rounded-2xl flex gap-3 shadow-2xl">
+                    <button id="btn-toggle-users" class="glass-btn w-12 h-12 rounded-xl flex items-center justify-center text-xl text-gray-400 hover:text-white transition tooltip-btn">
                         <i class="fa-solid fa-users"></i>
                     </button>
-                    <div class="w-px bg-white/10 my-2"></div>
-                    <button id="btn-toggle-chat" class="glass-btn w-12 h-12 rounded-xl flex items-center justify-center text-xl text-gray-300 hover:text-white relative">
+
+                    <button id="btn-toggle-voice" class="glass-btn w-14 h-14 rounded-full flex items-center justify-center text-xl text-gray-400 -mt-4 border border-white/10 hover:border-white/30 bg-black/50 backdrop-blur-md">
+                        <i class="fa-solid fa-microphone-slash"></i>
+                    </button>
+
+                    <button id="btn-toggle-chat" class="glass-btn w-12 h-12 rounded-xl flex items-center justify-center text-xl text-gray-400 hover:text-white relative transition">
                         <i class="fa-regular fa-comments"></i>
-                        <span id="chat-badge" class="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border border-black hidden-force"></span>
+                        <span id="chat-badge" class="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border border-black force-hidden"></span>
                     </button>
                 </div>
             </div>
 
-            <div id="panel-chat" class="absolute top-20 bottom-24 right-4 w-80 glass-panel rounded-2xl flex flex-col shadow-2xl pointer-auto hidden-force overflow-hidden z-50">
-                <div class="p-4 border-b border-white/10 bg-black/40 flex justify-between items-center">
-                    <span class="font-bold text-xs uppercase tracking-widest text-white/60">Чат</span>
-                    <button onclick="window.closePanels()" class="text-white/40 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            <div id="panel-chat" class="absolute top-20 bottom-24 right-4 w-80 glass-panel rounded-2xl flex flex-col shadow-2xl interactive force-hidden overflow-hidden transition-transform transform translate-x-0">
+                <div class="p-4 border-b border-white/10 bg-black/20 flex justify-between items-center">
+                    <span class="font-bold text-xs uppercase tracking-widest text-white/60">Чат комнаты</span>
+                    <button onclick="window.closePanels()" class="text-white/40 hover:text-white transition"><i class="fa-solid fa-xmark"></i></button>
                 </div>
-                <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3"></div>
-                <form id="form-chat" class="p-3 bg-black/40 border-t border-white/10 flex gap-2">
-                    <input type="text" id="input-message" placeholder="Сообщение..." class="w-full bg-transparent text-sm text-white focus:outline-none px-2" autocomplete="off">
-                    <button type="submit" class="text-white/70 hover:text-white px-2"><i class="fa-solid fa-paper-plane"></i></button>
+                <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 bg-black/20"></div>
+                <form id="form-chat" class="p-3 bg-black/40 border-t border-white/10 flex gap-2 backdrop-blur-xl">
+                    <input type="text" id="input-message" placeholder="Сообщение..." class="w-full bg-transparent text-sm text-white focus:outline-none px-2 py-2" autocomplete="off">
+                    <button type="submit" class="text-blue-400 hover:text-blue-300 px-2"><i class="fa-solid fa-paper-plane"></i></button>
                 </form>
             </div>
 
-            <div id="panel-users" class="absolute top-20 bottom-24 left-4 w-64 glass-panel rounded-2xl flex flex-col shadow-2xl pointer-auto hidden-force overflow-hidden z-50">
-                <div class="p-4 border-b border-white/10 bg-black/40 flex justify-between items-center">
-                    <span class="font-bold text-xs uppercase tracking-widest text-white/60">Участники</span>
-                    <button onclick="window.closePanels()" class="text-white/40 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            <div id="panel-users" class="absolute top-20 bottom-24 left-4 w-72 glass-panel rounded-2xl flex flex-col shadow-2xl interactive force-hidden overflow-hidden">
+                <div class="p-4 border-b border-white/10 bg-black/20 flex justify-between items-center">
+                    <span class="font-bold text-xs uppercase tracking-widest text-white/60">В сети</span>
+                    <button onclick="window.closePanels()" class="text-white/40 hover:text-white transition"><i class="fa-solid fa-xmark"></i></button>
                 </div>
-                <div id="users-list-container" class="flex-1 overflow-y-auto p-2 space-y-1"></div>
+                <div id="users-list-container" class="flex-1 overflow-y-auto p-3 space-y-2 bg-black/20"></div>
             </div>
-            
-            <div id="toast-area" class="absolute bottom-24 right-4 flex flex-col items-end gap-2 pointer-events-none z-50"></div>
+
         </div>
     </div>
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, query, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, query, orderBy, limit, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
+        // CONFIG (Используем ту же конфигурацию)
         const firebaseConfig = {
           apiKey: "AIzaSyBrm8hgy9LGFFL_7CdlnR6jxyolqy94AQA",
           authDomain: "upbeat-orb-479013-p8.firebaseapp.com",
@@ -197,24 +226,17 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const APP_ID = 'cw-final-build';
+        const APP_ID = 'cw-v3-voice'; 
 
-        // --- SCREEN MANAGER (FIXED) ---
+        // --- SCREEN MANAGER ---
+        // Жесткое управление видимостью слоев
         function showScreen(screenId) {
-            // Список точных ID из HTML
-            const ids = ['screen-auth', 'screen-lobby', 'screen-app'];
-            
-            ids.forEach(id => {
+            ['screen-auth', 'screen-lobby', 'screen-app'].forEach(id => {
                 const el = document.getElementById(id);
-                if(el) el.classList.add('hidden-force');
+                if(el) el.classList.add('force-hidden');
             });
-
             const target = document.getElementById(screenId);
-            if(target) {
-                target.classList.remove('hidden-force');
-            } else {
-                console.error(`FATAL: Cannot find screen with ID: ${screenId}`);
-            }
+            if(target) target.classList.remove('force-hidden');
         }
 
         // --- STATE ---
@@ -223,8 +245,9 @@
         let player = null;
         let unsubscribes = [];
         let uiTimeout;
+        let isVoiceOn = false; // Состояние микрофона
 
-        // --- AUTH ---
+        // --- AUTH FLOW ---
         onAuthStateChanged(auth, user => {
             if (user) {
                 currentUser = user;
@@ -232,8 +255,6 @@
                 const avaEl = document.getElementById('lobby-avatar');
                 if(nameEl) nameEl.textContent = user.displayName;
                 if(avaEl) avaEl.src = user.photoURL;
-                
-                // ВАЖНО: Используем правильный ID 'screen-lobby'
                 showScreen('screen-lobby');
             } else {
                 showScreen('screen-auth');
@@ -241,19 +262,18 @@
         });
 
         document.getElementById('btn-guest-login').onclick = () => {
-            document.getElementById('auth-status').textContent = "Вход...";
+            const status = document.getElementById('auth-status');
+            status.textContent = "Генерация профиля...";
             signInAnonymously(auth).then(cred => {
-                const name = "User " + Math.floor(Math.random()*1000);
+                const name = "Гость " + Math.floor(Math.random()*1000);
                 updateProfile(cred.user, { 
                     displayName: name, 
-                    photoURL: `https://api.dicebear.com/7.x/initials/svg?seed=${name}&backgroundColor=111`
+                    photoURL: `https://api.dicebear.com/7.x/notionists/svg?seed=${name}&backgroundColor=transparent`
                 });
-            }).catch(e => {
-                document.getElementById('auth-status').textContent = "Ошибка: " + e.message;
-            });
+            }).catch(e => status.textContent = "Error: " + e.message);
         };
 
-        // --- ROOMS ---
+        // --- ROOM LOGIC ---
         document.getElementById('btn-create-room').onclick = () => {
             joinRoom(Math.random().toString(36).substring(2, 7).toUpperCase());
         };
@@ -268,35 +288,60 @@
             if(!id) return;
             currentRoomId = id;
             document.getElementById('display-room-id').textContent = id;
+            isVoiceOn = false; // Сброс голоса при входе
+            updateVoiceBtnUI();
 
-            // Presence
+            // Вход в комнату (Presence)
             await setDoc(doc(db, 'artifacts', APP_ID, 'rooms', id, 'presence', currentUser.uid), {
-                uid: currentUser.uid, displayName: currentUser.displayName, photoURL: currentUser.photoURL, state: 'online'
+                uid: currentUser.uid, 
+                displayName: currentUser.displayName, 
+                photoURL: currentUser.photoURL, 
+                state: 'online',
+                voiceActive: false
             });
 
-            // Listeners
+            // Подписки
+            // 1. Видео
             unsubscribes.push(onSnapshot(doc(db, 'artifacts', APP_ID, 'rooms', id), snap => {
                 if(snap.exists()) syncVideo(snap.data());
             }));
 
+            // 2. Участники (с логикой голоса)
             unsubscribes.push(onSnapshot(collection(db, 'artifacts', APP_ID, 'rooms', id, 'presence'), snap => {
                 const list = document.getElementById('users-list-container');
                 list.innerHTML = '';
                 snap.forEach(d => {
                     const u = d.data();
-                    list.innerHTML += `<div class="flex items-center gap-3 p-2 rounded hover:bg-white/5"><img src="${u.photoURL}" class="w-8 h-8 rounded-full border border-gray-600"><span class="text-gray-300 text-sm truncate">${u.displayName}</span></div>`;
+                    const isMe = u.uid === currentUser.uid;
+                    const voiceClass = u.voiceActive ? 'voice-ring' : '';
+                    const voiceIcon = u.voiceActive ? '<i class="fa-solid fa-microphone text-green-500 text-xs"></i>' : '<i class="fa-solid fa-microphone-slash text-gray-600 text-xs"></i>';
+                    
+                    list.innerHTML += `
+                        <div class="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 mb-2">
+                            <div class="relative">
+                                <img src="${u.photoURL}" class="w-10 h-10 rounded-full bg-gray-800 object-cover ${voiceClass}">
+                                ${u.voiceActive ? '<span class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-black"></span>' : ''}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-bold text-gray-200 truncate">${u.displayName} ${isMe ? '(Вы)' : ''}</p>
+                                <p class="text-xs text-gray-500 flex items-center gap-1">
+                                    ${voiceIcon} ${u.voiceActive ? 'Говорит' : 'В сети'}
+                                </p>
+                            </div>
+                        </div>
+                    `;
                 });
             }));
 
+            // 3. Чат
             unsubscribes.push(onSnapshot(query(collection(db, 'artifacts', APP_ID, 'rooms', id, 'chat'), orderBy('ts', 'asc'), limit(50)), snap => {
                 snap.docChanges().forEach(c => { if(c.type==='added') renderMsg(c.doc.data()); });
             }));
 
-            // ВАЖНО: Используем правильный ID 'screen-app'
             showScreen('screen-app');
         }
 
-        // --- YOUTUBE (Fixed Origin) ---
+        // --- YOUTUBE API ---
         if(!window.YT) {
             const tag = document.createElement('script');
             tag.src = "https://www.youtube.com/iframe_api";
@@ -308,8 +353,7 @@
                 height: '100%', width: '100%',
                 playerVars: { 
                     'controls': 0, 'rel': 0, 'modestbranding': 1, 'disablekb': 1, 'iv_load_policy': 3,
-                    'origin': window.location.origin, // FIX CORS
-                    'host': 'https://www.youtube.com' // Explicit host
+                    'origin': window.location.origin
                 },
                 events: { 'onStateChange': onPlayerStateChange }
             });
@@ -330,12 +374,10 @@
 
         function syncVideo(d) {
             if(!player || !d.videoId) return;
-            // Load Video
             try {
                 if(player.getVideoData().video_id !== d.videoId) player.loadVideoById(d.videoId);
             } catch(e) { player.loadVideoById(d.videoId); }
 
-            // Sync Time
             let t = d.timestamp;
             if(d.status === 'playing') t += (Date.now() - d.updatedAt)/1000;
 
@@ -361,7 +403,37 @@
             }
         };
 
-        // --- CHAT & UI ---
+        // --- VOICE CHAT LOGIC (UI + STATE) ---
+        const voiceBtn = document.getElementById('btn-toggle-voice');
+        
+        voiceBtn.onclick = async () => {
+            isVoiceOn = !isVoiceOn;
+            updateVoiceBtnUI();
+            
+            // Обновляем статус в БД
+            if(currentRoomId && currentUser) {
+                const userRef = doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', currentUser.uid);
+                await updateDoc(userRef, { voiceActive: isVoiceOn });
+                
+                if(isVoiceOn) {
+                    showToast({text: 'Микрофон включен', photo: currentUser.photoURL});
+                } else {
+                    showToast({text: 'Микрофон выключен', photo: currentUser.photoURL});
+                }
+            }
+        };
+
+        function updateVoiceBtnUI() {
+            if(isVoiceOn) {
+                voiceBtn.classList.add('voice-active');
+                voiceBtn.innerHTML = '<i class="fa-solid fa-microphone"></i>';
+            } else {
+                voiceBtn.classList.remove('voice-active');
+                voiceBtn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i>';
+            }
+        }
+
+        // --- CHAT & UTILS ---
         document.getElementById('form-chat').onsubmit = async (e) => {
             e.preventDefault();
             const inp = document.getElementById('input-message');
@@ -377,13 +449,18 @@
             const isMe = msg.uid === currentUser.uid;
             const box = document.getElementById('chat-messages');
             const div = document.createElement('div');
-            div.className = `flex gap-2 mb-3 ${isMe ? 'flex-row-reverse' : ''}`;
-            div.innerHTML = `<img src="${msg.photo}" class="w-6 h-6 rounded-full border border-white/20 mt-1"><div class="bg-white/10 p-2 rounded-lg max-w-[80%] text-sm text-gray-200 break-words border border-white/5 shadow-md">${msg.text}</div>`;
+            div.className = `flex gap-2 mb-3 ${isMe ? 'flex-row-reverse' : ''} fade-in`;
+            div.innerHTML = `
+                <img src="${msg.photo}" class="w-8 h-8 rounded-full border border-white/10 mt-1 shadow-sm object-cover">
+                <div class="${isMe ? 'bg-blue-600/80 text-white' : 'bg-white/10 text-gray-200'} p-3 rounded-2xl max-w-[80%] text-sm break-words border border-white/5 shadow-md">
+                    <p class="font-bold text-[10px] opacity-50 mb-1">${msg.sender}</p>
+                    ${msg.text}
+                </div>`;
             box.appendChild(div);
             box.scrollTop = box.scrollHeight;
 
-            if(document.getElementById('panel-chat').classList.contains('hidden-force') && !isMe) {
-                document.getElementById('chat-badge').classList.remove('hidden-force');
+            if(document.getElementById('panel-chat').classList.contains('force-hidden') && !isMe) {
+                document.getElementById('chat-badge').classList.remove('force-hidden');
                 showToast(msg);
             }
         }
@@ -391,37 +468,47 @@
         function showToast(msg) {
             const area = document.getElementById('toast-area');
             const t = document.createElement('div');
-            t.className = "glass-panel p-3 rounded-xl flex items-center gap-3 cursor-pointer animate-bounce shadow-lg bg-black/80";
-            t.innerHTML = `<img src="${msg.photo}" class="w-6 h-6 rounded-full"><span class="text-xs font-bold text-white truncate max-w-[150px]">${msg.text}</span>`;
+            t.className = "glass-panel px-4 py-3 rounded-xl flex items-center gap-3 pointer-events-auto cursor-pointer shadow-lg mb-2 fade-in transform hover:scale-105 transition w-full max-w-[250px]";
+            t.innerHTML = `
+                <img src="${msg.photo}" class="w-8 h-8 rounded-full bg-gray-800">
+                <div class="overflow-hidden">
+                    <p class="text-xs font-bold text-white truncate">${msg.sender || 'System'}</p>
+                    <p class="text-xs text-gray-400 truncate">${msg.text}</p>
+                </div>
+            `;
             t.onclick = () => document.getElementById('btn-toggle-chat').click();
             area.appendChild(t);
-            setTimeout(() => t.remove(), 4000);
+            setTimeout(() => {
+                t.style.opacity = '0';
+                setTimeout(() => t.remove(), 300);
+            }, 4000);
         }
 
         // --- PANEL TOGGLES ---
         window.closePanels = () => {
-            ['panel-chat', 'panel-users'].forEach(id => document.getElementById(id).classList.add('hidden-force'));
-            ['btn-toggle-chat', 'btn-toggle-users'].forEach(id => document.getElementById(id).classList.remove('active'));
+            ['panel-chat', 'panel-users'].forEach(id => document.getElementById(id).classList.add('force-hidden'));
+            ['btn-toggle-chat', 'btn-toggle-users'].forEach(id => document.getElementById(id).classList.remove('btn-active'));
         };
 
         document.getElementById('btn-toggle-chat').onclick = () => {
             const p = document.getElementById('panel-chat');
-            const wasHidden = p.classList.contains('hidden-force');
+            const wasHidden = p.classList.contains('force-hidden');
             closePanels();
             if(wasHidden) {
-                p.classList.remove('hidden-force');
-                document.getElementById('btn-toggle-chat').classList.add('active');
-                document.getElementById('chat-badge').classList.add('hidden-force');
+                p.classList.remove('force-hidden');
+                document.getElementById('btn-toggle-chat').classList.add('btn-active');
+                document.getElementById('chat-badge').classList.add('force-hidden');
+                setTimeout(() => document.getElementById('input-message').focus(), 100);
             }
         };
 
         document.getElementById('btn-toggle-users').onclick = () => {
             const p = document.getElementById('panel-users');
-            const wasHidden = p.classList.contains('hidden-force');
+            const wasHidden = p.classList.contains('force-hidden');
             closePanels();
             if(wasHidden) {
-                p.classList.remove('hidden-force');
-                document.getElementById('btn-toggle-users').classList.add('active');
+                p.classList.remove('force-hidden');
+                document.getElementById('btn-toggle-users').classList.add('btn-active');
             }
         };
 
@@ -432,18 +519,20 @@
 
         document.getElementById('copy-room-id').onclick = () => {
             navigator.clipboard.writeText(currentRoomId);
-            alert("ID скопирован");
+            const el = document.getElementById('display-room-id');
+            const oldText = el.textContent;
+            el.textContent = "COPIED";
+            setTimeout(() => el.textContent = oldText, 1000);
         };
 
         // UI Auto-Hide
         document.addEventListener('mousemove', () => {
             document.getElementById('top-bar').style.opacity = '1';
-            document.getElementById('bottom-bar').style.opacity = '1';
             clearTimeout(uiTimeout);
             uiTimeout = setTimeout(() => {
+                // Скрываем топ бар, если мышь не двигается и фокус не в инпуте
                 if(!document.activeElement.tagName.match(/INPUT|BUTTON/)) {
                     document.getElementById('top-bar').style.opacity = '0';
-                    document.getElementById('bottom-bar').style.opacity = '0';
                 }
             }, 3000);
         });
