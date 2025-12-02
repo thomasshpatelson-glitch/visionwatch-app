@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'self' blob: data: gap:; style-src * 'self' 'unsafe-inline' blob: data: gap:; script-src * 'self' 'unsafe-eval' 'unsafe-inline' blob: data: gap:; object-src * 'self' blob: data: gap:; img-src * 'self' 'unsafe-inline' blob: data: gap:; connect-src * 'self' 'unsafe-inline' blob: data: gap:; media-src * 'self' blob: data: gap:;">
     
-    <title>Co-Watch | Admin Power</title>
+    <title>Co-Watch | Batya Edition</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     <style>
         /* === CORE === */
@@ -56,29 +56,30 @@
         .voice-active { background: #22c55e !important; color: #000 !important; border-color: #22c55e !important; box-shadow: 0 0 30px rgba(34, 197, 94, 0.5); }
         .cc-active { color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
 
-        /* === ADMIN TOGGLE === */
+        /* === ADMIN/BATYA TOGGLE === */
         .admin-toggle {
             display: flex; align-items: center; justify-content: space-between;
-            padding: 12px; background: rgba(255,255,255,0.05); border-radius: 12px; margin-bottom: 8px;
+            padding: 14px; background: rgba(255,255,255,0.05); border-radius: 16px; margin-bottom: 8px;
+            border: 1px solid rgba(255,255,255,0.05);
         }
-        .switch { position: relative; display: inline-block; width: 40px; height: 24px; }
+        .switch { position: relative; display: inline-block; width: 44px; height: 26px; }
         .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .4s; border-radius: 34px; border: 1px solid rgba(255,255,255,0.1); }
-        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: #22c55e; border-color: #22c55e; }
-        input:checked + .slider:before { transform: translateX(16px); }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .3s; border-radius: 34px; border: 1px solid rgba(255,255,255,0.1); }
+        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .3s; border-radius: 50%; }
+        input:checked + .slider { background-color: #eab308; border-color: #eab308; } /* GOLD for Batya */
+        input:checked + .slider:before { transform: translateX(18px); }
 
-        /* === USER LIST ITEM === */
+        /* === USER LIST === */
         .user-item {
-            display: flex; align-items: center; gap: 12px; padding: 10px; 
-            border-radius: 12px; transition: background 0.2s;
+            display: flex; align-items: center; gap: 12px; padding: 12px; 
+            border-radius: 16px; transition: background 0.2s;
             border: 1px solid transparent;
         }
         .user-item.clickable:hover { background: rgba(255,255,255,0.1); cursor: pointer; border-color: rgba(255,255,255,0.1); }
         
-        .badge { font-size: 10px; padding: 2px 6px; border-radius: 4px; font-weight: bold; text-transform: uppercase; }
-        .badge-admin { background: #eab308; color: black; }
-        .badge-mod { background: #3b82f6; color: white; }
+        .badge { font-size: 10px; padding: 3px 8px; border-radius: 6px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; }
+        .badge-batya { background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%); color: black; box-shadow: 0 0 10px rgba(234, 179, 8, 0.4); }
+        .badge-mod { background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.2); }
 
         /* === UTILS === */
         .force-hidden { display: none !important; }
@@ -90,6 +91,10 @@
         #click-overlay { position: absolute; inset: 0; z-index: 10; cursor: pointer; } 
         #ui-layer { position: fixed; inset: 0; z-index: 50; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 24px; }
         
+        /* LOCKED SLIDER */
+        .seek-slider:disabled { opacity: 0.3; cursor: not-allowed; }
+        .locked-overlay { position: absolute; inset: 0; cursor: not-allowed; z-index: 20; }
+
         /* Subtitles & Room List */
         .subs-menu { position: absolute; bottom: 100%; left: 50%; transform: translateX(-50%) translateY(-10px); width: 260px; max-height: 300px; overflow-y: auto; border-radius: 20px; padding: 8px; z-index: 100; }
         .sub-item { padding: 10px 14px; border-radius: 10px; font-size: 13px; color: #ccc; cursor: pointer; transition: background 0.2s; }
@@ -105,10 +110,10 @@
     <div id="screen-auth" class="fixed inset-0 z-[100] flex items-center justify-center bg-[#050505] transition-opacity duration-500">
         <div class="glass-panel p-10 rounded-[40px] max-w-sm w-full text-center relative overflow-hidden group">
             <div class="w-24 h-24 bg-white/5 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-white/10 shadow-2xl group-hover:scale-105 transition duration-700">
-                <i class="fa-solid fa-user-shield text-4xl text-white ml-1"></i>
+                <i class="fa-solid fa-crown text-4xl text-yellow-500 ml-1 drop-shadow-[0_0_15px_rgba(234,179,8,0.5)]"></i>
             </div>
             <h1 class="text-5xl font-bold text-white mb-2 tracking-tighter">Co-Watch</h1>
-            <p class="text-white/40 text-sm mb-12 font-medium tracking-widest uppercase">Admin System</p>
+            <p class="text-white/40 text-sm mb-12 font-medium tracking-widest uppercase">Batya Edition</p>
             <button id="btn-guest-login" class="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-gray-200 transition shadow-lg">Войти</button>
             <div id="auth-status" class="mt-6 text-xs text-white/20 h-4 font-mono"></div>
         </div>
@@ -119,15 +124,15 @@
             <div class="w-full md:w-1/3 flex flex-col gap-6">
                 <div class="glass-panel rounded-[32px] p-8 text-center">
                     <img id="lobby-avatar" src="" class="w-24 h-24 rounded-full border-4 border-[#151515] shadow-2xl object-cover mx-auto mb-4">
-                    <h2 class="text-2xl font-bold text-white">Привет, <span id="lobby-username" class="text-blue-400">...</span></h2>
+                    <h2 class="text-2xl font-bold text-white">Привет, <span id="lobby-username" class="text-yellow-500">...</span></h2>
                 </div>
                 <div class="glass-panel rounded-[32px] p-8 flex-1 flex flex-col justify-center space-y-6">
-                    <div class="flex items-center justify-between bg-white/5 p-3 rounded-xl border border-white/5">
-                        <span class="text-sm font-bold text-gray-300 ml-2">Приватная комната</span>
+                    <div class="flex items-center justify-between bg-white/5 p-4 rounded-2xl border border-white/5">
+                        <span class="text-sm font-bold text-gray-300 ml-2">🔒 Приватная комната</span>
                         <label class="switch"><input type="checkbox" id="check-private"><span class="slider"></span></label>
                     </div>
-                    <button id="btn-create-room" class="w-full py-5 rounded-2xl bg-white text-black font-bold text-lg hover:bg-gray-200 transition shadow-lg flex items-center justify-center gap-3"><i class="fa-solid fa-plus"></i> Создать</button>
-                    <div class="flex items-center gap-4 opacity-30"><div class="h-px bg-white flex-1"></div><span class="text-[10px] uppercase font-bold tracking-[0.2em]">ВХОД</span><div class="h-px bg-white flex-1"></div></div>
+                    <button id="btn-create-room" class="w-full py-5 rounded-2xl bg-white text-black font-bold text-lg hover:bg-gray-200 transition shadow-lg flex items-center justify-center gap-3"><i class="fa-solid fa-crown text-yellow-600"></i> Стать Батей</button>
+                    <div class="flex items-center gap-4 opacity-30"><div class="h-px bg-white flex-1"></div><span class="text-[10px] uppercase font-bold tracking-[0.2em]">ИЛИ ВОЙТИ</span><div class="h-px bg-white flex-1"></div></div>
                     <form id="form-join-room" class="flex gap-3 h-14"><input type="text" id="input-room-id" placeholder="ID..." class="flex-1 bg-black/40 border border-white/10 rounded-2xl text-center uppercase tracking-[0.2em] text-lg font-bold text-white focus:outline-none focus:border-white/40 transition" required maxlength="6"><button type="submit" class="bg-[#222] text-white w-16 rounded-2xl hover:bg-[#333] border border-white/10 flex items-center justify-center transition"><i class="fa-solid fa-arrow-right"></i></button></form>
                 </div>
             </div>
@@ -140,38 +145,38 @@
 
     <div id="screen-app" class="fixed inset-0 bg-black force-hidden">
         <div id="video-layer">
-            <div id="player-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-center opacity-40 select-none pointer-events-none z-0"><i class="fa-brands fa-youtube text-9xl mb-6 text-white/80"></i><p class="font-mono text-xs tracking-[0.5em] uppercase text-white/50">Waiting for Link</p></div>
+            <div id="player-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-center opacity-40 select-none pointer-events-none z-0"><i class="fa-brands fa-youtube text-9xl mb-6 text-white/80"></i><p class="font-mono text-xs tracking-[0.5em] uppercase text-white/50">Waiting for Batya</p></div>
             <div id="player" class="w-full h-full absolute inset-0 z-10"></div>
             <div id="click-overlay" class="pointer-events-auto transition-opacity" onclick="togglePlay()"></div>
         </div>
         <div id="native-exit-btn" class="fixed top-6 left-1/2 -translate-x-1/2 z-[999] force-hidden"><button onclick="toggleNativeControls()" class="glass-panel px-6 py-3 rounded-full font-bold text-sm hover:bg-white hover:text-black transition flex items-center gap-2"><i class="fa-solid fa-arrow-left"></i> Вернуться</button></div>
 
-        <div id="admin-modal" class="fixed inset-0 z-[200] flex items-center justify-center bg-black/60 backdrop-blur-sm force-hidden pointer-events-auto">
-            <div class="glass-panel p-6 rounded-3xl w-80 shadow-2xl transform scale-100 transition-all">
-                <div class="flex justify-between items-center mb-6">
-                    <h3 class="font-bold text-lg">Настройки участника</h3>
-                    <button onclick="closeAdminModal()" class="text-white/50 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+        <div id="admin-modal" class="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-md force-hidden pointer-events-auto">
+            <div class="glass-panel p-8 rounded-[32px] w-96 shadow-2xl transform scale-100 transition-all border border-yellow-500/20">
+                <div class="flex justify-between items-center mb-8">
+                    <h3 class="font-bold text-xl text-yellow-500 flex items-center gap-2"><i class="fa-solid fa-crown"></i> Пульт Бати</h3>
+                    <button onclick="closeAdminModal()" class="text-white/50 hover:text-white"><i class="fa-solid fa-xmark text-xl"></i></button>
                 </div>
-                <div class="text-center mb-6">
-                    <img id="admin-target-avatar" src="" class="w-20 h-20 rounded-full mx-auto mb-2 border-2 border-white/10">
-                    <p id="admin-target-name" class="font-bold text-lg">Username</p>
-                    <p class="text-xs text-white/40 uppercase tracking-widest">Управление правами</p>
+                <div class="text-center mb-8 bg-white/5 p-4 rounded-2xl">
+                    <img id="admin-target-avatar" src="" class="w-24 h-24 rounded-full mx-auto mb-3 border-4 border-[#1a1a1a] shadow-lg">
+                    <p id="admin-target-name" class="font-bold text-xl">Username</p>
+                    <p class="text-xs text-white/40 uppercase tracking-widest mt-1">Зритель</p>
                 </div>
                 
-                <div class="space-y-2">
+                <div class="space-y-3">
                     <div class="admin-toggle">
-                        <span class="text-sm font-medium flex items-center gap-2"><i class="fa-solid fa-gamepad text-blue-400"></i> Управление видео</span>
+                        <span class="text-sm font-bold flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400"><i class="fa-solid fa-gamepad"></i></div> Дать руль (Видео)</span>
                         <label class="switch"><input type="checkbox" id="adm-check-control"><span class="slider"></span></label>
                     </div>
                     <div class="admin-toggle">
-                        <span class="text-sm font-medium flex items-center gap-2"><i class="fa-solid fa-microphone text-green-400"></i> Микрофон</span>
+                        <span class="text-sm font-bold flex items-center gap-3"><div class="w-8 h-8 rounded-full bg-green-500/20 flex items-center justify-center text-green-400"><i class="fa-solid fa-microphone"></i></div> Разрешить говорить</span>
                         <label class="switch"><input type="checkbox" id="adm-check-speak"><span class="slider"></span></label>
                     </div>
                 </div>
 
-                <div class="mt-6 flex gap-2">
-                    <button id="btn-make-admin" class="flex-1 bg-yellow-600/20 text-yellow-500 border border-yellow-600/30 py-3 rounded-xl font-bold text-xs hover:bg-yellow-600 hover:text-white transition">👑 Сделать Админом</button>
-                    <button id="btn-kick-user" class="flex-1 bg-red-600/20 text-red-500 border border-red-600/30 py-3 rounded-xl font-bold text-xs hover:bg-red-600 hover:text-white transition">🦵 Выгнать</button>
+                <div class="mt-8 flex gap-3">
+                    <button id="btn-make-admin" class="flex-1 bg-yellow-500 text-black py-4 rounded-2xl font-bold text-xs hover:bg-yellow-400 transition shadow-lg shadow-yellow-900/20 uppercase tracking-wide">👑 Сделать Батей</button>
+                    <button id="btn-kick-user" class="w-14 bg-red-500/10 text-red-500 border border-red-500/20 rounded-2xl flex items-center justify-center hover:bg-red-500 hover:text-white transition"><i class="fa-solid fa-ban text-lg"></i></button>
                 </div>
             </div>
         </div>
@@ -199,7 +204,11 @@
                     <div id="subs-list" class="flex flex-col gap-1"></div>
                 </div>
 
-                <div class="glass-panel px-6 py-4 rounded-[24px] flex items-center gap-4 shadow-2xl w-full">
+                <div class="glass-panel px-6 py-4 rounded-[24px] flex items-center gap-4 shadow-2xl w-full relative overflow-hidden">
+                    <div id="locked-controls" class="absolute inset-0 bg-black/60 backdrop-blur-[1px] z-20 flex items-center justify-center font-bold text-xs uppercase tracking-widest text-white/50 force-hidden">
+                        <i class="fa-solid fa-lock mr-2"></i> Только Батя рулит
+                    </div>
+
                     <button id="btn-play-pause" class="text-white hover:text-blue-400 transition w-8 text-center" onclick="togglePlay()"><i class="fa-solid fa-play text-xl" id="icon-play"></i></button>
                     <span id="time-current" class="text-xs font-mono text-white/70 w-10 text-right">00:00</span>
                     <input type="range" id="seek-bar" class="seek-slider flex-1" value="0" min="0" step="1">
@@ -228,7 +237,7 @@
             </div>
 
             <div id="panel-users" class="absolute top-24 bottom-48 left-6 w-80 glass-panel rounded-[32px] flex flex-col shadow-2xl pointer-events-auto force-hidden overflow-hidden transition-all duration-300 transform -translate-x-10 opacity-0 z-50">
-                <div class="p-5 border-b border-white/5 flex justify-between items-center bg-white/5"><span class="font-bold text-xs uppercase tracking-widest text-white/60">Участники</span><button onclick="window.closePanels()" class="text-white/30 hover:text-white"><i class="fa-solid fa-xmark"></i></button></div>
+                <div class="p-5 border-b border-white/5 flex justify-between items-center bg-white/5"><span class="font-bold text-xs uppercase tracking-widest text-white/60">Братва</span><button onclick="window.closePanels()" class="text-white/30 hover:text-white"><i class="fa-solid fa-xmark"></i></button></div>
                 <div id="users-list-container" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
             </div>
         </div>
@@ -244,13 +253,13 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const APP_ID = 'cw-v10-admin';
+        const APP_ID = 'cw-v11-batya';
 
         // STATE
         let currentUser=null, currentRoomId=null, player=null, unsubscribes=[], uiTimeout, activeCalls={};
         let myPeer=null, myStream=null, isVoiceOn=false, isDragging = false;
         
-        // PERMISSIONS STATE (Updated via listener)
+        // PERMISSIONS STATE
         let myPermissions = { role: 'viewer', canControlVideo: false, canSpeak: true };
 
         // AUTH & LOBBY LOAD
@@ -295,15 +304,15 @@
 
         async function createRoom(id, isPublic) {
             await setDoc(doc(db, 'artifacts', APP_ID, 'rooms', id), { roomId: id, isPublic: isPublic, createdAt: serverTimestamp(), status: 'paused', videoTitle: '', videoId: '' });
-            joinRoom(id, true); // True = I am creator
+            joinRoom(id, true); // Creator
         }
 
         async function joinRoom(id, isCreator = false) {
             currentRoomId=id; document.getElementById('display-room-id').textContent=id;
             initVoiceEngine(currentUser.uid);
             
-            // Set initial permissions. Creator = Admin. Joiner = Viewer.
-            const initialRole = isCreator ? 'admin' : 'viewer';
+            // LOGIC: Если создатель - 'batya' и права есть. Если гость - 'viewer' и прав НЕТ.
+            const initialRole = isCreator ? 'batya' : 'viewer';
             const initialControl = isCreator ? true : false;
             
             await setDoc(doc(db, 'artifacts', APP_ID, 'rooms', id, 'presence', currentUser.uid), { 
@@ -319,7 +328,7 @@
             showScreen('screen-app');
         }
 
-        // --- ADMIN SYSTEM ---
+        // --- ADMIN SYSTEM (BATYA) ---
         let currentAdminTarget = null;
 
         function handlePresence(snap) {
@@ -331,25 +340,21 @@
                 const u=d.data(); activeRoomUsers.push(u.uid);
                 const isMe=u.uid===currentUser.uid;
                 
-                // Update local permissions cache
                 if(isMe) {
                     meFound = true;
                     myPermissions = { role: u.role, canControlVideo: u.canControlVideo, canSpeak: u.canSpeak };
                     updateMyInterface();
                 }
 
-                // UI Badges
                 let badges = '';
-                if(u.role === 'admin') badges += '<span class="badge badge-admin">ADMIN</span> ';
-                else if(u.canControlVideo) badges += '<span class="badge badge-mod">MOD</span> ';
+                if(u.role === 'batya') badges += '<span class="badge badge-batya"><i class="fa-solid fa-crown mr-1"></i>БАТЯ</span> ';
+                else if(u.canControlVideo) badges += '<span class="badge badge-mod">РУЛЬ</span> ';
                 if(!u.canSpeak) badges += '<i class="fa-solid fa-microphone-slash text-red-500 text-xs ml-1"></i>';
 
-                // Voice Ring
                 const ring = u.voiceActive ? 'talking-ring' : '';
                 
-                // Render Item
                 const el = document.createElement('div');
-                el.className = `user-item ${myPermissions.role === 'admin' && !isMe ? 'clickable' : ''}`;
+                el.className = `user-item ${myPermissions.role === 'batya' && !isMe ? 'clickable' : ''}`;
                 el.innerHTML = `
                     <div class="relative"><img src="${u.photoURL}" class="w-10 h-10 rounded-full object-cover ${ring}"></div>
                     <div class="flex-1 overflow-hidden">
@@ -361,8 +366,7 @@
                     </div>
                 `;
                 
-                // Admin Click Action
-                if(myPermissions.role === 'admin' && !isMe) {
+                if(myPermissions.role === 'batya' && !isMe) {
                     el.onclick = () => openAdminModal(u);
                 }
 
@@ -370,11 +374,7 @@
                 if(isVoiceOn && !isMe && !activeCalls[u.uid]) connectPeer(u.uid); 
             });
 
-            // Kicked check: if I am not in the list anymore but was there
-            if(!meFound && activeRoomUsers.length > 0) {
-                alert("Вас исключили из комнаты");
-                window.location.reload();
-            }
+            if(!meFound && activeRoomUsers.length > 0) { alert("Вас выгнал Батя"); window.location.reload(); }
         }
 
         window.openAdminModal = (user) => {
@@ -386,83 +386,61 @@
             document.getElementById('adm-check-speak').checked = user.canSpeak;
         };
 
-        window.closeAdminModal = () => {
-            document.getElementById('admin-modal').classList.add('force-hidden');
-            currentAdminTarget = null;
-        };
+        window.closeAdminModal = () => { document.getElementById('admin-modal').classList.add('force-hidden'); currentAdminTarget = null; };
 
-        // Admin Actions
-        const updateTarget = async (data) => {
-            if(currentAdminTarget) await updateDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', currentAdminTarget.uid), data);
-        };
-
+        const updateTarget = async (data) => { if(currentAdminTarget) await updateDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', currentAdminTarget.uid), data); };
         document.getElementById('adm-check-control').onchange = (e) => updateTarget({ canControlVideo: e.target.checked });
         document.getElementById('adm-check-speak').onchange = (e) => updateTarget({ canSpeak: e.target.checked });
-        
-        document.getElementById('btn-make-admin').onclick = async () => {
-            if(confirm(`Передать права админа пользователю ${currentAdminTarget.displayName}?`)) {
-                await updateTarget({ role: 'admin', canControlVideo: true, canSpeak: true });
-                // Demote self
-                await updateDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', currentUser.uid), { role: 'viewer' });
-                closeAdminModal();
-            }
-        };
-
-        document.getElementById('btn-kick-user').onclick = async () => {
-            if(confirm(`Выгнать ${currentAdminTarget.displayName}?`)) {
-                await deleteDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', currentAdminTarget.uid));
-                closeAdminModal();
-            }
-        };
+        document.getElementById('btn-make-admin').onclick = async () => { if(confirm(`Передать корону Бати? Вы потеряете права.`)) { await updateTarget({ role: 'batya', canControlVideo: true, canSpeak: true }); await updateDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', currentUser.uid), { role: 'viewer' }); closeAdminModal(); } };
+        document.getElementById('btn-kick-user').onclick = async () => { if(confirm(`Выгнать?`)) { await deleteDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', currentAdminTarget.uid)); closeAdminModal(); } };
 
         function updateMyInterface() {
-            // Disable/Enable controls based on permissions
-            const hasControl = myPermissions.role === 'admin' || myPermissions.canControlVideo;
-            const canSpeak = myPermissions.role === 'admin' || myPermissions.canSpeak;
+            const hasControl = myPermissions.role === 'batya' || myPermissions.canControlVideo;
+            const canSpeak = myPermissions.role === 'batya' || myPermissions.canSpeak;
 
             const inputs = [document.getElementById('input-video-url'), document.getElementById('btn-load-video'), document.getElementById('seek-bar'), document.getElementById('btn-play-pause')];
-            inputs.forEach(el => {
-                if(hasControl) { el.disabled = false; el.style.opacity = 1; }
-                else { el.disabled = true; el.style.opacity = 0.5; }
-            });
+            const lockedOverlay = document.getElementById('locked-controls');
+            const clickOverlay = document.getElementById('click-overlay');
 
-            // Voice Button
+            if(hasControl) {
+                inputs.forEach(el => { el.disabled = false; el.style.opacity = 1; });
+                lockedOverlay.classList.add('force-hidden');
+                clickOverlay.style.pointerEvents = 'auto'; // Allow play pause by clicking video
+            } else {
+                inputs.forEach(el => { el.disabled = true; el.style.opacity = 0.5; });
+                lockedOverlay.classList.remove('force-hidden');
+                clickOverlay.style.pointerEvents = 'none'; // Block click on video
+            }
+
             const vBtn = document.getElementById('btn-toggle-voice');
             if(canSpeak) { vBtn.disabled = false; vBtn.style.opacity = 1; }
-            else { 
-                vBtn.disabled = true; vBtn.style.opacity = 0.3; 
-                if(isVoiceOn) vBtn.click(); // Force mute if permission revoked
-            }
+            else { vBtn.disabled = true; vBtn.style.opacity = 0.3; if(isVoiceOn) vBtn.click(); }
         }
 
-        // --- PLAYER CONTROLS ---
+        // --- PLAYER ---
         window.togglePlay = () => {
             if(!player || !currentRoomId) return;
-            if(myPermissions.role !== 'admin' && !myPermissions.canControlVideo) return showToast({sender:'System', text:'Нет прав на управление', photo:''});
-            
+            if(myPermissions.role !== 'batya' && !myPermissions.canControlVideo) return;
             const state = player.getPlayerState();
-            setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), {
-                status: (state === 1) ? 'paused' : 'playing', timestamp: player.getCurrentTime(), updatedAt: Date.now(), videoId: player.getVideoData().video_id
-            }, { merge: true });
+            setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), { status: (state === 1) ? 'paused' : 'playing', timestamp: player.getCurrentTime(), updatedAt: Date.now(), videoId: player.getVideoData().video_id }, { merge: true });
         };
 
         const seekBar = document.getElementById('seek-bar');
         seekBar.oninput = () => { isDragging = true; }; 
         seekBar.onchange = () => { 
-            if(myPermissions.role !== 'admin' && !myPermissions.canControlVideo) { isDragging=false; return; }
+            if(myPermissions.role !== 'batya' && !myPermissions.canControlVideo) { isDragging=false; return; }
             isDragging = false; const newTime = parseFloat(seekBar.value); player.seekTo(newTime, true);
             setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), { status: 'playing', timestamp: newTime, updatedAt: Date.now(), videoId: player.getVideoData().video_id }, { merge: true });
         };
         setInterval(() => { if(player && player.getCurrentTime && !isDragging) { const cur = player.getCurrentTime(); const dur = player.getDuration(); seekBar.value = cur; seekBar.max = dur; document.getElementById('time-current').textContent = formatTime(cur); document.getElementById('time-duration').textContent = formatTime(dur); } }, 500);
         function formatTime(s) { if(!s) return "00:00"; const m = Math.floor(s/60); const sec = Math.floor(s%60); return `${m}:${sec<10?'0'+sec:sec}`; }
 
-        // --- SUBTITLES ---
+        // --- SUBS ---
         window.toggleSubsMenu = () => {
             const menu = document.getElementById('subs-menu'); const list = document.getElementById('subs-list');
             if(menu.classList.contains('force-hidden')) {
                 if(player) {
-                    player.loadModule("captions");
-                    list.innerHTML = '<div class="text-center text-xs text-gray-500 py-2">Загрузка...</div>';
+                    player.loadModule("captions"); list.innerHTML = '<div class="text-center text-xs text-gray-500 py-2">Загрузка...</div>';
                     setTimeout(() => {
                         const tracks = player.getOption('captions', 'tracklist') || []; list.innerHTML = '';
                         const offBtn = document.createElement('div'); offBtn.className = 'sub-item'; offBtn.innerHTML = '<span>Отключить</span>';
@@ -488,8 +466,7 @@
         function onPlayerStateChange(e) {
             const btnIcon = document.getElementById('icon-play'); if(e.data === 1) btnIcon.className = "fa-solid fa-pause"; else btnIcon.className = "fa-solid fa-play";
             if(isSyncing || !currentRoomId) return;
-            // Only update DB if I have control permissions
-            if(myPermissions.role === 'admin' || myPermissions.canControlVideo) {
+            if(myPermissions.role === 'batya' || myPermissions.canControlVideo) {
                 if(e.data===1 || e.data===2) { setDoc(doc(db,'artifacts',APP_ID,'rooms',currentRoomId), { status: e.data===1?'playing':'paused', timestamp: player.getCurrentTime(), updatedAt: Date.now(), videoId: player.getVideoData().video_id }, {merge:true}); }
             }
         }
@@ -503,9 +480,7 @@
 
         document.getElementById('btn-load-video').onclick = () => {
             const m = document.getElementById('input-video-url').value.match(/(?:v=|\/)([\w-]{11})/);
-            if(m && currentRoomId) {
-                setDoc(doc(db,'artifacts',APP_ID,'rooms',currentRoomId), { videoId:m[1], status:'playing', timestamp:0, updatedAt:Date.now(), videoTitle: `Video ${m[1]}` }, {merge:true});
-            }
+            if(m && currentRoomId) setDoc(doc(db,'artifacts',APP_ID,'rooms',currentRoomId), { videoId:m[1], status:'playing', timestamp:0, updatedAt:Date.now(), videoTitle: `Video ${m[1]}` }, {merge:true});
             document.getElementById('input-video-url').value='';
         };
 
@@ -513,7 +488,6 @@
         function initVoiceEngine(uid) { myPeer = new Peer(uid); myPeer.on('call', c => { c.answer(myStream); c.on('stream', s => playAudio(s, c.peer)); }); }
         function connectPeer(id) { if(!myStream) return; const c=myPeer.call(id,myStream); activeCalls[id]=c; c.on('stream', s=>playAudio(s,id)); c.on('close',()=>delete activeCalls[id]); }
         function playAudio(s,id) { if(document.getElementById(`a-${id}`)) return; const a=document.createElement('audio'); a.id=`a-${id}`; a.srcObject=s; a.autoplay=true; document.getElementById('audio-streams').appendChild(a); }
-        
         document.getElementById('btn-toggle-voice').onclick = async () => {
             const btn=document.getElementById('btn-toggle-voice');
             if(isVoiceOn) { isVoiceOn=false; if(myStream) myStream.getTracks().forEach(t=>t.stop()); myStream=null; btn.classList.remove('voice-active'); btn.innerHTML='<i class="fa-solid fa-microphone-slash"></i>'; updateDoc(doc(db,'artifacts',APP_ID,'rooms',currentRoomId,'presence',currentUser.uid), {voiceActive:false}); Object.values(activeCalls).forEach(c=>c.close()); } 
