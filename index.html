@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
     <title>Co-Watch | Батя Edition</title>
     
@@ -37,34 +37,37 @@
         .glass-btn:hover { background: rgba(255,255,255,0.15); transform: translateY(-1px); }
         .glass-btn:active { transform: translateY(1px); }
         .glass-btn.disabled { opacity: 0.5; pointer-events: none; }
-        
-        /* Highlight state for toggle buttons */
-        .glass-btn.active-state { background: rgba(34, 197, 94, 0.2); border-color: rgba(34, 197, 94, 0.4); color: #4ade80; }
+        .glass-btn.active-state { background: rgba(255,255,255,0.2); border-color: rgba(255,255,255,0.3); }
 
         .sidebar-item { transition: 0.2s; border-radius: 12px; }
         .sidebar-item:hover { background: rgba(255,255,255,0.05); }
 
         /* PLAYERS & LAYOUT */
         #video-layer { position: fixed; inset: 0; z-index: 5; background: #000; display: flex; justify-content: center; align-items: center; }
-        #player-yt, #player-vk-container, #player-stream { width: 100%; height: 100%; position: absolute; inset: 0; }
-        iframe { width: 100% !important; height: 100% !important; border: none; pointer-events: auto; }
+        #player-yt, #player-vk-container, #player-stream { width: 100%; height: 100%; position: absolute; inset: 0; pointer-events: none; } 
+        /* pointer-events: none по умолчанию для iframe, чтобы клики ловил overlay, но в Native Mode мы это меняем */
         
-        /* UI LAYERS - SAFE AREA REMOVED */
+        iframe { width: 100% !important; height: 100% !important; border: none; }
+        
+        /* UI LAYERS - Z-INDEX FIX */
         #ui-layer { 
-            position: fixed; inset: 0; z-index: 50; 
-            pointer-events: none; 
+            position: fixed; inset: 0; z-index: 100; /* Максимальный Z-Index */
+            pointer-events: none; /* Пропускаем клики сквозь пустые места */
             display: flex; flex-direction: column; justify-content: space-between; 
-            padding: 16px; /* Стандартный отступ без SafeArea */
+            padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom) 16px; 
             transition: opacity 0.3s ease; 
         }
-        #top-bar, #bottom-bar, #sidebar, #mobile-url-modal { pointer-events: auto; }
+        /* Включаем клики для элементов управления */
+        #top-bar, #bottom-bar, #sidebar, #mobile-url-modal { pointer-events: auto !important; }
         
-        /* SIDEBAR (CHAT) */
+        /* SIDEBAR */
         #sidebar {
-            position: fixed; z-index: 60; 
+            position: fixed; 
+            z-index: 110; 
             transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             display: flex; flex-direction: column;
-            left: 0; right: 0; bottom: 0; height: 75vh; /* Mobile: Bottom Sheet */
+            left: 0; right: 0; bottom: 0; 
+            height: 75vh;
             border-radius: 24px 24px 0 0;
             transform: translateY(120%);
         }
@@ -73,7 +76,8 @@
         @media (min-width: 768px) {
             #sidebar {
                 left: auto; right: 20px; top: 80px; bottom: 100px; width: 320px; height: auto;
-                border-radius: 24px; transform: translateX(120%);
+                border-radius: 24px;
+                transform: translateX(120%);
             }
             #sidebar.active { transform: translateX(0); }
         }
@@ -87,45 +91,59 @@
             background: rgba(255,255,255,0.15); border-radius: 4px; outline: none; cursor: pointer; position: relative; 
         }
         .seek-slider::-webkit-slider-thumb { 
-            -webkit-appearance: none; width: 20px; height: 20px;
+            -webkit-appearance: none; width: 24px; height: 24px; /* Large touch target */
             border-radius: 50%; background: #fff; cursor: pointer; 
             box-shadow: 0 0 10px rgba(255,255,255,0.5); margin-top: 0px;
         }
 
-        /* TOAST */
+        /* NOTIFICATIONS */
         #notification-area {
-            position: fixed; top: 80px; left: 20px; right: 20px;
-            z-index: 9999; pointer-events: none; 
+            position: fixed; 
+            top: 100px; 
+            left: 20px; right: 20px;
+            z-index: 9999; 
+            pointer-events: none; 
             display: flex; flex-direction: column; gap: 10px; align-items: center;
         }
-        @media (min-width: 768px) { #notification-area { top: auto; bottom: 30px; left: auto; right: 30px; align-items: flex-end; } }
+        @media (min-width: 768px) {
+             #notification-area { top: auto; bottom: 30px; left: auto; right: 30px; align-items: flex-end; }
+        }
 
         .toast {
             background: rgba(20, 20, 20, 0.95);
             backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
-            border: 1px solid rgba(255, 255, 255, 0.1); border-left: 4px solid #fbbf24; 
-            padding: 14px 20px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 4px solid #fbbf24; 
+            padding: 14px 20px; border-radius: 12px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.6);
             color: #fff; font-size: 13px; font-weight: 500;
-            display: flex; align-items: center; width: max-content; max-width: 100%;
-            opacity: 0; transform: translateY(-20px); transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+            opacity: 0; transform: translateY(-20px);
+            transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
         }
         .toast b { color: #fbbf24; font-weight: 700; margin-right: 6px; }
         .toast.show { opacity: 1; transform: translateY(0); }
-        .toast.hiding { opacity: 0; transform: scale(0.95) translateY(-10px); }
 
         /* UTILS */
         .force-hidden { display: none !important; }
-        input { font-size: 16px !important; } /* IOS Zoom fix */
+        input { font-size: 16px !important; }
 
-        /* Native Mode Overlay */
+        /* NATIVE MODE OVERLAY */
         #native-mode-hint { 
-            position: fixed; top: 50px; left: 50%; transform: translateX(-50%); 
-            background: #ef4444; color: white; padding: 10px 24px; border-radius: 30px; 
+            position: fixed; top: 60px; left: 50%; transform: translateX(-50%); 
+            background: #ef4444; color: white;
+            padding: 10px 24px; border-radius: 30px; 
             font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: 1px;
-            box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4); pointer-events: auto !important; cursor: pointer;
-            opacity: 0; transition: 0.3s; z-index: 100; 
+            box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
+            pointer-events: auto !important; cursor: pointer;
+            opacity: 0; transition: 0.3s; z-index: 101; 
         }
-        #click-overlay { position: absolute; inset: 0; z-index: 20; cursor: default; display: block; }
+        
+        /* CLICK BLOCKER */
+        #click-overlay { 
+            position: absolute; inset: 0; z-index: 20; 
+            cursor: default; display: block; 
+            /* Важно: это блокирует клики по видео, чтобы работали наши кнопки */
+        }
     </style>
 </head>
 <body onclick="unlockAudio()">
@@ -137,11 +155,12 @@
         <i class="fa-solid fa-rotate-left mr-2"></i> Вернуть UI
     </div>
 
-    <div id="screen-auth" class="fixed inset-0 z-[100] flex items-center justify-center bg-[#050505] p-4 transition-opacity duration-500">
+    <div id="screen-auth" class="fixed inset-0 z-[200] flex items-center justify-center bg-[#050505] p-4 transition-opacity duration-500">
         <div class="glass-panel p-8 md:p-10 rounded-[32px] max-w-sm w-full text-center pointer-events-auto relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
             <h1 class="text-4xl md:text-5xl font-extrabold mb-2 tracking-tighter">Co-Watch</h1>
             <p class="text-gray-400 mb-8 text-sm font-mono uppercase tracking-widest">Batya Edition</p>
+            
             <button id="btn-google-login" class="w-full bg-white text-black font-bold py-4 rounded-xl mb-3 hover:bg-gray-200 transition active:scale-95">
                 <i class="fa-brands fa-google mr-2"></i> Войти
             </button>
@@ -151,15 +170,15 @@
         </div>
     </div>
 
-    <div id="screen-lobby" class="fixed inset-0 z-[90] flex items-center justify-center bg-[#050505] force-hidden pointer-events-auto overflow-y-auto">
+    <div id="screen-lobby" class="fixed inset-0 z-[190] flex items-center justify-center bg-[#050505] force-hidden pointer-events-auto overflow-y-auto">
         <div class="w-full max-w-5xl p-4 md:p-6 flex flex-col md:flex-row gap-6 min-h-[80vh] md:h-[70vh]">
             <div class="w-full md:w-1/3 glass-panel rounded-3xl p-6 flex flex-col items-center justify-center relative shrink-0">
                 <img id="lobby-avatar" class="w-24 h-24 md:w-32 md:h-32 rounded-full mb-4 md:mb-6 object-cover border-4 border-white/10 shadow-2xl">
                 <h2 class="text-xl md:text-2xl font-bold mb-2 text-center break-all"><span id="lobby-username">Guest</span></h2>
                 <button id="btn-logout" class="text-xs text-red-400 hover:text-red-300 border border-red-500/20 px-4 py-2 rounded-full transition">Выйти</button>
             </div>
+            
             <div class="w-full md:w-2/3 glass-panel rounded-3xl p-6 md:p-10 flex flex-col justify-center space-y-6 relative overflow-hidden shrink-0">
-                <div class="absolute -right-20 -top-20 w-64 h-64 bg-purple-600/20 rounded-full blur-[100px]"></div>
                 <h3 class="text-2xl md:text-3xl font-bold mb-2">Кинозал</h3>
                 <button id="btn-create-room" class="w-full bg-white text-black py-4 md:py-5 rounded-2xl font-bold text-lg hover:scale-[1.01] transition shadow-[0_0_30px_rgba(255,255,255,0.2)] active:scale-95">
                     <i class="fa-solid fa-plus mr-2"></i> Создать комнату
@@ -173,6 +192,7 @@
     </div>
 
     <div id="screen-app" class="fixed inset-0 bg-black force-hidden">
+        
         <div id="video-layer">
             <div id="player-placeholder" class="flex flex-col items-center justify-center p-4 text-center">
                 <div class="w-20 h-20 md:w-24 md:h-24 rounded-full border border-white/10 flex items-center justify-center mb-6 animate-pulse">
@@ -183,11 +203,13 @@
             <div id="player-yt" class="force-hidden z-10"></div>
             <div id="player-vk-container" class="force-hidden z-10"></div>
             <video id="player-stream" class="force-hidden z-10 object-contain w-full h-full" autoplay playsinline></video>
-            <div id="click-overlay" class="absolute inset-0 z-20 cursor-default" style="display:block;"></div>
+            
+            <div id="click-overlay" class="absolute inset-0 z-20" style="display:block;"></div>
         </div>
 
         <div id="ui-layer">
-            <div id="top-bar" class="flex justify-between items-start md:items-center transition-ui opacity-100 gap-2">
+            
+            <div id="top-bar" class="flex justify-between items-start md:items-center transition-ui opacity-100 gap-2 relative z-[1000]">
                 <div class="glass-panel pl-2 pr-4 py-2 rounded-full flex gap-3 items-center cursor-pointer hover:bg-white/5 transition shrink-0" id="copy-room-id">
                     <div class="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center text-green-400 shrink-0">
                         <i class="fa-solid fa-link text-xs"></i>
@@ -203,30 +225,32 @@
                     <button id="btn-load-video" class="w-9 h-9 bg-white text-black rounded-full flex items-center justify-center hover:scale-105 transition"><i class="fa-solid fa-play ml-0.5 text-xs"></i></button>
                 </div>
                 
-                <button onclick="toggleMobileUrlModal()" class="md:hidden glass-panel w-10 h-10 rounded-full flex items-center justify-center text-white active:scale-95">
+                <button onclick="toggleMobileUrlModal()" class="md:hidden glass-panel w-10 h-10 rounded-full flex items-center justify-center text-white active:scale-95 z-[1001]">
                      <i class="fa-solid fa-plus"></i>
                 </button>
 
                 <div class="flex gap-2 md:gap-3">
-                     <button id="btn-toggle-sidebar" class="glass-panel w-10 h-10 md:w-10 md:h-10 rounded-full flex items-center justify-center text-white/70 hover:text-white hover:bg-white/10 relative active:scale-95">
+                     <button id="btn-toggle-sidebar" class="glass-panel w-10 h-10 rounded-full flex items-center justify-center text-white/70 hover:text-white relative active:scale-95 z-[1001]">
                         <i class="fa-solid fa-comment-dots md:hidden"></i>
                         <i class="fa-solid fa-user-group hidden md:block"></i>
                         <span id="badge-users" class="absolute top-0 right-0 w-2.5 h-2.5 bg-red-500 rounded-full border border-black hidden"></span>
                     </button>
-                    <button id="btn-leave-room" class="glass-panel w-10 h-10 md:w-10 md:h-10 rounded-full flex items-center justify-center text-red-400 hover:bg-red-500/10 active:scale-95" title="Покинуть комнату">
+                    <button id="btn-leave-room" class="glass-panel w-10 h-10 rounded-full flex items-center justify-center text-red-400 hover:bg-red-500/10 active:scale-95 z-[1001]" title="Покинуть комнату">
                         <i class="fa-solid fa-right-from-bracket"></i>
                     </button>
                 </div>
             </div>
 
-            <div id="sidebar" class="glass-panel overflow-hidden flex flex-col shadow-2xl">
+            <div id="sidebar" class="glass-panel overflow-hidden flex flex-col shadow-2xl pb-safe">
                 <div class="md:hidden w-full flex justify-center pt-3 pb-1" onclick="get('sidebar').classList.remove('active')">
                     <div class="w-12 h-1.5 bg-white/20 rounded-full"></div>
                 </div>
+
                 <div class="flex border-b border-white/5 shrink-0">
                     <button id="tab-chat" class="flex-1 py-4 md:py-3 text-xs font-bold uppercase tracking-wider bg-white/5">Чат</button>
                     <button id="tab-users" class="flex-1 py-4 md:py-3 text-xs font-bold uppercase tracking-wider text-white/40 hover:text-white">Люди</button>
                 </div>
+                
                 <div id="view-chat" class="flex-1 flex flex-col min-h-0 relative">
                     <div id="chat-messages" class="flex-1 overflow-y-auto p-4 flex flex-col gap-2"></div>
                     <div class="p-3 border-t border-white/5 bg-black/40">
@@ -236,27 +260,29 @@
                         </form>
                     </div>
                 </div>
+
                 <div id="view-users" class="flex-1 overflow-y-auto p-2 hidden">
                     <div id="list-users" class="flex flex-col gap-1"></div>
                 </div>
             </div>
 
-            <div id="bottom-bar" class="flex flex-col gap-3 md:gap-4 transition-ui w-full max-w-2xl mx-auto pb-2 md:pb-6 opacity-100">
+            <div id="bottom-bar" class="flex flex-col gap-3 md:gap-4 transition-ui w-full max-w-2xl mx-auto pb-2 md:pb-6 opacity-100 z-[1000]">
+                
                 <div id="timeline-container" class="glass-panel px-4 py-3 md:px-5 md:py-3 rounded-2xl flex items-center gap-3 md:gap-4">
-                     <button id="btn-play-pause" class="w-8 h-8 md:w-6 md:h-6 flex items-center justify-center text-white/80 hover:text-white transition active:scale-90" onclick="togglePlay()">
-                         <i class="fa-solid fa-play text-lg md:text-base"></i>
+                     <button id="btn-play-pause" class="w-10 h-10 md:w-8 md:h-8 flex items-center justify-center text-white/80 hover:text-white transition active:scale-90" onclick="togglePlay()">
+                         <i class="fa-solid fa-play text-xl md:text-base"></i>
                      </button>
                      <span id="time-current" class="text-xs font-mono text-white/50 w-8 md:w-10 text-right">0:00</span>
                      <input type="range" id="seek-bar" class="seek-slider flex-1" min="0" max="100" value="0">
                      <span id="time-duration" class="text-xs font-mono text-white/50 w-8 md:w-10">0:00</span>
                 </div>
                 
-                <div class="glass-panel p-2 md:p-2 rounded-2xl flex justify-between md:justify-center gap-2 md:gap-4 items-center overflow-x-auto">
-                    <button id="btn-toggle-voice" class="glass-btn w-12 h-12 rounded-xl flex items-center justify-center text-xl text-white/30 shrink-0" title="Голос"><i class="fa-solid fa-microphone-slash"></i></button>
-                    
-                    <button id="btn-toggle-guests" class="glass-btn w-12 h-12 rounded-xl flex items-center justify-center text-xl text-white/30 shrink-0 hidden" onclick="toggleGuestControl()" title="Разрешить управление гостям">
-                        <i id="icon-guest-control" class="fa-solid fa-lock"></i>
+                <div class="glass-panel p-2 rounded-2xl flex justify-between md:justify-center gap-2 md:gap-4 items-center overflow-x-auto">
+                    <button id="btn-toggle-rights" class="glass-btn w-12 h-12 rounded-xl flex items-center justify-center text-xl text-yellow-500/50 hidden" onclick="toggleRights()" title="Разрешить управление зрителям">
+                        <i class="fa-solid fa-lock"></i>
                     </button>
+
+                    <button id="btn-toggle-voice" class="glass-btn w-12 h-12 rounded-xl flex items-center justify-center text-xl text-white/30 shrink-0" title="Голос"><i class="fa-solid fa-microphone-slash"></i></button>
                     
                     <button id="btn-screen-share" class="glass-btn w-12 h-12 rounded-xl flex items-center justify-center text-xl text-purple-400 hover:text-purple-300 hover:bg-purple-500/10 shrink-0 hidden md:flex" title="Демонстрация экрана"><i class="fa-solid fa-desktop"></i></button>
                     
@@ -268,13 +294,13 @@
                         </div>
                     </div>
 
-                    <button id="btn-native" class="glass-btn w-12 h-12 rounded-xl flex items-center justify-center text-xl text-white/50 hover:text-white shrink-0" onclick="toggleNativeMode()" title="Режим Native"><i class="fa-solid fa-gear"></i></button>
+                    <button id="btn-native" class="glass-btn w-12 h-12 rounded-xl flex items-center justify-center text-xl text-white/50 hover:text-white shrink-0" onclick="toggleNativeMode()" title="Режим Native (Клики работают)"><i class="fa-solid fa-gear"></i></button>
                 </div>
             </div>
         </div>
     </div>
 
-    <div id="mobile-url-modal" class="fixed inset-0 z-[80] bg-black/80 backdrop-blur-sm flex items-end md:items-center justify-center p-4 force-hidden opacity-0 transition-opacity duration-300">
+    <div id="mobile-url-modal" class="fixed inset-0 z-[1050] bg-black/80 backdrop-blur-sm flex items-end md:items-center justify-center p-4 force-hidden opacity-0 transition-opacity duration-300">
         <div class="glass-panel w-full max-w-lg p-5 rounded-2xl transform transition-transform duration-300 translate-y-10">
             <div class="flex justify-between items-center mb-4">
                 <h3 class="text-lg font-bold">Поставить видео</h3>
@@ -295,7 +321,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const APP_ID = 'cw-admin-ux-final-v2';
+        const APP_ID = 'cw-admin-ux-final-v3'; // Increased version to reset rooms
 
         const get = (id) => document.getElementById(id);
         const formatTime = (s) => { const m=Math.floor(s/60), sec=Math.floor(s%60); return `${m}:${sec<10?'0':''}${sec}`; };
@@ -307,7 +333,8 @@
                 modal.classList.remove('force-hidden');
                 setTimeout(() => { modal.classList.remove('opacity-0'); modal.querySelector('div').classList.remove('translate-y-10'); }, 10);
             } else {
-                modal.classList.add('opacity-0'); modal.querySelector('div').classList.add('translate-y-10');
+                modal.classList.add('opacity-0');
+                modal.querySelector('div').classList.add('translate-y-10');
                 setTimeout(() => modal.classList.add('force-hidden'), 300);
             }
         };
@@ -324,17 +351,19 @@
 
         window.showNotification = (text) => {
             const area = get('notification-area');
+            if (!area) return;
             const toast = document.createElement('div');
             toast.className = 'toast';
             toast.innerHTML = text; 
             area.appendChild(toast);
             requestAnimationFrame(() => { toast.classList.add('show'); });
             setTimeout(() => {
-                toast.classList.remove('show'); toast.classList.add('hiding');
+                toast.classList.remove('show');
                 setTimeout(() => toast.remove(), 600); 
             }, 5000);
         };
 
+        // AUTH
         onAuthStateChanged(auth, u => {
             if(u) {
                 get('lobby-username').textContent = u.displayName || 'Guest';
@@ -352,15 +381,13 @@
         get('btn-guest-login').onclick = () => signInAnonymously(auth).then(c => updateProfile(c.user, { displayName: `Watcher ${Math.floor(Math.random()*100)}` }));
         get('btn-logout').onclick = () => signOut(auth);
 
+        // ROOM LOGIC
         let currentRoomId = null;
         let currentUser = null;
         let myRole = 'viewer';
+        let allowGuestsControl = false; // NEW FEATURE
         let iAmMuted = false;
-        let guestsCanControl = false; // NEW FLAG
-        let presenceUnsub = null;
-        let chatUnsub = null;
-        let roomUnsub = null;
-        let heartbeatInterval = null;
+        let presenceUnsub = null, chatUnsub = null, roomUnsub = null, heartbeatInterval = null;
         
         get('btn-create-room').onclick = () => { const id = Math.random().toString(36).substring(2,7).toUpperCase(); joinRoom(id, true); };
         get('btn-join-room').onclick = () => { const id = get('input-room-id').value.trim().toUpperCase(); if(id) joinRoom(id); };
@@ -382,7 +409,8 @@
             get('screen-lobby').classList.remove('force-hidden');
             get('sidebar').classList.remove('active');
             get('chat-messages').innerHTML = '';
-            currentRoomId = null; myRole = 'viewer'; activeProvider = 'none';
+            currentRoomId = null;
+            myRole = 'viewer';
         };
 
         async function joinRoom(id, isCreator = false) {
@@ -391,20 +419,31 @@
             get('display-room-id').textContent = id;
             
             await setDoc(doc(db, 'artifacts', APP_ID, 'rooms', id, 'presence', currentUser.uid), {
-                uid: currentUser.uid, displayName: currentUser.displayName, 
+                uid: currentUser.uid, 
+                displayName: currentUser.displayName, 
                 photoURL: currentUser.photoURL || `https://api.dicebear.com/7.x/adventurer/svg?seed=${currentUser.uid}&backgroundColor=b6e3f4,c0aede,d1d4f9`,
-                role: isCreator ? 'admin' : 'viewer', joinedAt: serverTimestamp(), lastActive: serverTimestamp(), mutedByAdmin: false
+                role: isCreator ? 'admin' : 'viewer',
+                joinedAt: serverTimestamp(),
+                lastActive: serverTimestamp(),
+                mutedByAdmin: false
             });
+
+            // Init Room Data if creator
+            if (isCreator) {
+                setDoc(doc(db, 'artifacts', APP_ID, 'rooms', id), { allowGuestsControl: false }, { merge: true });
+            }
 
             roomUnsub = onSnapshot(doc(db, 'artifacts', APP_ID, 'rooms', id), s => { 
                 if(s.exists()) {
-                    const d = s.data();
-                    syncState(d); 
+                    const data = s.data();
+                    syncState(data);
                     
-                    // SYNC PERMISSIONS
-                    guestsCanControl = d.guestsCanControl || false;
-                    updateControlUI();
-                }
+                    // NEW: Update Guest Rights Local State
+                    if (data.allowGuestsControl !== undefined) {
+                        allowGuestsControl = data.allowGuestsControl;
+                        updateRightsButtonUI();
+                    }
+                } 
             });
             
             const chatQ = query(collection(db, 'artifacts', APP_ID, 'rooms', id, 'messages'), orderBy('createdAt', 'asc'), limit(50));
@@ -435,10 +474,12 @@
                     users.push(u);
                     if (u.role === 'admin') adminExists = true;
                     if (u.uid === currentUser.uid) {
+                        const oldRole = myRole;
                         myRole = u.role;
-                        updateControlUI(); // Update UI if role changes
-                        if (u.mutedByAdmin && !iAmMuted) { iAmMuted = true; muteMyMic(true); showNotification("Микрофон отключен Батей"); }
-                        else if (!u.mutedByAdmin && iAmMuted) { iAmMuted = false; muteMyMic(false); showNotification("Микрофон включен"); }
+                        if(oldRole !== myRole) updateRightsButtonUI(); // Refresh UI on role change
+                        
+                        if (u.mutedByAdmin && !iAmMuted) { iAmMuted = true; muteMyMic(true); showNotification("Батя выключил вам микрофон"); } 
+                        else if (!u.mutedByAdmin && iAmMuted) { iAmMuted = false; muteMyMic(false); showNotification("Микрофон доступен"); }
                     }
                 });
 
@@ -446,7 +487,7 @@
                     users.sort((a, b) => (a.joinedAt?.seconds || 0) - (b.joinedAt?.seconds || 0));
                     if (users[0].uid === currentUser.uid) {
                         updateDoc(doc(db, 'artifacts', APP_ID, 'rooms', id, 'presence', currentUser.uid), { role: 'admin' });
-                        showNotification("ТЫ БАТЯ!");
+                        showNotification("<i class='fa-solid fa-crown text-yellow-500'></i> ТЕПЕРЬ ТЫ БАТЯ!");
                     }
                 }
 
@@ -458,7 +499,16 @@
                         const icon = u.mutedByAdmin ? 'fa-microphone-slash text-red-400' : 'fa-microphone text-white/20 hover:text-white';
                         muteBtn = `<button class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center transition" onclick="toggleMuteUser('${u.uid}', ${!u.mutedByAdmin})"><i class="fa-solid ${icon}"></i></button>`;
                     }
-                    el.innerHTML = `<div class="flex items-center gap-3"><img src="${u.photoURL}" class="w-8 h-8 rounded-full bg-white/10"><div class="flex flex-col"><span class="text-xs font-bold">${u.displayName} ${u.role==='admin'?'<i class="fa-solid fa-crown admin-crown ml-1 text-yellow-500"></i>':''}</span><span class="text-[9px] text-white/40 uppercase font-bold tracking-wider">${u.role==='admin'?'БАТЯ':'ЗРИТЕЛЬ'}</span></div></div>${muteBtn}`;
+                    el.innerHTML = `
+                        <div class="flex items-center gap-3">
+                            <img src="${u.photoURL}" class="w-8 h-8 rounded-full bg-white/10">
+                            <div class="flex flex-col">
+                                <span class="text-xs font-bold">${u.displayName} ${u.role === 'admin' ? '<i class="fa-solid fa-crown text-yellow-500 ml-1"></i>' : ''}</span>
+                                <span class="text-[9px] text-white/40 uppercase font-bold tracking-wider">${u.role === 'admin' ? 'БАТЯ' : 'ЗРИТЕЛЬ'}</span>
+                            </div>
+                        </div>
+                        ${muteBtn}
+                    `;
                     list.appendChild(el);
                 });
                 if(users.length > 0) get('badge-users').classList.remove('hidden');
@@ -469,59 +519,66 @@
             heartbeatInterval = setInterval(() => { setDoc(doc(db, 'artifacts', APP_ID, 'rooms', id, 'presence', currentUser.uid), { lastActive: serverTimestamp() }, { merge: true }); }, 30000);
         }
 
-        // --- NEW: GUEST CONTROL LOGIC ---
-        function updateControlUI() {
-            const btn = get('btn-toggle-guests');
-            const icon = get('icon-guest-control');
-            
+        // --- NEW: RIGHTS MANAGEMENT ---
+        window.toggleRights = () => {
+            if (myRole !== 'admin') return;
+            const newState = !allowGuestsControl;
+            setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), { allowGuestsControl: newState }, { merge: true });
+            showNotification(newState ? "Управление открыто для всех" : "Управление только у Бати");
+        };
+
+        function updateRightsButtonUI() {
+            const btn = get('btn-toggle-rights');
             if (myRole === 'admin') {
                 btn.classList.remove('hidden');
-                if (guestsCanControl) {
+                if (allowGuestsControl) {
+                    btn.innerHTML = '<i class="fa-solid fa-lock-open text-green-400"></i>';
                     btn.classList.add('active-state');
-                    icon.className = 'fa-solid fa-lock-open';
                 } else {
+                    btn.innerHTML = '<i class="fa-solid fa-lock text-yellow-500"></i>';
                     btn.classList.remove('active-state');
-                    icon.className = 'fa-solid fa-lock';
                 }
             } else {
                 btn.classList.add('hidden');
             }
+        }
 
-            // Visual feedback for guests
-            if (myRole !== 'admin') {
-                 if(guestsCanControl) get('btn-play-pause').classList.remove('opacity-50');
-                 else get('btn-play-pause').classList.add('opacity-50');
+        window.toggleMuteUser = (targetUid, newState) => {
+             if (myRole !== 'admin') return;
+             updateDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', targetUid), { mutedByAdmin: newState });
+        }
+        
+        function muteMyMic(isMuted) {
+            const btn = get('btn-toggle-voice');
+            if (isMuted) {
+                btn.classList.add('disabled');
+                btn.innerHTML = '<i class="fa-solid fa-microphone-slash text-red-500"></i>';
             } else {
-                 get('btn-play-pause').classList.remove('opacity-50');
+                btn.classList.remove('disabled');
+                btn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i>'; 
             }
         }
 
-        window.toggleGuestControl = () => {
-             if(myRole !== 'admin') return;
-             const newState = !guestsCanControl;
-             setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), { guestsCanControl: newState }, { merge: true });
-             showNotification(newState ? "Управление разрешено всем" : "Управление только у Бати");
-        };
-
-        window.toggleMuteUser = (uid, state) => updateDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', uid), { mutedByAdmin: state });
-        function muteMyMic(mute) { const btn=get('btn-toggle-voice'); btn.classList.toggle('disabled', mute); btn.innerHTML = mute ? '<i class="fa-solid fa-microphone-slash text-red-500"></i>' : '<i class="fa-solid fa-microphone-slash"></i>'; }
-
-        get('tab-chat').onclick = () => { get('tab-chat').classList.replace('bg-white/5','text-white'); get('tab-users').classList.add('text-white/40'); get('view-chat').classList.remove('hidden'); get('view-users').classList.add('hidden'); };
-        get('tab-users').onclick = () => { get('tab-users').classList.replace('text-white/40','bg-white/5'); get('tab-chat').classList.add('text-white/40'); get('view-users').classList.remove('hidden'); get('view-chat').classList.add('hidden'); };
+        get('tab-chat').onclick = () => { get('tab-chat').classList.replace('bg-white/5', 'text-white'); get('tab-chat').classList.remove('text-white/40'); get('tab-users').classList.add('text-white/40'); get('tab-users').classList.remove('bg-white/5'); get('view-chat').classList.remove('hidden'); get('view-users').classList.add('hidden'); };
+        get('tab-users').onclick = () => { get('tab-users').classList.replace('text-white/40', 'bg-white/5'); get('tab-users').classList.add('text-white'); get('tab-chat').classList.add('text-white/40'); get('tab-chat').classList.remove('bg-white/5'); get('view-users').classList.remove('hidden'); get('view-chat').classList.add('hidden'); };
         get('btn-toggle-sidebar').onclick = () => get('sidebar').classList.toggle('active');
-        get('form-chat').onsubmit = (e) => { e.preventDefault(); const i=get('input-chat'), t=i.value.trim(); if(t){ addDoc(collection(db,'artifacts',APP_ID,'rooms',currentRoomId,'messages'),{text:t,user:currentUser.displayName,uid:currentUser.uid,createdAt:serverTimestamp()}); i.value=''; }};
+        get('form-chat').onsubmit = (e) => { e.preventDefault(); const t = get('input-chat').value.trim(); if(t) addDoc(collection(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'messages'), { text: t, user: currentUser.displayName, uid: currentUser.uid, createdAt: serverTimestamp() }); get('input-chat').value = ''; };
 
-        let activeProvider = 'none', ytPlayer = null, isNativeMode = false;
+        let activeProvider = 'none';
+        let ytPlayer = null;
+        let isNativeMode = false;
 
         get('btn-load-video').onclick = () => {
-            if (myRole !== 'admin') { showNotification("<i class='fa-solid fa-lock mr-2'></i> Только Батя ставит видео"); return; }
-            const url = get('input-video-url').value.trim(); if(!url) return;
+            if (myRole !== 'admin' && !allowGuestsControl) { showNotification("Только Батя может ставить видео"); return; }
+            const url = get('input-video-url').value.trim();
+            if(!url) return;
             let provider = 'yt', videoId = '';
-            const vkMatch = url.match(/video(-?\d+)_(\d+)/), ytMatch = url.match(/(?:v=|\/)([\w-]{11})/);
-            if (vkMatch) { provider = 'vk'; videoId = `https://vk.com/video_ext.php?oid=${vkMatch[1]}&id=${vkMatch[2]}&hd=2&autoplay=1`; }
-            else if (url.includes('vk.com')) { provider = 'vk'; videoId = url; }
+            const vkMatch = url.match(/video(-?\d+)_(\d+)/);
+            const ytMatch = url.match(/(?:v=|\/)([\w-]{11})/);
+            if (vkMatch) { provider = 'vk'; videoId = `https://vk.com/video_ext.php?oid=${vkMatch[1]}&id=${vkMatch[2]}&hd=2&autoplay=1`; } 
+            else if (url.includes('vk.com')) { provider = 'vk'; videoId = url; } 
             else if (ytMatch) { provider = 'yt'; videoId = ytMatch[1]; }
-            setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), { provider, videoId, status: 'playing', timestamp: 0 }, { merge: true });
+            setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), { provider, videoId, status: 'playing', timestamp: 0, updatedAt: Date.now() }, { merge: true });
             get('input-video-url').value = '';
         };
 
@@ -529,68 +586,109 @@
             if (d.videoId) get('player-placeholder').style.display = 'none';
             if (d.provider !== activeProvider) {
                 activeProvider = d.provider;
-                document.querySelectorAll('#video-layer > div, #video-layer > video').forEach(el => { if(el.id!=='click-overlay') el.classList.add('force-hidden'); });
+                document.querySelectorAll('#video-layer > div, #video-layer > video').forEach(el => { if(el.id !== 'click-overlay') el.classList.add('force-hidden'); });
                 if (d.provider === 'yt') get('player-yt').classList.remove('force-hidden');
                 if (d.provider === 'vk') get('player-vk-container').classList.remove('force-hidden');
                 if (d.provider === 'screen') { get('player-stream').classList.remove('force-hidden'); connectToStream(d.streamPeerId); }
-                get('timeline-container').style.opacity = d.provider==='yt'?'1':'0.5';
-                get('timeline-container').style.pointerEvents = d.provider==='yt'?'auto':'none';
+                get('timeline-container').style.opacity = d.provider === 'yt' ? '1' : '0.5';
+                get('timeline-container').style.pointerEvents = d.provider === 'yt' ? 'auto' : 'none';
             }
-            if (d.provider === 'vk') { const f=get('player-vk-container'); if(!f.querySelector('iframe') || f.querySelector('iframe').src!==d.videoId) f.innerHTML=`<iframe src="${d.videoId}" allow="autoplay; fullscreen" frameborder="0"></iframe>`; }
+            if (d.provider === 'vk') {
+                const f = get('player-vk-container');
+                if (!f.querySelector('iframe') || f.querySelector('iframe').src !== d.videoId) f.innerHTML = `<iframe src="${d.videoId}" allow="autoplay; fullscreen" frameborder="0"></iframe>`;
+            }
             if (d.provider === 'yt' && ytPlayer && ytPlayer.loadVideoById) {
                 try {
                     const diff = Math.abs(ytPlayer.getCurrentTime() - d.timestamp);
                     if(ytPlayer.getVideoData().video_id !== d.videoId) ytPlayer.loadVideoById(d.videoId);
                     if(d.status === 'playing') ytPlayer.playVideo(); else ytPlayer.pauseVideo();
                     if(diff > 2) ytPlayer.seekTo(d.timestamp);
-                    if(d.status === 'playing') { get('btn-play-pause').innerHTML='<i class="fa-solid fa-pause"></i>'; get('status-text').innerText="PLAYING"; get('status-dot').className="w-2 h-2 bg-green-500 rounded-full animate-pulse"; }
-                    else { get('btn-play-pause').innerHTML='<i class="fa-solid fa-play"></i>'; get('status-text').innerText="PAUSED"; get('status-dot').className="w-2 h-2 bg-yellow-500 rounded-full"; }
+                    if(d.status === 'playing') { get('btn-play-pause').innerHTML = '<i class="fa-solid fa-pause"></i>'; get('status-text').innerText = "PLAYING"; get('status-dot').className = "w-2 h-2 bg-green-500 rounded-full animate-pulse"; } 
+                    else { get('btn-play-pause').innerHTML = '<i class="fa-solid fa-play"></i>'; get('status-text').innerText = "PAUSED"; get('status-dot').className = "w-2 h-2 bg-yellow-500 rounded-full"; }
                 } catch(e) {}
             }
         }
 
-        if(!window.YT) { const t=document.createElement('script'); t.src="https://www.youtube.com/iframe_api"; document.body.appendChild(t); }
+        if(!window.YT) { const t = document.createElement('script'); t.src = "https://www.youtube.com/iframe_api"; document.body.appendChild(t); }
         window.onYouTubeIframeAPIReady = () => {
             ytPlayer = new YT.Player('player-yt', {
                 height: '100%', width: '100%',
-                // FIX FOR MOBILE AUTH & AUTOPLAY: playsinline=1, host set explicitly
-                playerVars: { 'controls': 0, 'rel': 0, 'origin': window.location.origin, 'playsinline': 1, 'modestbranding': 1, 'disablekb': 1 },
-                host: 'https://www.youtube.com', 
+                playerVars: { 'controls': 0, 'rel': 0, 'origin': window.location.origin },
                 events: {
                     'onStateChange': (e) => {
                         if (!currentRoomId || isNativeMode) return;
-                        if (myRole !== 'admin' && !guestsCanControl) return; // Permission check
-                        if (e.data === 1 || e.data === 2) {
-                            setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), { status: e.data===1?'playing':'paused', timestamp: ytPlayer.getCurrentTime() }, { merge: true });
-                        }
+                        if (myRole !== 'admin' && !allowGuestsControl) return;
+                        if (e.data === 1 || e.data === 2) setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), { status: e.data === 1 ? 'playing' : 'paused', timestamp: ytPlayer.getCurrentTime() }, { merge: true });
                     }
                 }
             });
-            setInterval(() => { if(ytPlayer && ytPlayer.getCurrentTime) { const t=ytPlayer.getCurrentTime(), d=ytPlayer.getDuration(); get('time-current').innerText=formatTime(t); get('time-duration').innerText=formatTime(d); get('seek-bar').value=(t/d)*100||0; } }, 1000);
+            setInterval(() => {
+                if(ytPlayer && ytPlayer.getCurrentTime) {
+                    const t = ytPlayer.getCurrentTime();
+                    const d = ytPlayer.getDuration();
+                    get('time-current').innerText = formatTime(t);
+                    get('time-duration').innerText = formatTime(d);
+                    get('seek-bar').value = (t / d) * 100 || 0;
+                }
+            }, 1000);
         };
 
         window.togglePlay = () => {
-            if (myRole !== 'admin' && !guestsCanControl) { showNotification("<i class='fa-solid fa-lock mr-2'></i> Нет прав на управление"); return; }
-            if (activeProvider === 'yt' && ytPlayer) { const s=ytPlayer.getPlayerState(); setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), { status: s===1?'paused':'playing', timestamp: ytPlayer.getCurrentTime() }, { merge: true }); }
+            if (myRole !== 'admin' && !allowGuestsControl) { showNotification("Пауза доступна только Бате"); return; }
+            if (activeProvider === 'yt' && ytPlayer) {
+                const s = ytPlayer.getPlayerState();
+                setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), { status: s === 1 ? 'paused' : 'playing', timestamp: ytPlayer.getCurrentTime() }, { merge: true });
+            }
         };
 
         get('seek-bar').oninput = (e) => {
-             if (myRole !== 'admin' && !guestsCanControl) { showNotification("<i class='fa-solid fa-lock mr-2'></i> Нет прав на перемотку"); return; }
-             if (activeProvider === 'yt' && ytPlayer) { const t=(e.target.value/100)*ytPlayer.getDuration(); ytPlayer.seekTo(t); setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), { timestamp: t }, { merge: true }); }
+             if (myRole !== 'admin' && !allowGuestsControl) { showNotification("Перемотка только для Бати"); return; }
+             if (activeProvider === 'yt' && ytPlayer) {
+                 const time = (e.target.value / 100) * ytPlayer.getDuration();
+                 ytPlayer.seekTo(time);
+                 setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), { timestamp: time }, { merge: true });
+             }
         };
 
+        // --- NATIVE MODE FIX (YOUTUBE CLICKS) ---
         window.toggleNativeMode = () => {
             isNativeMode = !isNativeMode;
-            if (isNativeMode) { get('ui-layer').style.opacity='0'; get('ui-layer').style.pointerEvents='none'; get('click-overlay').style.display='none'; get('native-mode-hint').style.opacity='1'; showNotification("Режим Native: UI скрыт"); }
-            else { get('ui-layer').style.opacity='1'; get('click-overlay').style.display='block'; get('native-mode-hint').style.opacity='0'; }
+            const ui = get('ui-layer');
+            const overlay = get('click-overlay');
+            const hint = get('native-mode-hint');
+            const playerYt = get('player-yt');
+            const playerVk = get('player-vk-container');
+
+            if (isNativeMode) {
+                ui.style.opacity = '0';
+                ui.style.pointerEvents = 'none';
+                
+                // CRITICAL FIX FOR YOUTUBE INTERACTION
+                overlay.style.display = 'none'; // Скрываем перехватчик
+                playerYt.style.pointerEvents = 'auto'; // Разрешаем клики в YouTube
+                playerVk.style.pointerEvents = 'auto'; // Разрешаем клики в VK
+                
+                hint.style.opacity = '1';
+                showNotification("Native Mode: UI скрыт, клики работают");
+            } else {
+                ui.style.opacity = '1';
+                
+                overlay.style.display = 'block'; // Возвращаем перехватчик
+                playerYt.style.pointerEvents = 'none'; // Блокируем прямые клики
+                playerVk.style.pointerEvents = 'none';
+                
+                hint.style.opacity = '0';
+            }
         };
 
         let peer = null;
         get('btn-screen-share').onclick = () => {
-            if(!peer) peer=new Peer();
+            if(!peer) peer = new Peer();
             peer.on('open', (id) => {
                 navigator.mediaDevices.getDisplayMedia({ video: true, audio: true }).then(stream => {
-                    const video=get('player-stream'); video.srcObject=stream; video.classList.remove('force-hidden');
+                    const video = get('player-stream');
+                    video.srcObject = stream;
+                    video.classList.remove('force-hidden');
                     setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), { provider: 'screen', streamPeerId: id, status: 'playing' }, { merge: true });
                     peer.on('call', call => call.answer(stream));
                 });
@@ -599,18 +697,27 @@
 
         function connectToStream(hostId) {
             if(!hostId || !get('player-stream').classList.contains('force-hidden')) return;
-            if(!peer) peer=new Peer();
-            peer.on('open', () => { const call=peer.call(hostId, new MediaStream()); call.on('stream', rs => { get('player-stream').srcObject=rs; get('player-stream').play(); }); });
+            if(!peer) peer = new Peer();
+            peer.on('open', () => {
+                const call = peer.call(hostId, new MediaStream());
+                call.on('stream', remoteStream => { get('player-stream').srcObject = remoteStream; get('player-stream').play(); });
+            });
         }
         
         let uiTimer;
         const resetUi = () => {
             if(isNativeMode) return;
-            const ui = get('ui-layer'); ui.style.opacity = '1'; clearTimeout(uiTimer);
+            const ui = get('ui-layer');
+            ui.style.opacity = '1';
+            clearTimeout(uiTimer);
             if(get('mobile-url-modal') && !get('mobile-url-modal').classList.contains('force-hidden')) return;
-            uiTimer = setTimeout(() => { if(document.activeElement.tagName !== 'INPUT' && !get('sidebar').classList.contains('active')) ui.style.opacity = '0'; }, 4000);
+            uiTimer = setTimeout(() => {
+                if(document.activeElement.tagName !== 'INPUT' && !get('sidebar').classList.contains('active')) ui.style.opacity = '0';
+            }, 4000);
         };
-        document.onmousemove = resetUi; document.onclick = resetUi; document.ontouchstart = resetUi;
+        document.onmousemove = resetUi;
+        document.onclick = resetUi;
+        document.ontouchstart = resetUi;
 
     </script>
 </body>
