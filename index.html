@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'self' blob: data: gap:; style-src * 'self' 'unsafe-inline' blob: data: gap:; script-src * 'self' 'unsafe-eval' 'unsafe-inline' blob: data: gap:; object-src * 'self' blob: data: gap:; img-src * 'self' 'unsafe-inline' blob: data: gap:; connect-src * 'self' 'unsafe-inline' blob: data: gap:; media-src * 'self' blob: data: gap:;">
     
-    <title>Co-Watch | Ultimate Controls</title>
+    <title>Co-Watch | Ultimate Settings</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
@@ -33,9 +33,9 @@
             background: radial-gradient(circle, rgba(0,0,0,0) 50%, rgba(0,0,0,0.8) 100%);
         }
 
-        /* === UI COMPONENTS === */
+        /* === GLASS UI === */
         .glass-panel {
-            background: rgba(18, 18, 18, 0.75);
+            background: rgba(18, 18, 18, 0.85);
             backdrop-filter: blur(24px) saturate(140%);
             -webkit-backdrop-filter: blur(24px) saturate(140%);
             border: 1px solid rgba(255, 255, 255, 0.08);
@@ -53,9 +53,16 @@
 
         .btn-active { background: #fff !important; color: #000 !important; box-shadow: 0 0 20px rgba(255,255,255,0.3); }
         .voice-active { background: #22c55e !important; color: #000 !important; border-color: #22c55e !important; box-shadow: 0 0 30px rgba(34, 197, 94, 0.5); }
-        .cc-active { color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
+        
+        /* Menu Items */
+        .menu-item {
+            padding: 8px 12px; border-radius: 8px; cursor: pointer; display: flex; justify-content: space-between; align-items: center;
+            transition: background 0.2s; font-size: 0.85rem;
+        }
+        .menu-item:hover { background: rgba(255,255,255,0.1); }
+        .menu-item.selected { background: rgba(255,255,255,0.2); font-weight: bold; }
 
-        /* === CUSTOM SLIDER === */
+        /* === SLIDER === */
         .seek-slider {
             -webkit-appearance: none; width: 100%; height: 4px; background: rgba(255,255,255,0.2);
             border-radius: 2px; outline: none; cursor: pointer; transition: height 0.2s;
@@ -69,7 +76,7 @@
         .seek-slider::-webkit-slider-thumb:hover { transform: scale(1.3); }
 
         /* === ANIMATIONS === */
-        .fade-enter { animation: fadeEnter 0.5s ease forwards; }
+        .fade-enter { animation: fadeEnter 0.4s ease forwards; }
         @keyframes fadeEnter { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
         
         .talking-ring { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); animation: pulse-green 1.5s infinite; }
@@ -81,11 +88,18 @@
         .ui-visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
         .transition-ui { transition: all 0.4s ease; }
         
+        /* LAYERS */
         #video-layer { position: fixed; inset: 0; z-index: 0; display: flex; align-items: center; justify-content: center; background: #000; }
         #ui-layer { position: fixed; inset: 0; z-index: 50; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 24px; }
-        
-        /* Clickable area for video play/pause */
         #click-overlay { position: absolute; inset: 0; z-index: 10; cursor: pointer; }
+        
+        /* POPUP MENUS */
+        .popup-menu {
+            position: absolute; bottom: 100px; background: rgba(20,20,20,0.95); backdrop-filter: blur(20px);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 8px; width: 200px;
+            display: flex; flex-direction: column; gap: 4px; max-height: 300px; overflow-y: auto;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5); z-index: 100;
+        }
     </style>
 </head>
 <body>
@@ -158,19 +172,33 @@
                 <div id="toast-area" class="flex flex-col gap-3 items-end w-80"></div>
             </div>
 
-            <div class="flex flex-col gap-4 pointer-events-auto transition-ui ui-visible w-full max-w-4xl mx-auto" id="bottom-bar">
+            <div class="flex flex-col gap-4 pointer-events-auto transition-ui ui-visible w-full max-w-4xl mx-auto relative" id="bottom-bar">
                 
+                <div id="menu-cc" class="popup-menu force-hidden right-20">
+                    <div class="text-xs font-bold text-white/50 px-2 pb-2 uppercase tracking-widest border-b border-white/10 mb-2">Субтитры</div>
+                    <div id="cc-list" class="flex flex-col gap-1"></div>
+                </div>
+
+                <div id="menu-settings" class="popup-menu force-hidden right-0">
+                    <div class="text-xs font-bold text-white/50 px-2 pb-2 uppercase tracking-widest border-b border-white/10 mb-2">Настройки</div>
+                    <div class="text-[10px] text-white/40 px-2 mt-2">СКОРОСТЬ</div>
+                    <div class="flex gap-1 p-1">
+                        <button class="flex-1 bg-white/10 rounded text-xs py-1 hover:bg-white/20" onclick="changeSpeed(0.5)">0.5</button>
+                        <button class="flex-1 bg-white/10 rounded text-xs py-1 hover:bg-white/20" onclick="changeSpeed(1)">1.0</button>
+                        <button class="flex-1 bg-white/10 rounded text-xs py-1 hover:bg-white/20" onclick="changeSpeed(1.5)">1.5</button>
+                        <button class="flex-1 bg-white/10 rounded text-xs py-1 hover:bg-white/20" onclick="changeSpeed(2)">2.0</button>
+                    </div>
+                    <div class="text-[10px] text-white/40 px-2 mt-2">КАЧЕСТВО</div>
+                    <div id="quality-list" class="flex flex-col gap-1"></div>
+                </div>
+
                 <div class="glass-panel px-6 py-4 rounded-[24px] flex items-center gap-4 shadow-2xl w-full">
                     <button id="btn-play-pause" class="text-white hover:text-blue-400 transition w-8 text-center" onclick="togglePlay()">
                         <i class="fa-solid fa-play text-xl" id="icon-play"></i>
                     </button>
-                    
                     <span id="time-current" class="text-xs font-mono text-white/70 w-10 text-right">00:00</span>
-                    
                     <input type="range" id="seek-bar" class="seek-slider flex-1" value="0" min="0" step="1">
-                    
                     <span id="time-duration" class="text-xs font-mono text-white/70 w-10">00:00</span>
-                    
                     <div class="flex items-center gap-2 group relative">
                         <i class="fa-solid fa-volume-high text-xs text-white/50"></i>
                         <input type="range" id="volume-bar" class="w-20 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer" min="0" max="100" value="100">
@@ -182,22 +210,22 @@
                         <i class="fa-solid fa-users"></i>
                     </button>
 
-                    <button id="btn-toggle-voice" class="glass-btn w-20 h-20 rounded-[28px] flex items-center justify-center text-2xl text-white/70 -mt-10 border border-white/10 hover:border-white/40 bg-[#1a1a1a] shadow-xl relative overflow-hidden group" title="Голосовой чат">
+                    <button id="btn-toggle-voice" class="glass-btn w-20 h-20 rounded-[28px] flex items-center justify-center text-2xl text-white/70 -mt-10 border border-white/10 hover:border-white/40 bg-[#1a1a1a] shadow-xl relative overflow-hidden group">
                         <i class="fa-solid fa-microphone-slash relative z-10 transition-transform group-hover:scale-110"></i>
                     </button>
 
-                    <button id="btn-toggle-chat" class="glass-btn w-14 h-14 rounded-2xl flex items-center justify-center text-xl text-white/70 hover:text-white relative" title="Чат">
+                    <button id="btn-toggle-chat" class="glass-btn w-14 h-14 rounded-2xl flex items-center justify-center text-xl text-white/70 hover:text-white relative">
                         <i class="fa-regular fa-comment-dots"></i>
                         <span id="chat-badge" class="absolute top-3 right-3 w-2.5 h-2.5 bg-blue-500 rounded-full shadow-[0_0_10px_#3b82f6] force-hidden"></span>
                     </button>
 
                     <div class="w-px h-8 bg-white/10"></div>
 
-                    <button id="btn-toggle-cc" class="glass-btn w-14 h-14 rounded-2xl flex items-center justify-center text-lg text-white/50 hover:text-white font-bold tracking-tighter" onclick="toggleCaptions()" title="Субтитры">
+                    <button id="btn-toggle-cc" class="glass-btn w-14 h-14 rounded-2xl flex items-center justify-center text-lg text-white/50 hover:text-white font-bold" onclick="toggleCCMenu()">
                         CC
                     </button>
 
-                    <button id="btn-native-controls" class="glass-btn w-14 h-14 rounded-2xl flex items-center justify-center text-xl text-white/50 hover:text-white" onclick="toggleNativeControls()" title="Сменить язык/качество (Показать плеер YouTube)">
+                    <button id="btn-settings" class="glass-btn w-14 h-14 rounded-2xl flex items-center justify-center text-xl text-white/50 hover:text-white" onclick="toggleSettingsMenu()">
                         <i class="fa-solid fa-gear"></i>
                     </button>
                 </div>
@@ -221,17 +249,17 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, query, orderBy, limit, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // FIREBASE CONFIG
+        // CONFIG
         const firebaseConfig = { apiKey: "AIzaSyBrm8hgy9LGFFL_7CdlnR6jxyolqy94AQA", authDomain: "upbeat-orb-479013-p8.firebaseapp.com", projectId: "upbeat-orb-479013-p8", storageBucket: "upbeat-orb-479013-p8.firebasestorage.app", messagingSenderId: "547138498300", appId: "1:547138498300:web:a03c11d6aafd5f027cf179" };
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const APP_ID = 'cw-v6-ultimate';
+        const APP_ID = 'cw-v7-ultimate';
 
         // STATE
         let currentUser=null, currentRoomId=null, player=null, unsubscribes=[], uiTimeout, activeCalls={};
         let myPeer=null, myStream=null, isVoiceOn=false;
-        let isDragging = false; // Slider dragging state
+        let isDragging = false; 
 
         // AUTH
         onAuthStateChanged(auth, u => {
@@ -239,7 +267,7 @@
             else showScreen('screen-auth');
         });
         document.getElementById('btn-guest-login').onclick = () => {
-            document.getElementById('auth-status').textContent="Создание профиля...";
+            document.getElementById('auth-status').textContent="Инициализация...";
             signInAnonymously(auth).then(c=>{ updateProfile(c.user, {displayName:"Guest "+Math.floor(Math.random()*1000), photoURL:`https://api.dicebear.com/7.x/notionists/svg?seed=${Math.random()}&backgroundColor=000`}); });
         };
 
@@ -251,201 +279,149 @@
             currentRoomId=id; document.getElementById('display-room-id').textContent=id;
             initVoiceEngine(currentUser.uid);
             await setDoc(doc(db, 'artifacts', APP_ID, 'rooms', id, 'presence', currentUser.uid), { uid:currentUser.uid, displayName:currentUser.displayName, photoURL:currentUser.photoURL, state:'online', voiceActive:false });
-            
             unsubscribes.push(onSnapshot(doc(db,'artifacts',APP_ID,'rooms',id), s=>{ if(s.exists()) syncVideo(s.data()); }));
             unsubscribes.push(onSnapshot(collection(db,'artifacts',APP_ID,'rooms',id,'presence'), handlePresence));
             unsubscribes.push(onSnapshot(query(collection(db,'artifacts',APP_ID,'rooms',id,'chat'), orderBy('ts','asc'), limit(50)), s=>{ s.docChanges().forEach(c=>{ if(c.type==='added') renderMsg(c.doc.data()); }); }));
-            
             showScreen('screen-app');
         }
 
-        // --- PLAYER CONTROLS LOGIC ---
+        // --- CONTROLS ---
         
-        // 1. Play/Pause
         window.togglePlay = () => {
             if(!player || !currentRoomId) return;
-            const state = player.getPlayerState();
-            const newStatus = (state === 1) ? 'paused' : 'playing'; // 1=Playing
-            setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), {
-                status: newStatus, timestamp: player.getCurrentTime(), updatedAt: Date.now(), videoId: player.getVideoData().video_id
-            }, { merge: true });
+            const s = player.getPlayerState();
+            const ns = (s === 1) ? 'paused' : 'playing';
+            setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), { status: ns, timestamp: player.getCurrentTime(), updatedAt: Date.now(), videoId: player.getVideoData().video_id }, { merge: true });
         };
 
-        // 2. Timeline (Seek)
-        const seekBar = document.getElementById('seek-bar');
-        
-        seekBar.oninput = () => { isDragging = true; }; // Start dragging (stop sync)
-        
-        seekBar.onchange = () => { // Drop dragging (send sync)
-            isDragging = false;
-            const newTime = parseFloat(seekBar.value);
-            player.seekTo(newTime, true);
-            setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), {
-                status: 'playing', timestamp: newTime, updatedAt: Date.now(), videoId: player.getVideoData().video_id
-            }, { merge: true });
-        };
+        const sb = document.getElementById('seek-bar');
+        sb.oninput = () => { isDragging = true; }; 
+        sb.onchange = () => { isDragging = false; player.seekTo(parseFloat(sb.value), true); setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), { status: 'playing', timestamp: parseFloat(sb.value), updatedAt: Date.now() }, { merge: true }); };
 
-        // Update Timeline Loop
         setInterval(() => {
             if(player && player.getCurrentTime && !isDragging) {
-                const cur = player.getCurrentTime();
-                const dur = player.getDuration();
-                seekBar.value = cur;
-                seekBar.max = dur;
-                document.getElementById('time-current').textContent = formatTime(cur);
-                document.getElementById('time-duration').textContent = formatTime(dur);
+                const c = player.getCurrentTime(), d = player.getDuration();
+                sb.value = c; sb.max = d;
+                document.getElementById('time-current').textContent = fmt(c);
+                document.getElementById('time-duration').textContent = fmt(d);
             }
         }, 500);
+        function fmt(s){ if(!s)return"00:00"; const m=Math.floor(s/60),sc=Math.floor(s%60); return `${m}:${sc<10?'0'+sc:sc}`; }
 
-        function formatTime(s) {
-            if(!s) return "00:00";
-            const m = Math.floor(s/60);
-            const sec = Math.floor(s%60);
-            return `${m}:${sec<10?'0'+sec:sec}`;
-        }
+        // --- SETTINGS MENUS ---
 
-        // 3. Captions
-        let ccEnabled = false;
-        window.toggleCaptions = () => {
-            if(!player) return;
-            ccEnabled = !ccEnabled;
-            if(ccEnabled) {
-                player.loadModule("captions"); // Force load
-                player.setOption("captions", "track", {"languageCode": "ru"}); // Try Ru
-                document.getElementById('btn-toggle-cc').classList.add('cc-active');
-            } else {
-                player.unloadModule("captions");
-                document.getElementById('btn-toggle-cc').classList.remove('cc-active');
-            }
-        };
+        window.toggleCCMenu = () => {
+            const menu = document.getElementById('menu-cc');
+            const wasHidden = menu.classList.contains('force-hidden');
+            document.querySelectorAll('.popup-menu').forEach(e=>e.classList.add('force-hidden')); // close others
+            if(!wasHidden) return; // Toggle off
 
-        // 4. Native Controls (Audio Language Hack)
-        window.toggleNativeControls = () => {
-            // Чтобы сменить язык, нам нужно показать нативные контролы YouTube, так как API не дает доступа к AudioTracks
-            const overlay = document.getElementById('click-overlay');
-            const vLayer = document.getElementById('video-layer');
+            menu.classList.remove('force-hidden');
+            const list = document.getElementById('cc-list');
+            list.innerHTML = '<div class="text-xs text-center text-white/50">Загрузка...</div>';
             
-            if(overlay.style.pointerEvents === 'none') {
-                 // Возвращаем как было
-                overlay.style.pointerEvents = 'auto';
-                document.getElementById('btn-native-controls').classList.remove('btn-active');
-                showToast({sender:'System', text:'Native controls hidden', photo:''});
+            // Fetch Tracks
+            const tracks = player.getOption('captions', 'tracklist');
+            list.innerHTML = '';
+            
+            // Off Option
+            const offBtn = document.createElement('div');
+            offBtn.className = "menu-item";
+            offBtn.innerHTML = "<span>Откл.</span>";
+            offBtn.onclick = () => { player.unloadModule("captions"); menu.classList.add('force-hidden'); document.getElementById('btn-toggle-cc').classList.remove('cc-active'); };
+            list.appendChild(offBtn);
+
+            if(tracks && tracks.length > 0) {
+                tracks.forEach(t => {
+                    const el = document.createElement('div');
+                    el.className = "menu-item";
+                    el.innerHTML = `<span>${t.languageName || t.languageCode}</span>`;
+                    el.onclick = () => {
+                        player.loadModule("captions");
+                        player.setOption("captions", "track", {"languageCode": t.languageCode});
+                        document.getElementById('btn-toggle-cc').classList.add('cc-active');
+                        menu.classList.add('force-hidden');
+                    };
+                    list.appendChild(el);
+                });
             } else {
-                // Показываем нативные
-                overlay.style.pointerEvents = 'none'; // Пропускаем клики сквозь оверлей к YouTube
-                document.getElementById('btn-native-controls').classList.add('btn-active');
-                showToast({sender:'System', text:'Используйте шестеренку в плеере для смены языка', photo:'https://via.placeholder.com/50'});
+                list.innerHTML += '<div class="text-xs text-center text-white/30 p-2">Нет субтитров</div>';
             }
         };
-        
-        // 5. Volume
-        document.getElementById('volume-bar').oninput = (e) => {
-            if(player) player.setVolume(e.target.value);
+
+        window.toggleSettingsMenu = () => {
+            const menu = document.getElementById('menu-settings');
+            const wasHidden = menu.classList.contains('force-hidden');
+            document.querySelectorAll('.popup-menu').forEach(e=>e.classList.add('force-hidden'));
+            if(!wasHidden) return;
+
+            menu.classList.remove('force-hidden');
+            // Qualities
+            const qList = document.getElementById('quality-list');
+            const levels = player.getAvailableQualityLevels();
+            qList.innerHTML = '';
+            if(levels && levels.length > 0) {
+                levels.forEach(q => {
+                    const el = document.createElement('div');
+                    el.className = "menu-item";
+                    el.innerText = q;
+                    el.onclick = () => { player.setPlaybackQuality(q); menu.classList.add('force-hidden'); };
+                    qList.appendChild(el);
+                });
+            }
         };
 
-        // --- YOUTUBE API ---
+        window.changeSpeed = (s) => { player.setPlaybackRate(s); document.getElementById('menu-settings').classList.add('force-hidden'); };
+
+        // --- YOUTUBE ---
         if(!window.YT) { const t=document.createElement('script'); t.src="https://www.youtube.com/iframe_api"; document.body.appendChild(t); }
         window.onYouTubeIframeAPIReady = () => {
             player = new YT.Player('player', {
                 height:'100%', width:'100%',
-                playerVars: { 
-                    'controls':0, // Custom controls only
-                    'rel':0, 'modestbranding':1, 'disablekb':1, 'origin':window.location.origin, 'host':'https://www.youtube.com',
-                    'cc_load_policy': 1, // Enable captions logic
-                    'fs': 0 // Disable native fullscreen button logic
-                },
+                playerVars: { 'controls':0, 'rel':0, 'modestbranding':1, 'disablekb':1, 'origin':window.location.origin, 'host':'https://www.youtube.com', 'cc_load_policy': 1, 'fs': 0 },
                 events: { 'onStateChange': onPlayerStateChange }
             });
         };
 
         let isSyncing = false;
         function onPlayerStateChange(e) {
-            // Local UI updates
-            const btnIcon = document.getElementById('icon-play');
-            if(e.data === 1) btnIcon.className = "fa-solid fa-pause";
-            else btnIcon.className = "fa-solid fa-play";
-
+            const icon = document.getElementById('icon-play');
+            if(e.data === 1) icon.className = "fa-solid fa-pause"; else icon.className = "fa-solid fa-play";
             if(isSyncing || !currentRoomId) return;
-            if(e.data===1 || e.data===2) { // 1=Play, 2=Pause
-                setDoc(doc(db,'artifacts',APP_ID,'rooms',currentRoomId), {
-                    status: e.data===1?'playing':'paused', timestamp: player.getCurrentTime(), updatedAt: Date.now(), videoId: player.getVideoData().video_id
-                }, {merge:true});
-            }
+            if(e.data===1 || e.data===2) setDoc(doc(db,'artifacts',APP_ID,'rooms',currentRoomId), { status: e.data===1?'playing':'paused', timestamp: player.getCurrentTime(), updatedAt: Date.now(), videoId: player.getVideoData().video_id }, {merge:true});
         }
-
         function syncVideo(d) {
             if(!player || !d.videoId) return;
-            // Video ID
             try { if(player.getVideoData().video_id !== d.videoId) player.loadVideoById(d.videoId); } catch(e) { player.loadVideoById(d.videoId); }
-            
-            // Time Sync
-            let t = d.timestamp;
-            if(d.status === 'playing') t += (Date.now() - d.updatedAt)/1000;
-            
-            // Only sync if diff > 2s to avoid jitter
-            if(Math.abs(player.getCurrentTime() - t) > 2) {
-                isSyncing = true; 
-                player.seekTo(t, true); 
-                d.status==='playing' ? player.playVideo() : player.pauseVideo();
-                setTimeout(()=>isSyncing=false, 1000);
-            } else {
-                // Just Sync State
-                if(d.status==='playing' && player.getPlayerState()!==1) player.playVideo();
-                if(d.status==='paused' && player.getPlayerState()!==2) player.pauseVideo();
-            }
+            let t = d.timestamp; if(d.status === 'playing') t += (Date.now() - d.updatedAt)/1000;
+            if(Math.abs(player.getCurrentTime() - t) > 2) { isSyncing = true; player.seekTo(t, true); d.status==='playing' ? player.playVideo() : player.pauseVideo(); setTimeout(()=>isSyncing=false, 1000); }
+            else { if(d.status==='playing' && player.getPlayerState()!==1) player.playVideo(); if(d.status==='paused' && player.getPlayerState()!==2) player.pauseVideo(); }
         }
+        document.getElementById('btn-load-video').onclick = () => { const m = document.getElementById('input-video-url').value.match(/(?:v=|\/)([\w-]{11})/); if(m && currentRoomId) setDoc(doc(db,'artifacts',APP_ID,'rooms',currentRoomId), { videoId:m[1], status:'playing', timestamp:0, updatedAt:Date.now() }, {merge:true}); document.getElementById('input-video-url').value=''; };
+        document.getElementById('volume-bar').oninput=(e)=>{if(player)player.setVolume(e.target.value);};
 
-        document.getElementById('btn-load-video').onclick = () => {
-            const m = document.getElementById('input-video-url').value.match(/(?:v=|\/)([\w-]{11})/);
-            if(m && currentRoomId) setDoc(doc(db,'artifacts',APP_ID,'rooms',currentRoomId), { videoId:m[1], status:'playing', timestamp:0, updatedAt:Date.now() }, {merge:true});
-            document.getElementById('input-video-url').value='';
-        };
-
-        // --- VOICE & PRESENCE ---
-        function initVoiceEngine(uid) {
-            myPeer = new Peer(uid);
-            myPeer.on('call', c => { c.answer(myStream); c.on('stream', s => playAudio(s, c.peer)); });
-        }
+        // --- VOICE ---
+        function initVoiceEngine(uid) { myPeer = new Peer(uid); myPeer.on('call', c => { c.answer(myStream); c.on('stream', s => playAudio(s, c.peer)); }); }
         function handlePresence(snap) {
             const l = document.getElementById('users-list-container'); l.innerHTML=''; 
-            let activeRoomUsers=[];
             snap.forEach(d=>{ 
-                const u=d.data(); activeRoomUsers.push(u.uid);
-                const isMe=u.uid===currentUser.uid;
-                l.innerHTML+=`<div class="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 mb-2"><img src="${u.photoURL}" class="w-10 h-10 rounded-full object-cover ${u.voiceActive?'talking-ring':''}"><div class="flex-1 overflow-hidden"><p class="text-sm font-bold text-white truncate">${u.displayName} ${isMe?'(Вы)':''}</p><p class="text-xs text-white/50">${u.voiceActive?'Говорит':'Слушает'}</p></div></div>`;
-                if(isVoiceOn && !isMe && !activeCalls[u.uid]) connectPeer(u.uid);
+                const u=d.data(); const me=u.uid===currentUser.uid;
+                l.innerHTML+=`<div class="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 mb-2"><img src="${u.photoURL}" class="w-10 h-10 rounded-full object-cover ${u.voiceActive?'talking-ring':''}"><div class="flex-1 overflow-hidden"><p class="text-sm font-bold text-white truncate">${u.displayName} ${me?'(Вы)':''}</p><p class="text-xs text-white/50">${u.voiceActive?'Говорит':'Слушает'}</p></div></div>`;
+                if(isVoiceOn && !me && !activeCalls[u.uid]) connectPeer(u.uid);
             });
         }
-        function connectPeer(id) {
-            if(!myStream) return;
-            const c=myPeer.call(id,myStream); activeCalls[id]=c;
-            c.on('stream', s=>playAudio(s,id)); c.on('close',()=>delete activeCalls[id]);
-        }
-        function playAudio(s,id) {
-            if(document.getElementById(`a-${id}`)) return;
-            const a=document.createElement('audio'); a.id=`a-${id}`; a.srcObject=s; a.autoplay=true; document.getElementById('audio-streams').appendChild(a);
-        }
-        
+        function connectPeer(id) { if(!myStream) return; const c=myPeer.call(id,myStream); activeCalls[id]=c; c.on('stream', s=>playAudio(s,id)); c.on('close',()=>delete activeCalls[id]); }
+        function playAudio(s,id) { if(document.getElementById(`a-${id}`)) return; const a=document.createElement('audio'); a.id=`a-${id}`; a.srcObject=s; a.autoplay=true; document.getElementById('audio-streams').appendChild(a); }
         document.getElementById('btn-toggle-voice').onclick = async () => {
             const btn=document.getElementById('btn-toggle-voice');
-            if(isVoiceOn) {
-                isVoiceOn=false; if(myStream) myStream.getTracks().forEach(t=>t.stop()); myStream=null;
-                btn.classList.remove('voice-active'); btn.innerHTML='<i class="fa-solid fa-microphone-slash"></i>';
-                updateDoc(doc(db,'artifacts',APP_ID,'rooms',currentRoomId,'presence',currentUser.uid), {voiceActive:false});
-                Object.values(activeCalls).forEach(c=>c.close());
-            } else {
-                try {
-                    myStream = await navigator.mediaDevices.getUserMedia({audio:true}); isVoiceOn=true;
-                    btn.classList.add('voice-active'); btn.innerHTML='<i class="fa-solid fa-microphone animate-pulse"></i>';
-                    updateDoc(doc(db,'artifacts',APP_ID,'rooms',currentRoomId,'presence',currentUser.uid), {voiceActive:true});
-                } catch(e) { alert("Mic required"); }
-            }
+            if(isVoiceOn) { isVoiceOn=false; if(myStream) myStream.getTracks().forEach(t=>t.stop()); myStream=null; btn.classList.remove('voice-active'); btn.innerHTML='<i class="fa-solid fa-microphone-slash"></i>'; updateDoc(doc(db,'artifacts',APP_ID,'rooms',currentRoomId,'presence',currentUser.uid), {voiceActive:false}); Object.values(activeCalls).forEach(c=>c.close()); } 
+            else { try { myStream = await navigator.mediaDevices.getUserMedia({audio:true}); isVoiceOn=true; btn.classList.add('voice-active'); btn.innerHTML='<i class="fa-solid fa-microphone animate-pulse"></i>'; updateDoc(doc(db,'artifacts',APP_ID,'rooms',currentRoomId,'presence',currentUser.uid), {voiceActive:true}); } catch(e) { alert("Mic required"); } }
         };
 
         // --- UTILS ---
         function showScreen(id) { ['screen-auth','screen-lobby','screen-app'].forEach(s=>document.getElementById(s).classList.add('force-hidden')); document.getElementById(id).classList.remove('force-hidden'); }
         let pTimer={}; 
-        window.closePanels=(ex)=>{ ['panel-chat','panel-users'].forEach(id=>{ if(id===ex)return; const e=document.getElementById(id); e.classList.remove('translate-x-0'); if(id.includes('chat'))e.classList.add('translate-x-10','opacity-0'); else e.classList.add('-translate-x-10','opacity-0'); if(pTimer[id])clearTimeout(pTimer[id]); pTimer[id]=setTimeout(()=>e.classList.add('force-hidden'),300); }); };
+        window.closePanels=(ex)=>{ document.querySelectorAll('.popup-menu').forEach(e=>e.classList.add('force-hidden')); ['panel-chat','panel-users'].forEach(id=>{ if(id===ex)return; const e=document.getElementById(id); e.classList.remove('translate-x-0'); if(id.includes('chat'))e.classList.add('translate-x-10','opacity-0'); else e.classList.add('-translate-x-10','opacity-0'); if(pTimer[id])clearTimeout(pTimer[id]); pTimer[id]=setTimeout(()=>e.classList.add('force-hidden'),300); }); };
         const togglePanel=(id,tr)=>{ const p=document.getElementById(id); const h=p.classList.contains('force-hidden'); window.closePanels(id); if(h){ if(pTimer[id])clearTimeout(pTimer[id]); p.classList.remove('force-hidden'); setTimeout(()=>{p.classList.remove(tr,'opacity-0');p.classList.add('translate-x-0');},10); if(id.includes('chat')){document.getElementById('chat-badge').classList.add('force-hidden');setTimeout(()=>document.getElementById('input-message').focus(),100);} } else window.closePanels(); };
         
         document.getElementById('btn-toggle-chat').onclick=()=>togglePanel('panel-chat','translate-x-10');
@@ -453,7 +429,6 @@
         document.getElementById('btn-leave-room').onclick=()=>window.location.reload();
         document.getElementById('copy-room-id').onclick=()=>{navigator.clipboard.writeText(currentRoomId);const el=document.getElementById('display-room-id');const o=el.textContent;el.textContent="COPIED";setTimeout(()=>el.textContent=o,1000);};
 
-        // CHAT & AUTO HIDE
         document.getElementById('form-chat').onsubmit=async(e)=>{e.preventDefault();const i=document.getElementById('input-message');if(i.value.trim())await addDoc(collection(db,'artifacts',APP_ID,'rooms',currentRoomId,'chat'),{text:i.value,sender:currentUser.displayName,photo:currentUser.photoURL,uid:currentUser.uid,ts:serverTimestamp()});i.value='';};
         function renderMsg(m){const me=m.uid===currentUser.uid;const d=document.createElement('div');d.className=`flex gap-3 mb-4 ${me?'flex-row-reverse':''} fade-enter`;d.innerHTML=`<img src="${m.photo}" class="w-8 h-8 rounded-full border border-white/10"><div class="${me?'bg-blue-600':'bg-white/10'} p-3 rounded-2xl max-w-[85%] text-sm border border-white/5"><p class="font-bold text-[10px] opacity-50 uppercase">${m.sender}</p>${m.text}</div>`;document.getElementById('chat-messages').appendChild(d);document.getElementById('chat-messages').scrollTop=9e9;if(document.getElementById('panel-chat').classList.contains('force-hidden')&&!me){document.getElementById('chat-badge').classList.remove('force-hidden');showToast(m);}}
         function showToast(m){const t=document.createElement('div');t.className="glass-panel p-3 rounded-2xl flex items-center gap-3 mb-2 fade-enter w-full cursor-pointer hover:bg-white/10 border-l-4 border-blue-500";t.innerHTML=`<img src="${m.photo||'https://via.placeholder.com/30'}" class="w-8 h-8 rounded-full"><div class="overflow-hidden"><p class="text-xs font-bold truncate">${m.sender}</p><p class="text-xs opacity-50 truncate">${m.text}</p></div>`;t.onclick=()=>document.getElementById('btn-toggle-chat').click();document.getElementById('toast-area').appendChild(t);setTimeout(()=>t.remove(),4000);}
