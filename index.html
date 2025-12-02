@@ -65,6 +65,8 @@
             border: 1px solid rgba(255, 255, 255, 0.05);
             transition: all 0.2s ease;
             cursor: pointer;
+            touch-action: manipulation;
+            /* iOS Fix */
         }
 
         .glass-btn:hover {
@@ -126,8 +128,8 @@
             display: flex;
             flex-direction: column;
             justify-content: space-between;
-            padding: env(safe-area-inset-top) 16px env(safe-area-inset-bottom) 16px;
-            /* Safe Area */
+            /* iOS Fix: Force padding at top to avoid status bar/notch issues */
+            padding: max(env(safe-area-inset-top), 20px) 16px env(safe-area-inset-bottom) 16px;
             transition: opacity 0.3s ease;
         }
 
@@ -138,6 +140,11 @@
 
         .ui-invisible * {
             pointer-events: none !important;
+        }
+
+        #top-bar {
+            z-index: 100 !important;
+            /* iOS Fix: Force top bar above everything */
         }
 
         #top-bar,
@@ -405,7 +412,7 @@
 
             <div id="top-bar" class="flex justify-between items-start md:items-center transition-ui opacity-100 gap-2">
                 <div class="glass-panel pl-2 pr-4 py-2 rounded-full flex gap-3 items-center cursor-pointer hover:bg-white/5 transition shrink-0"
-                    id="copy-room-id">
+                    id="copy-room-id" onclick="void(0)"> <!-- iOS Fix: onclick hack -->
                     <div
                         class="w-8 h-8 bg-green-500/20 rounded-full flex items-center justify-center text-green-400 shrink-0">
                         <i class="fa-solid fa-link text-xs"></i>
