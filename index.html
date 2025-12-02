@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    
     <meta http-equiv="Content-Security-Policy" content="default-src * 'self' blob: data: gap:; style-src * 'self' 'unsafe-inline' blob: data: gap:; script-src * 'self' 'unsafe-eval' 'unsafe-inline' blob: data: gap:; object-src * 'self' blob: data: gap:; img-src * 'self' 'unsafe-inline' blob: data: gap:; connect-src * 'self' 'unsafe-inline' blob: data: gap:; media-src * 'self' blob: data: gap:;">
     
     <title>Co-Watch | Ultimate Controls</title>
@@ -13,7 +14,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
-        /* === CORE === */
+        /* === БАЗОВЫЕ СТИЛИ === */
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         html, body { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
@@ -21,7 +22,7 @@
             font-family: 'Inter Tight', sans-serif; color: #fff;
         }
 
-        /* === FX === */
+        /* === ЭФФЕКТЫ (Шум и Виньетка) === */
         .noise-bg {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             pointer-events: none; z-index: 1; opacity: 0.04;
@@ -33,7 +34,7 @@
             background: radial-gradient(circle, rgba(0,0,0,0) 50%, rgba(0,0,0,0.8) 100%);
         }
 
-        /* === UI COMPONENTS === */
+        /* === СТЕКЛЯННЫЙ ИНТЕРФЕЙС === */
         .glass-panel {
             background: rgba(18, 18, 18, 0.75);
             backdrop-filter: blur(24px) saturate(140%);
@@ -42,6 +43,7 @@
             box-shadow: 0 20px 50px rgba(0,0,0,0.5);
         }
 
+        /* Кнопки */
         .glass-btn {
             background: rgba(255,255,255,0.03);
             border: 1px solid rgba(255,255,255,0.05);
@@ -51,11 +53,12 @@
         .glass-btn:hover { background: rgba(255,255,255,0.15); transform: translateY(-2px); border-color: rgba(255,255,255,0.3); }
         .glass-btn:active { transform: scale(0.95); }
 
+        /* Активные состояния кнопок */
         .btn-active { background: #fff !important; color: #000 !important; box-shadow: 0 0 20px rgba(255,255,255,0.3); }
         .voice-active { background: #22c55e !important; color: #000 !important; border-color: #22c55e !important; box-shadow: 0 0 30px rgba(34, 197, 94, 0.5); }
         .cc-active { color: #3b82f6; text-shadow: 0 0 10px rgba(59, 130, 246, 0.5); }
 
-        /* === CUSTOM SLIDER === */
+        /* === КАСТОМНЫЙ ПОЛЗУНОК (TIMELINE) === */
         .seek-slider {
             -webkit-appearance: none; width: 100%; height: 4px; background: rgba(255,255,255,0.2);
             border-radius: 2px; outline: none; cursor: pointer; transition: height 0.2s;
@@ -68,23 +71,24 @@
         }
         .seek-slider::-webkit-slider-thumb:hover { transform: scale(1.3); }
 
-        /* === ANIMATIONS === */
+        /* === АНИМАЦИИ === */
         .fade-enter { animation: fadeEnter 0.5s ease forwards; }
         @keyframes fadeEnter { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
         
         .talking-ring { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); animation: pulse-green 1.5s infinite; }
         @keyframes pulse-green { 0% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); } 70% { box-shadow: 0 0 0 8px rgba(74, 222, 128, 0); } 100% { box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); } }
 
-        /* === UTILS === */
+        /* === УТИЛИТЫ === */
         .force-hidden { display: none !important; }
         .ui-hidden { opacity: 0; pointer-events: none; transform: translateY(10px); }
         .ui-visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
         .transition-ui { transition: all 0.4s ease; }
         
+        /* Слои */
         #video-layer { position: fixed; inset: 0; z-index: 0; display: flex; align-items: center; justify-content: center; background: #000; }
         #ui-layer { position: fixed; inset: 0; z-index: 50; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 24px; }
         
-        /* Clickable area for video play/pause */
+        /* Оверлей для клика по видео */
         #click-overlay { position: absolute; inset: 0; z-index: 10; cursor: pointer; }
     </style>
 </head>
@@ -92,6 +96,7 @@
 
     <div class="noise-bg"></div>
     <div class="vignette"></div>
+    
     <div id="audio-streams" class="hidden"></div>
 
     <div id="screen-auth" class="fixed inset-0 z-[100] flex items-center justify-center bg-[#050505] transition-opacity duration-500">
@@ -171,7 +176,7 @@
                     
                     <span id="time-duration" class="text-xs font-mono text-white/70 w-10">00:00</span>
                     
-                    <div class="flex items-center gap-2 group relative">
+                    <div class="flex items-center gap-2 group relative ml-2">
                         <i class="fa-solid fa-volume-high text-xs text-white/50"></i>
                         <input type="range" id="volume-bar" class="w-20 h-1 bg-white/20 rounded-lg appearance-none cursor-pointer" min="0" max="100" value="100">
                     </div>
@@ -197,7 +202,7 @@
                         CC
                     </button>
 
-                    <button id="btn-native-controls" class="glass-btn w-14 h-14 rounded-2xl flex items-center justify-center text-xl text-white/50 hover:text-white" onclick="toggleNativeControls()" title="Сменить язык/качество (Показать плеер YouTube)">
+                    <button id="btn-native-controls" class="glass-btn w-14 h-14 rounded-2xl flex items-center justify-center text-xl text-white/50 hover:text-white" onclick="toggleNativeControls()" title="Настройки плеера">
                         <i class="fa-solid fa-gear"></i>
                     </button>
                 </div>
@@ -221,19 +226,19 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, query, orderBy, limit, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // FIREBASE CONFIG
+        // FIREBASE CONFIG (Замените на свои ключи если они отличаются)
         const firebaseConfig = { apiKey: "AIzaSyBrm8hgy9LGFFL_7CdlnR6jxyolqy94AQA", authDomain: "upbeat-orb-479013-p8.firebaseapp.com", projectId: "upbeat-orb-479013-p8", storageBucket: "upbeat-orb-479013-p8.firebasestorage.app", messagingSenderId: "547138498300", appId: "1:547138498300:web:a03c11d6aafd5f027cf179" };
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
         const APP_ID = 'cw-v6-ultimate';
 
-        // STATE
+        // Глобальные переменные
         let currentUser=null, currentRoomId=null, player=null, unsubscribes=[], uiTimeout, activeCalls={};
         let myPeer=null, myStream=null, isVoiceOn=false;
-        let isDragging = false; // Slider dragging state
+        let isDragging = false; // Состояние перетаскивания ползунка
 
-        // AUTH
+        // === АВТОРИЗАЦИЯ ===
         onAuthStateChanged(auth, u => {
             if(u) { currentUser=u; document.getElementById('lobby-username').textContent=u.displayName; document.getElementById('lobby-avatar').src=u.photoURL; showScreen('screen-lobby'); }
             else showScreen('screen-auth');
@@ -243,15 +248,23 @@
             signInAnonymously(auth).then(c=>{ updateProfile(c.user, {displayName:"Guest "+Math.floor(Math.random()*1000), photoURL:`https://api.dicebear.com/7.x/notionists/svg?seed=${Math.random()}&backgroundColor=000`}); });
         };
 
-        // ROOM
+        // === УПРАВЛЕНИЕ КОМНАТАМИ ===
         document.getElementById('btn-create-room').onclick = () => joinRoom(Math.random().toString(36).substring(2,7).toUpperCase());
         document.getElementById('form-join-room').onsubmit = (e) => { e.preventDefault(); const id=document.getElementById('input-room-id').value.trim().toUpperCase(); if(id) joinRoom(id); };
 
         async function joinRoom(id) {
-            currentRoomId=id; document.getElementById('display-room-id').textContent=id;
-            initVoiceEngine(currentUser.uid);
-            await setDoc(doc(db, 'artifacts', APP_ID, 'rooms', id, 'presence', currentUser.uid), { uid:currentUser.uid, displayName:currentUser.displayName, photoURL:currentUser.photoURL, state:'online', voiceActive:false });
+            currentRoomId=id; 
+            document.getElementById('display-room-id').textContent=id;
             
+            // Инициализация голоса
+            initVoiceEngine(currentUser.uid);
+            
+            // Запись присутствия
+            await setDoc(doc(db, 'artifacts', APP_ID, 'rooms', id, 'presence', currentUser.uid), { 
+                uid:currentUser.uid, displayName:currentUser.displayName, photoURL:currentUser.photoURL, state:'online', voiceActive:false 
+            });
+            
+            // Подписки на данные
             unsubscribes.push(onSnapshot(doc(db,'artifacts',APP_ID,'rooms',id), s=>{ if(s.exists()) syncVideo(s.data()); }));
             unsubscribes.push(onSnapshot(collection(db,'artifacts',APP_ID,'rooms',id,'presence'), handlePresence));
             unsubscribes.push(onSnapshot(query(collection(db,'artifacts',APP_ID,'rooms',id,'chat'), orderBy('ts','asc'), limit(50)), s=>{ s.docChanges().forEach(c=>{ if(c.type==='added') renderMsg(c.doc.data()); }); }));
@@ -259,24 +272,28 @@
             showScreen('screen-app');
         }
 
-        // --- PLAYER CONTROLS LOGIC ---
+        // === ЛОГИКА ПЛЕЕРА И СИНХРОНИЗАЦИИ ===
         
-        // 1. Play/Pause
+        // 1. Play/Pause кнопка
         window.togglePlay = () => {
             if(!player || !currentRoomId) return;
             const state = player.getPlayerState();
             const newStatus = (state === 1) ? 'paused' : 'playing'; // 1=Playing
+            
+            // Отправляем в базу
             setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), {
                 status: newStatus, timestamp: player.getCurrentTime(), updatedAt: Date.now(), videoId: player.getVideoData().video_id
             }, { merge: true });
         };
 
-        // 2. Timeline (Seek)
+        // 2. Timeline (Перемотка)
         const seekBar = document.getElementById('seek-bar');
         
-        seekBar.oninput = () => { isDragging = true; }; // Start dragging (stop sync)
+        // Когда начали тянуть — перестаем обновлять ползунок автоматически
+        seekBar.oninput = () => { isDragging = true; };
         
-        seekBar.onchange = () => { // Drop dragging (send sync)
+        // Когда отпустили — отправляем новое время всем
+        seekBar.onchange = () => { 
             isDragging = false;
             const newTime = parseFloat(seekBar.value);
             player.seekTo(newTime, true);
@@ -285,15 +302,17 @@
             }, { merge: true });
         };
 
-        // Update Timeline Loop
+        // Цикл обновления ползунка (каждые 0.5с)
         setInterval(() => {
             if(player && player.getCurrentTime && !isDragging) {
                 const cur = player.getCurrentTime();
                 const dur = player.getDuration();
-                seekBar.value = cur;
-                seekBar.max = dur;
-                document.getElementById('time-current').textContent = formatTime(cur);
-                document.getElementById('time-duration').textContent = formatTime(dur);
+                if(dur) {
+                    seekBar.value = cur;
+                    seekBar.max = dur;
+                    document.getElementById('time-current').textContent = formatTime(cur);
+                    document.getElementById('time-duration').textContent = formatTime(dur);
+                }
             }
         }, 500);
 
@@ -304,14 +323,14 @@
             return `${m}:${sec<10?'0'+sec:sec}`;
         }
 
-        // 3. Captions
+        // 3. Субтитры
         let ccEnabled = false;
         window.toggleCaptions = () => {
             if(!player) return;
             ccEnabled = !ccEnabled;
             if(ccEnabled) {
-                player.loadModule("captions"); // Force load
-                player.setOption("captions", "track", {"languageCode": "ru"}); // Try Ru
+                player.loadModule("captions");
+                player.setOption("captions", "track", {"languageCode": "ru"});
                 document.getElementById('btn-toggle-cc').classList.add('cc-active');
             } else {
                 player.unloadModule("captions");
@@ -319,40 +338,37 @@
             }
         };
 
-        // 4. Native Controls (Audio Language Hack)
+        // 4. Смена языка / Нативные контролы
         window.toggleNativeControls = () => {
-            // Чтобы сменить язык, нам нужно показать нативные контролы YouTube, так как API не дает доступа к AudioTracks
             const overlay = document.getElementById('click-overlay');
-            const vLayer = document.getElementById('video-layer');
+            const btn = document.getElementById('btn-native-controls');
             
             if(overlay.style.pointerEvents === 'none') {
-                 // Возвращаем как было
+                // Скрываем нативные (режим просмотра)
                 overlay.style.pointerEvents = 'auto';
-                document.getElementById('btn-native-controls').classList.remove('btn-active');
-                showToast({sender:'System', text:'Native controls hidden', photo:''});
+                btn.classList.remove('btn-active');
             } else {
-                // Показываем нативные
-                overlay.style.pointerEvents = 'none'; // Пропускаем клики сквозь оверлей к YouTube
-                document.getElementById('btn-native-controls').classList.add('btn-active');
-                showToast({sender:'System', text:'Используйте шестеренку в плеере для смены языка', photo:'https://via.placeholder.com/50'});
+                // Показываем нативные (режим настройки)
+                overlay.style.pointerEvents = 'none'; 
+                btn.classList.add('btn-active');
+                showToast({sender:'System', text:'Теперь вы можете нажать на шестеренку в плеере', photo:'https://via.placeholder.com/30'});
             }
         };
         
-        // 5. Volume
+        // 5. Громкость
         document.getElementById('volume-bar').oninput = (e) => {
             if(player) player.setVolume(e.target.value);
         };
 
-        // --- YOUTUBE API ---
+        // YOUTUBE API INIT
         if(!window.YT) { const t=document.createElement('script'); t.src="https://www.youtube.com/iframe_api"; document.body.appendChild(t); }
         window.onYouTubeIframeAPIReady = () => {
             player = new YT.Player('player', {
                 height:'100%', width:'100%',
                 playerVars: { 
-                    'controls':0, // Custom controls only
-                    'rel':0, 'modestbranding':1, 'disablekb':1, 'origin':window.location.origin, 'host':'https://www.youtube.com',
-                    'cc_load_policy': 1, // Enable captions logic
-                    'fs': 0 // Disable native fullscreen button logic
+                    'controls':0, 'rel':0, 'modestbranding':1, 'disablekb':1, 
+                    'origin':window.location.origin, 'host':'https://www.youtube.com',
+                    'cc_load_policy': 1, 'fs': 0 
                 },
                 events: { 'onStateChange': onPlayerStateChange }
             });
@@ -360,36 +376,41 @@
 
         let isSyncing = false;
         function onPlayerStateChange(e) {
-            // Local UI updates
+            // Обновляем иконку Play/Pause
             const btnIcon = document.getElementById('icon-play');
             if(e.data === 1) btnIcon.className = "fa-solid fa-pause";
             else btnIcon.className = "fa-solid fa-play";
 
             if(isSyncing || !currentRoomId) return;
-            if(e.data===1 || e.data===2) { // 1=Play, 2=Pause
+            
+            // Если изменилось состояние (Play/Pause) - синхронизируем
+            if(e.data===1 || e.data===2) { 
                 setDoc(doc(db,'artifacts',APP_ID,'rooms',currentRoomId), {
-                    status: e.data===1?'playing':'paused', timestamp: player.getCurrentTime(), updatedAt: Date.now(), videoId: player.getVideoData().video_id
+                    status: e.data===1?'playing':'paused', 
+                    timestamp: player.getCurrentTime(), 
+                    updatedAt: Date.now(), 
+                    videoId: player.getVideoData().video_id
                 }, {merge:true});
             }
         }
 
         function syncVideo(d) {
             if(!player || !d.videoId) return;
-            // Video ID
+            // Грузим видео если другое
             try { if(player.getVideoData().video_id !== d.videoId) player.loadVideoById(d.videoId); } catch(e) { player.loadVideoById(d.videoId); }
             
-            // Time Sync
+            // Расчет времени с учетом задержки сети
             let t = d.timestamp;
             if(d.status === 'playing') t += (Date.now() - d.updatedAt)/1000;
             
-            // Only sync if diff > 2s to avoid jitter
+            // Синхронизация только если разница > 2 сек (чтобы не дергалось)
             if(Math.abs(player.getCurrentTime() - t) > 2) {
                 isSyncing = true; 
                 player.seekTo(t, true); 
                 d.status==='playing' ? player.playVideo() : player.pauseVideo();
                 setTimeout(()=>isSyncing=false, 1000);
             } else {
-                // Just Sync State
+                // Мягкая синхронизация состояния
                 if(d.status==='playing' && player.getPlayerState()!==1) player.playVideo();
                 if(d.status==='paused' && player.getPlayerState()!==2) player.pauseVideo();
             }
@@ -401,26 +422,30 @@
             document.getElementById('input-video-url').value='';
         };
 
-        // --- VOICE & PRESENCE ---
+        // === ГОЛОСОВОЙ ЧАТ (PeerJS) ===
         function initVoiceEngine(uid) {
             myPeer = new Peer(uid);
             myPeer.on('call', c => { c.answer(myStream); c.on('stream', s => playAudio(s, c.peer)); });
         }
+        
         function handlePresence(snap) {
             const l = document.getElementById('users-list-container'); l.innerHTML=''; 
-            let activeRoomUsers=[];
             snap.forEach(d=>{ 
-                const u=d.data(); activeRoomUsers.push(u.uid);
+                const u=d.data();
                 const isMe=u.uid===currentUser.uid;
                 l.innerHTML+=`<div class="flex items-center gap-3 p-3 rounded-2xl bg-white/5 border border-white/5 mb-2"><img src="${u.photoURL}" class="w-10 h-10 rounded-full object-cover ${u.voiceActive?'talking-ring':''}"><div class="flex-1 overflow-hidden"><p class="text-sm font-bold text-white truncate">${u.displayName} ${isMe?'(Вы)':''}</p><p class="text-xs text-white/50">${u.voiceActive?'Говорит':'Слушает'}</p></div></div>`;
+                
+                // Если мы говорим и появился кто-то новый - звоним ему
                 if(isVoiceOn && !isMe && !activeCalls[u.uid]) connectPeer(u.uid);
             });
         }
+        
         function connectPeer(id) {
             if(!myStream) return;
             const c=myPeer.call(id,myStream); activeCalls[id]=c;
             c.on('stream', s=>playAudio(s,id)); c.on('close',()=>delete activeCalls[id]);
         }
+        
         function playAudio(s,id) {
             if(document.getElementById(`a-${id}`)) return;
             const a=document.createElement('audio'); a.id=`a-${id}`; a.srcObject=s; a.autoplay=true; document.getElementById('audio-streams').appendChild(a);
@@ -442,22 +467,34 @@
             }
         };
 
-        // --- UTILS ---
+        // === ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ ===
         function showScreen(id) { ['screen-auth','screen-lobby','screen-app'].forEach(s=>document.getElementById(s).classList.add('force-hidden')); document.getElementById(id).classList.remove('force-hidden'); }
+        
         let pTimer={}; 
-        window.closePanels=(ex)=>{ ['panel-chat','panel-users'].forEach(id=>{ if(id===ex)return; const e=document.getElementById(id); e.classList.remove('translate-x-0'); if(id.includes('chat'))e.classList.add('translate-x-10','opacity-0'); else e.classList.add('-translate-x-10','opacity-0'); if(pTimer[id])clearTimeout(pTimer[id]); pTimer[id]=setTimeout(()=>e.classList.add('force-hidden'),300); }); };
-        const togglePanel=(id,tr)=>{ const p=document.getElementById(id); const h=p.classList.contains('force-hidden'); window.closePanels(id); if(h){ if(pTimer[id])clearTimeout(pTimer[id]); p.classList.remove('force-hidden'); setTimeout(()=>{p.classList.remove(tr,'opacity-0');p.classList.add('translate-x-0');},10); if(id.includes('chat')){document.getElementById('chat-badge').classList.add('force-hidden');setTimeout(()=>document.getElementById('input-message').focus(),100);} } else window.closePanels(); };
+        window.closePanels=(ex)=>{ 
+            ['panel-chat','panel-users'].forEach(id=>{ 
+                if(id===ex)return; const e=document.getElementById(id); e.classList.remove('translate-x-0'); 
+                if(id.includes('chat'))e.classList.add('translate-x-10','opacity-0'); else e.classList.add('-translate-x-10','opacity-0'); 
+                if(pTimer[id])clearTimeout(pTimer[id]); pTimer[id]=setTimeout(()=>e.classList.add('force-hidden'),300); 
+            }); 
+        };
+        const togglePanel=(id,tr)=>{ 
+            const p=document.getElementById(id); const h=p.classList.contains('force-hidden'); window.closePanels(id); 
+            if(h){ if(pTimer[id])clearTimeout(pTimer[id]); p.classList.remove('force-hidden'); setTimeout(()=>{p.classList.remove(tr,'opacity-0');p.classList.add('translate-x-0');},10); if(id.includes('chat')){document.getElementById('chat-badge').classList.add('force-hidden');setTimeout(()=>document.getElementById('input-message').focus(),100);} } 
+            else window.closePanels(); 
+        };
         
         document.getElementById('btn-toggle-chat').onclick=()=>togglePanel('panel-chat','translate-x-10');
         document.getElementById('btn-toggle-users').onclick=()=>togglePanel('panel-users','-translate-x-10');
         document.getElementById('btn-leave-room').onclick=()=>window.location.reload();
         document.getElementById('copy-room-id').onclick=()=>{navigator.clipboard.writeText(currentRoomId);const el=document.getElementById('display-room-id');const o=el.textContent;el.textContent="COPIED";setTimeout(()=>el.textContent=o,1000);};
 
-        // CHAT & AUTO HIDE
+        // ЧАТ
         document.getElementById('form-chat').onsubmit=async(e)=>{e.preventDefault();const i=document.getElementById('input-message');if(i.value.trim())await addDoc(collection(db,'artifacts',APP_ID,'rooms',currentRoomId,'chat'),{text:i.value,sender:currentUser.displayName,photo:currentUser.photoURL,uid:currentUser.uid,ts:serverTimestamp()});i.value='';};
         function renderMsg(m){const me=m.uid===currentUser.uid;const d=document.createElement('div');d.className=`flex gap-3 mb-4 ${me?'flex-row-reverse':''} fade-enter`;d.innerHTML=`<img src="${m.photo}" class="w-8 h-8 rounded-full border border-white/10"><div class="${me?'bg-blue-600':'bg-white/10'} p-3 rounded-2xl max-w-[85%] text-sm border border-white/5"><p class="font-bold text-[10px] opacity-50 uppercase">${m.sender}</p>${m.text}</div>`;document.getElementById('chat-messages').appendChild(d);document.getElementById('chat-messages').scrollTop=9e9;if(document.getElementById('panel-chat').classList.contains('force-hidden')&&!me){document.getElementById('chat-badge').classList.remove('force-hidden');showToast(m);}}
         function showToast(m){const t=document.createElement('div');t.className="glass-panel p-3 rounded-2xl flex items-center gap-3 mb-2 fade-enter w-full cursor-pointer hover:bg-white/10 border-l-4 border-blue-500";t.innerHTML=`<img src="${m.photo||'https://via.placeholder.com/30'}" class="w-8 h-8 rounded-full"><div class="overflow-hidden"><p class="text-xs font-bold truncate">${m.sender}</p><p class="text-xs opacity-50 truncate">${m.text}</p></div>`;t.onclick=()=>document.getElementById('btn-toggle-chat').click();document.getElementById('toast-area').appendChild(t);setTimeout(()=>t.remove(),4000);}
         
+        // AUTO HIDE UI
         document.addEventListener('mousemove',()=>{
             const tb=document.getElementById('top-bar'), bb=document.getElementById('bottom-bar');
             tb.classList.remove('ui-hidden'); tb.classList.add('ui-visible');
@@ -465,7 +502,10 @@
             clearTimeout(uiTimeout);
             uiTimeout=setTimeout(()=>{
                 const op=!document.getElementById('panel-chat').classList.contains('force-hidden')||!document.getElementById('panel-users').classList.contains('force-hidden');
-                if(!op && document.activeElement.tagName!=='INPUT'){ tb.classList.remove('ui-visible'); tb.classList.add('ui-hidden'); bb.classList.remove('ui-visible'); bb.classList.add('ui-hidden'); }
+                if(!op && document.activeElement.tagName!=='INPUT' && !isDragging && document.getElementById('click-overlay').style.pointerEvents!=='none'){ 
+                    tb.classList.remove('ui-visible'); tb.classList.add('ui-hidden'); 
+                    bb.classList.remove('ui-visible'); bb.classList.add('ui-hidden'); 
+                }
             },3000);
         });
     </script>
