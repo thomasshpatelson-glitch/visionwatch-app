@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'self' blob: data: gap:; style-src * 'self' 'unsafe-inline' blob: data: gap:; script-src * 'self' 'unsafe-eval' 'unsafe-inline' blob: data: gap:; object-src * 'self' blob: data: gap:; img-src * 'self' 'unsafe-inline' blob: data: gap:; connect-src * 'self' 'unsafe-inline' blob: data: gap:; media-src * 'self' blob: data: gap:;">
     
-    <title>Co-Watch | Cinematic</title>
+    <title>Co-Watch | Cinematic Stable</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
@@ -39,7 +39,7 @@
 
         /* === GLASS UI === */
         .glass-panel {
-            background: rgba(18, 18, 18, 0.75);
+            background: rgba(18, 18, 18, 0.85);
             backdrop-filter: blur(24px) saturate(140%);
             -webkit-backdrop-filter: blur(24px) saturate(140%);
             border: 1px solid rgba(255, 255, 255, 0.08);
@@ -50,6 +50,7 @@
             background: rgba(255,255,255,0.03);
             border: 1px solid rgba(255,255,255,0.05);
             transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+            cursor: pointer;
         }
         .glass-btn:hover { background: rgba(255,255,255,0.15); transform: translateY(-2px); border-color: rgba(255,255,255,0.2); }
         .glass-btn:active { transform: scale(0.95); }
@@ -249,13 +250,13 @@
         let player = null;
         let unsubscribes = [];
         let uiTimeout;
-        let activeRoomUsers = []; // Список UID всех в комнате
+        let activeRoomUsers = []; 
 
         // VOICE STATE
         let myPeer = null;
         let myStream = null;
         let isVoiceOn = false;
-        const activeCalls = {}; // ID -> CallObject
+        const activeCalls = {};
 
         // --- AUTH ---
         onAuthStateChanged(auth, user => {
@@ -292,7 +293,7 @@
             currentRoomId = id;
             document.getElementById('display-room-id').textContent = id;
             
-            // 1. Init PeerJS (Voice Engine)
+            // 1. Init PeerJS
             initVoiceEngine(currentUser.uid);
 
             // 2. Register Presence
@@ -310,34 +311,27 @@
             showScreen('screen-app');
         }
 
-        // --- REAL VOICE CHAT LOGIC ---
+        // --- VOICE ENGINE ---
         function initVoiceEngine(uid) {
             myPeer = new Peer(uid);
-            
             myPeer.on('open', id => console.log('My Voice ID:', id));
             
-            // Входящий звонок (когда кто-то другой говорит)
+            // Входящий звонок
             myPeer.on('call', call => {
-                // Отвечаем. Даже если мы молчим, мы должны ответить, чтобы слышать.
-                call.answer(myStream); // Передаем наш поток (м.б. null, если микро выкл)
-                
-                call.on('stream', userStream => {
-                    playAudioStream(userStream, call.peer);
-                });
+                call.answer(myStream); // Отвечаем
+                call.on('stream', userStream => playAudioStream(userStream, call.peer));
             });
         }
 
-        // Обработка списка участников и авто-звонок
         function handlePresenceUpdate(snap) {
             const list = document.getElementById('users-list-container');
             list.innerHTML = '';
-            activeRoomUsers = []; // Обновляем кэш
+            activeRoomUsers = []; 
             
             snap.forEach(d => {
                 const u = d.data();
                 activeRoomUsers.push(u.uid);
                 
-                // Рендер UI
                 const isMe = u.uid === currentUser.uid;
                 const ringClass = u.voiceActive ? 'talking-ring' : '';
                 const status = u.voiceActive ? '<span class="text-green-400 font-bold">Говорит</span>' : '<span class="text-white/30">Слушает</span>';
@@ -355,8 +349,7 @@
                     </div>
                 `;
 
-                // ЛОГИКА АВТО-ЗВОНКА:
-                // Если я говорю (isVoiceOn) И появился новый пользователь (которому я еще не звоню), звоним ему.
+                // Авто-звонок если я говорю
                 if (isVoiceOn && !isMe && !activeCalls[u.uid]) {
                     connectToPeer(u.uid);
                 }
@@ -365,20 +358,14 @@
 
         function connectToPeer(targetUid) {
             if(!myStream) return;
-            console.log("Calling:", targetUid);
             const call = myPeer.call(targetUid, myStream);
             activeCalls[targetUid] = call;
-            
-            // Если они ответят со своим звуком
-            call.on('stream', remoteStream => {
-                playAudioStream(remoteStream, targetUid);
-            });
-            
+            call.on('stream', remoteStream => playAudioStream(remoteStream, targetUid));
             call.on('close', () => { delete activeCalls[targetUid]; removeAudio(targetUid); });
-            call.on('error', () => { delete activeCalls[targetUid]; });
+            call.on('error', () => delete activeCalls[targetUid]);
         }
 
-        // Вкл/Выкл Микрофона
+        // Voice Toggle
         document.getElementById('btn-toggle-voice').onclick = async () => {
             const btn = document.getElementById('btn-toggle-voice');
             
@@ -388,14 +375,10 @@
                 if(myStream) myStream.getTracks().forEach(t => t.stop());
                 myStream = null;
                 
-                // Визуал
                 btn.classList.remove('voice-active');
                 btn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i>';
                 
-                // Обновляем статус в БД
                 updateDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', currentUser.uid), { voiceActive: false });
-                
-                // Закрываем исходящие, но оставляем Peer открытым для входящих
                 Object.values(activeCalls).forEach(call => call.close());
                 
             } else {
@@ -404,33 +387,29 @@
                     myStream = await navigator.mediaDevices.getUserMedia({ audio: true });
                     isVoiceOn = true;
                     
-                    // Визуал
                     btn.classList.add('voice-active');
                     btn.innerHTML = '<i class="fa-solid fa-microphone animate-pulse"></i>';
                     
-                    // Обновляем статус
                     updateDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', currentUser.uid), { voiceActive: true });
                     
-                    // Звоним ВСЕМ, кто в комнате
                     activeRoomUsers.forEach(uid => {
                         if (uid !== currentUser.uid) connectToPeer(uid);
                     });
 
                 } catch (e) {
-                    alert("Нужен доступ к микрофону!");
+                    alert("Разрешите доступ к микрофону!");
                 }
             }
         };
 
         function playAudioStream(stream, id) {
             const container = document.getElementById('audio-streams');
-            if (document.getElementById(`audio-${id}`)) return; // Уже играет
+            if (document.getElementById(`audio-${id}`)) return;
             
             const audio = document.createElement('audio');
             audio.id = `audio-${id}`;
             audio.srcObject = stream;
             audio.autoplay = true;
-            // audio.controls = true; // Для дебага можно раскомментировать
             container.appendChild(audio);
         }
         
@@ -439,14 +418,14 @@
             if(el) el.remove();
         }
 
-        // --- YOUTUBE API (FIXED ORIGIN) ---
+        // --- YOUTUBE API (Vercel Fix) ---
         if(!window.YT) { const t = document.createElement('script'); t.src = "https://www.youtube.com/iframe_api"; document.body.appendChild(t); }
         window.onYouTubeIframeAPIReady = () => {
             player = new YT.Player('player', {
                 height: '100%', width: '100%',
                 playerVars: { 
                     'controls': 0, 'rel': 0, 'modestbranding': 1, 'disablekb': 1, 
-                    'origin': window.location.origin, // ВАЖНО для Vercel
+                    'origin': window.location.origin, 
                     'host': 'https://www.youtube.com'
                 },
                 events: { 'onStateChange': onPlayerStateChange }
@@ -518,63 +497,83 @@
             setTimeout(() => t.remove(), 4000);
         }
 
-        // --- UI UTILS (Fixed Modals closing bug) ---
+        // --- UI UTILS (Panel Fix) ---
         function showScreen(id) {
             ['screen-auth', 'screen-lobby', 'screen-app'].forEach(sid => document.getElementById(sid).classList.add('force-hidden'));
             document.getElementById(id).classList.remove('force-hidden');
         }
 
-        window.closePanels = () => {
-            ['panel-chat','panel-users'].forEach(id => {
+        // Таймеры для корректного закрытия анимаций
+        let panelTimeouts = {}; 
+
+        window.closePanels = (exceptId = null) => {
+            ['panel-chat', 'panel-users'].forEach(id => {
+                if(id === exceptId) return; // Не закрываем то, что открываем
+                
                 const el = document.getElementById(id);
-                el.classList.remove('translate-x-0'); 
+                // Анимация скрытия
+                el.classList.remove('translate-x-0');
                 if(id.includes('chat')) el.classList.add('translate-x-10', 'opacity-0');
                 else el.classList.add('-translate-x-10', 'opacity-0');
-                setTimeout(() => el.classList.add('force-hidden'), 300);
+                
+                // Таймер на display: none
+                if(panelTimeouts[id]) clearTimeout(panelTimeouts[id]);
+                panelTimeouts[id] = setTimeout(() => el.classList.add('force-hidden'), 300);
             });
         };
-        
+
         const togglePanel = (id, transformClass) => {
             const p = document.getElementById(id);
             const isHidden = p.classList.contains('force-hidden');
-            closePanels();
+            
+            // Закрываем другие, но не этот
+            window.closePanels(id);
+
             if(isHidden) {
+                // OPEN
+                if(panelTimeouts[id]) clearTimeout(panelTimeouts[id]);
                 p.classList.remove('force-hidden');
-                void p.offsetWidth; // Force Reflow
-                p.classList.remove(transformClass, 'opacity-0');
+                
+                // Небольшая задержка для анимации
+                setTimeout(() => {
+                    p.classList.remove(transformClass, 'opacity-0');
+                    p.classList.add('translate-x-0');
+                }, 10);
+
                 if(id.includes('chat')) {
                     document.getElementById('chat-badge').classList.add('force-hidden');
                     setTimeout(() => document.getElementById('input-message').focus(), 100);
                 }
+            } else {
+                // CLOSE (если нажали повторно)
+                window.closePanels(); 
             }
         };
 
         document.getElementById('btn-toggle-chat').onclick = () => togglePanel('panel-chat', 'translate-x-10');
         document.getElementById('btn-toggle-users').onclick = () => togglePanel('panel-users', '-translate-x-10');
         document.getElementById('btn-leave-room').onclick = () => window.location.reload();
-        
         document.getElementById('copy-room-id').onclick = () => { navigator.clipboard.writeText(currentRoomId); const el = document.getElementById('display-room-id'); const old=el.textContent; el.textContent="COPIED"; setTimeout(()=>el.textContent=old,1000); };
 
-        // --- AUTO HIDE UI (FIXED) ---
+        // --- AUTO HIDE UI (Correct Logic) ---
         document.addEventListener('mousemove', () => {
             const top = document.getElementById('top-bar');
             const bot = document.getElementById('bottom-bar');
-            top.classList.remove('ui-hidden');
-            top.classList.add('ui-visible');
-            bot.classList.remove('ui-hidden');
-            bot.classList.add('ui-visible');
+            
+            top.classList.remove('ui-hidden'); top.classList.add('ui-visible');
+            bot.classList.remove('ui-hidden'); bot.classList.add('ui-visible');
             
             clearTimeout(uiTimeout);
             uiTimeout = setTimeout(() => {
-                // ПРОВЕРКА: Не скрывать, если открыта панель или фокус в инпуте
-                const isPanelOpen = !document.getElementById('panel-chat').classList.contains('force-hidden') || !document.getElementById('panel-users').classList.contains('force-hidden');
-                const isInputFocused = document.activeElement.tagName === 'INPUT';
+                // Проверяем, открыты ли панели
+                const chatHidden = document.getElementById('panel-chat').classList.contains('force-hidden');
+                const usersHidden = document.getElementById('panel-users').classList.contains('force-hidden');
+                const isInput = document.activeElement.tagName === 'INPUT';
                 
-                if (!isPanelOpen && !isInputFocused) {
-                    top.classList.remove('ui-visible');
-                    top.classList.add('ui-hidden');
-                    bot.classList.remove('ui-visible');
-                    bot.classList.add('ui-hidden');
+                // Скрываем только если все закрыто и мы не пишем
+                if (chatHidden && usersHidden && !isInput) {
+                    top.classList.remove('ui-visible'); top.classList.add('ui-hidden');
+                    bot.classList.remove('ui-visible'); bot.classList.add('ui-hidden');
                 }
             }, 3000);
         });
