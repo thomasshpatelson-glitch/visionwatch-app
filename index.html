@@ -3,10 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
     
-    <title>Co-Watch | VK Logic Ported</title>
+    <title>Co-Watch | Vercel Fix</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
@@ -28,25 +27,27 @@
         .btn-active { background: #fff !important; color: #000 !important; }
         .voice-active { background: #22c55e !important; color: #000 !important; }
         
-        /* Video Layers */
+        /* Video Layers - КРИТИЧЕСКИЕ ИСПРАВЛЕНИЯ */
         #video-layer { position: fixed; inset: 0; z-index: 5; background: #000; display: flex; justify-content: center; align-items: center; }
+        
+        /* Важно: заставляем все iframe растягиваться на 100% */
         #player-yt, #player-vk-container, #player-stream { width: 100%; height: 100%; position: absolute; inset: 0; border: none; }
-        #player-vk-container iframe { width: 100%; height: 100%; border: none; }
+        #player-vk-container iframe, #player-yt iframe { width: 100% !important; height: 100% !important; border: none; position: absolute; inset: 0; }
         
         #player-placeholder { position: absolute; inset: 0; flex-direction: column; align-items: center; justify-content: center; z-index: 10; display: flex; background: #000; }
-        #click-overlay { position: absolute; inset: 0; z-index: 20; cursor: pointer; } 
+        #click-overlay { position: absolute; inset: 0; z-index: 20; cursor: pointer; display: block; } 
         
-        #ui-layer { position: fixed; inset: 0; z-index: 50; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 24px; }
+        #ui-layer { position: fixed; inset: 0; z-index: 50; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 24px; transition: opacity 0.3s ease; opacity: 1; }
 
         /* Utils */
         .force-hidden { display: none !important; }
-        .ui-visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
-        .ui-hidden { opacity: 0; pointer-events: none; transform: translateY(10px); }
+        .ui-visible { opacity: 1; pointer-events: auto; }
+        .ui-hidden { opacity: 0; pointer-events: none; }
+        
         .transition-ui { transition: all 0.3s ease; }
+        
         .seek-slider { -webkit-appearance: none; width: 100%; height: 4px; background: rgba(255,255,255,0.2); border-radius: 2px; outline: none; cursor: pointer; }
         .seek-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #fff; cursor: pointer; }
-        .talking-ring { box-shadow: 0 0 0 2px #22c55e; animation: pulse 1.5s infinite; }
-        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); } 70% { box-shadow: 0 0 0 10px rgba(34, 197, 94, 0); } }
     </style>
 </head>
 <body onclick="unlockAudio()">
@@ -57,7 +58,7 @@
     <div id="screen-auth" class="fixed inset-0 z-[100] flex items-center justify-center bg-[#050505] transition-opacity duration-500">
         <div class="glass-panel p-10 rounded-[40px] max-w-sm w-full text-center pointer-events-auto">
             <h1 class="text-5xl font-bold mb-4">Co-Watch</h1>
-            <p class="text-gray-400 mb-8">v31 Ported Logic</p>
+            <p class="text-gray-400 mb-8">Vercel Edition</p>
             <button id="btn-google-login" class="w-full bg-white text-black font-bold py-4 rounded-2xl mb-3">Google</button>
             <button id="btn-guest-login" class="w-full glass-btn py-4 rounded-2xl">Гость</button>
             <div id="auth-status" class="mt-4 text-xs text-red-500"></div>
@@ -94,19 +95,19 @@
         </div>
 
         <div id="ui-layer">
-            <div id="top-bar" class="flex justify-between items-center transition-ui pointer-events-auto">
+            <div id="top-bar" class="flex justify-between items-center transition-ui pointer-events-auto opacity-100">
                 <div class="glass-panel px-4 py-2 rounded-full flex gap-2 items-center cursor-pointer" id="copy-room-id">
                     <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                     <span id="display-room-id" class="font-mono font-bold">...</span>
                 </div>
                 <div class="glass-panel p-2 rounded-full flex gap-2 w-full max-w-md mx-4">
-                    <input id="input-video-url" placeholder="YouTube / VK Link..." class="bg-transparent flex-1 px-2 outline-none text-sm">
+                    <input id="input-video-url" placeholder="YouTube / VK Link..." class="bg-transparent flex-1 px-2 outline-none text-sm text-white">
                     <button id="btn-load-video" class="w-8 h-8 bg-white text-black rounded-full flex items-center justify-center"><i class="fa-solid fa-play text-xs"></i></button>
                 </div>
                 <button id="btn-leave-room" class="glass-panel w-10 h-10 rounded-full flex items-center justify-center text-red-400"><i class="fa-solid fa-right-from-bracket"></i></button>
             </div>
 
-            <div id="bottom-bar" class="flex flex-col gap-4 transition-ui w-full max-w-3xl mx-auto pointer-events-auto">
+            <div id="bottom-bar" class="flex flex-col gap-4 transition-ui w-full max-w-3xl mx-auto pointer-events-auto opacity-100">
                 <div id="timeline-container" class="glass-panel px-4 py-3 rounded-2xl flex items-center gap-4">
                      <button id="btn-play-pause" class="w-6 hover:text-blue-400" onclick="togglePlay()"><i class="fa-solid fa-play"></i></button>
                      <input type="range" id="seek-bar" class="seek-slider flex-1">
@@ -137,7 +138,8 @@
         // AUTH
         onAuthStateChanged(auth, u => {
             if(u) {
-                get('lobby-username').textContent = u.displayName;
+                console.log("Logged in:", u.uid);
+                get('lobby-username').textContent = u.displayName || 'Guest';
                 get('lobby-avatar').src = u.photoURL || `https://api.dicebear.com/7.x/notionists/svg?seed=${u.uid}`;
                 get('screen-auth').classList.add('force-hidden');
                 get('screen-lobby').classList.remove('force-hidden');
@@ -148,8 +150,8 @@
             }
         });
 
-        get('btn-google-login').onclick = () => signInWithPopup(auth, new GoogleAuthProvider()).catch(e => get('auth-status').innerText = e.message);
-        get('btn-guest-login').onclick = () => signInAnonymously(auth).then(c => updateProfile(c.user, { displayName: `Guest ${Math.floor(Math.random()*999)}` }));
+        get('btn-google-login').onclick = () => signInWithPopup(auth, new GoogleAuthProvider()).catch(e => { alert(e.message); });
+        get('btn-guest-login').onclick = () => signInAnonymously(auth).then(c => updateProfile(c.user, { displayName: `Guest ${Math.floor(Math.random()*999)}` })).catch(e => alert("Ошибка входа: Возможно домен Vercel не добавлен в Firebase Console -> Auth -> Settings"));
         get('btn-logout').onclick = () => signOut(auth);
 
         // ROOMS
@@ -175,14 +177,14 @@
             get('screen-app').classList.remove('force-hidden');
         }
 
-        // --- VIDEO LOGIC PORTED FROM REACT ---
+        // --- VIDEO LOGIC ---
         get('btn-load-video').onclick = () => {
             const url = get('input-video-url').value.trim();
             if(!url) return;
+            console.log("Loading URL:", url);
 
             let provider = 'yt', videoId = '';
             
-            // Regex from your React code
             const vkRegex = /video(-?\d+)_(\d+)/;
             const vkMatch = url.match(vkRegex);
             const ytMatch = url.match(/(?:v=|\/)([\w-]{11})/);
@@ -210,14 +212,21 @@
             if (d.videoId) get('player-placeholder').style.display = 'none';
             
             if (d.provider !== activeProvider) {
+                console.log("Switching provider to:", d.provider);
                 activeProvider = d.provider;
                 get('player-yt').classList.add('force-hidden');
                 get('player-vk-container').classList.add('force-hidden');
                 get('player-stream').classList.add('force-hidden');
 
-                if (d.provider === 'yt') get('player-yt').classList.remove('force-hidden');
-                if (d.provider === 'vk') get('player-vk-container').classList.remove('force-hidden');
-                if (d.provider === 'screen') get('player-stream').classList.remove('force-hidden');
+                if (d.provider === 'yt') {
+                    get('player-yt').classList.remove('force-hidden');
+                }
+                if (d.provider === 'vk') {
+                    get('player-vk-container').classList.remove('force-hidden');
+                }
+                if (d.provider === 'screen') {
+                    get('player-stream').classList.remove('force-hidden');
+                }
                 
                 // UI Adjustments
                 if (d.provider !== 'yt') {
@@ -234,19 +243,21 @@
             // RENDER VK
             if (d.provider === 'vk') {
                 const container = get('player-vk-container');
-                // Only update iframe if src changed to prevent reload loop
-                const currentSrc = container.querySelector('iframe')?.src;
-                if (currentSrc !== d.videoId) {
+                const iframe = container.querySelector('iframe');
+                // Строгая проверка, чтобы избежать мерцания
+                if (!iframe || iframe.src !== d.videoId) {
                     container.innerHTML = `<iframe src="${d.videoId}" width="100%" height="100%" allow="autoplay; encrypted-media; fullscreen; picture-in-picture" allowfullscreen frameborder="0"></iframe>`;
                 }
             }
 
             // RENDER YT
             if (d.provider === 'yt' && ytPlayer && ytPlayer.loadVideoById) {
-                 if(ytPlayer.getVideoData().video_id !== d.videoId) ytPlayer.loadVideoById(d.videoId);
-                 // Simple state sync
-                 if(d.status === 'playing') ytPlayer.playVideo(); else ytPlayer.pauseVideo();
-                 if(Math.abs(ytPlayer.getCurrentTime() - d.timestamp) > 2) ytPlayer.seekTo(d.timestamp);
+                 // Безопасная проверка состояния
+                 try {
+                     if(ytPlayer.getVideoData().video_id !== d.videoId) ytPlayer.loadVideoById(d.videoId);
+                     if(d.status === 'playing') ytPlayer.playVideo(); else ytPlayer.pauseVideo();
+                     if(Math.abs(ytPlayer.getCurrentTime() - d.timestamp) > 2) ytPlayer.seekTo(d.timestamp);
+                 } catch(e) { console.log(e); }
             }
         }
 
@@ -254,9 +265,10 @@
         if(!window.YT) { const t = document.createElement('script'); t.src = "https://www.youtube.com/iframe_api"; document.body.appendChild(t); }
         window.onYouTubeIframeAPIReady = () => {
             ytPlayer = new YT.Player('player-yt', {
-                height: '100%', width: '100%',
-                playerVars: { 'controls': 0, 'rel': 0, 'origin': window.location.origin },
+                height: '100%', width: '100%', // Важно для API
+                playerVars: { 'controls': 0, 'rel': 0, 'origin': window.location.origin, 'playsinline': 1 },
                 events: { 
+                    'onReady': (e) => { console.log("YT Ready"); },
                     'onStateChange': (e) => {
                         if (!currentRoomId) return;
                         if (e.data === 1 || e.data === 2) {
@@ -286,15 +298,15 @@
             const overlay = get('click-overlay');
             if (ui.style.opacity === '0') {
                 ui.style.opacity = '1';
-                ui.style.pointerEvents = 'none'; // Let clicks pass for buttons but hide main UI? No.
-                get('top-bar').style.pointerEvents = 'auto';
+                ui.style.pointerEvents = 'none'; // Сам слой не кликабелен
+                get('top-bar').style.pointerEvents = 'auto'; // Кнопки кликабельны
                 get('bottom-bar').style.pointerEvents = 'auto';
                 if (overlay) overlay.style.pointerEvents = 'auto';
             } else {
                 ui.style.opacity = '0';
                 get('top-bar').style.pointerEvents = 'none';
                 get('bottom-bar').style.pointerEvents = 'none';
-                if (overlay) overlay.style.pointerEvents = 'none'; // Let clicks hit iframe
+                if (overlay) overlay.style.pointerEvents = 'none'; // Пропускаем клики в iframe
             }
         };
 
@@ -303,19 +315,35 @@
             window.location.reload();
         };
         
-        // AUTO HIDE UI
+        // AUTO HIDE UI FIX
         let uiTimeout;
-        document.addEventListener('mousemove', () => {
-            get('top-bar').style.opacity = '1';
-            get('bottom-bar').style.opacity = '1';
+        const resetUiTimer = () => {
+            const ui = get('ui-layer');
+            const top = get('top-bar');
+            const bottom = get('bottom-bar');
+            
+            ui.style.opacity = '1';
+            top.style.opacity = '1';
+            bottom.style.opacity = '1';
+            
+            top.style.pointerEvents = 'auto';
+            bottom.style.pointerEvents = 'auto';
+
             clearTimeout(uiTimeout);
             uiTimeout = setTimeout(() => {
+                // Не скрываем, если пользователь пишет в input
                 if (document.activeElement.tagName !== 'INPUT') {
-                    get('top-bar').style.opacity = '0';
-                    get('bottom-bar').style.opacity = '0';
+                    top.style.opacity = '0';
+                    bottom.style.opacity = '0';
+                    top.style.pointerEvents = 'none';
+                    bottom.style.pointerEvents = 'none';
                 }
-            }, 3000);
-        });
+            }, 3500);
+        };
+        
+        document.addEventListener('mousemove', resetUiTimer);
+        document.addEventListener('click', resetUiTimer);
+        resetUiTimer(); // Запуск при старте
     </script>
 </body>
 </html>
