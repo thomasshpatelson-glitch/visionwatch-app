@@ -3,140 +3,123 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta http-equiv="Content-Security-Policy" content="default-src * 'self' blob: data: gap:; style-src * 'self' 'unsafe-inline' blob: data: gap:; script-src * 'self' 'unsafe-eval' 'unsafe-inline' blob: data: gap:; object-src * 'self' blob: data: gap:; img-src * 'self' 'unsafe-inline' blob: data: gap:; connect-src * 'self' 'unsafe-inline' blob: data: gap:; media-src * 'self' blob: data: gap:;">
+    <meta http-equiv="Content-Security-Policy" content="default-src * 'self' blob: data: gap:; style-src * 'self' 'unsafe-inline' blob: data: gap:; script-src * 'self' 'unsafe-eval' 'unsafe-inline' blob: data: gap:; object-src * 'self' blob: data: gap:; img-src * 'self' 'unsafe-inline' blob: data: gap:; connect-src 'self' * 'unsafe-inline' blob: data: gap:; frame-src * 'self' blob: data: gap:;">
     
-    <title>Co-Watch | Cinematic Stable</title>
+    <title>Co-Watch v3.0 | Stable</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
-    
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-    <link href="https://fonts.googleapis.com/css2?family=Inter+Tight:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
     <style>
-        /* === CORE STYLES === */
+        /* === GLOBAL RESET === */
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         html, body { 
             margin: 0; padding: 0; width: 100%; height: 100%; 
-            overflow: hidden; background-color: #000; 
-            font-family: 'Inter Tight', sans-serif; color: #fff;
-        }
-
-        /* === CINEMATIC NOISE & GRADIENTS === */
-        .noise-bg {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 1; opacity: 0.04;
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
-        }
-        
-        .vignette {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            pointer-events: none; z-index: 2;
-            background: radial-gradient(circle, rgba(0,0,0,0) 50%, rgba(0,0,0,0.8) 100%);
-        }
-
-        /* === GLASS UI === */
-        .glass-panel {
-            background: rgba(18, 18, 18, 0.85);
-            backdrop-filter: blur(24px) saturate(140%);
-            -webkit-backdrop-filter: blur(24px) saturate(140%);
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            box-shadow: 0 20px 50px rgba(0,0,0,0.5);
-        }
-
-        .glass-btn {
-            background: rgba(255,255,255,0.03);
-            border: 1px solid rgba(255,255,255,0.05);
-            transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-            cursor: pointer;
-        }
-        .glass-btn:hover { background: rgba(255,255,255,0.15); transform: translateY(-2px); border-color: rgba(255,255,255,0.2); }
-        .glass-btn:active { transform: scale(0.95); }
-
-        .btn-active { background: #fff !important; color: #000 !important; box-shadow: 0 0 25px rgba(255,255,255,0.3); }
-        
-        .voice-active { 
-            background: #22c55e !important; 
-            color: #000 !important; 
-            border-color: #22c55e !important;
-            box-shadow: 0 0 30px rgba(34, 197, 94, 0.5); 
-        }
-
-        /* === ANIMATIONS === */
-        .fade-enter { animation: fadeEnter 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
-        @keyframes fadeEnter { from { opacity: 0; transform: scale(0.96); } to { opacity: 1; transform: scale(1); } }
-
-        /* Voice Waves */
-        .talking-ring {
-            box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7);
-            animation: pulse-green 1.5s infinite;
-        }
-        @keyframes pulse-green {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(74, 222, 128, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(74, 222, 128, 0); }
+            overflow: hidden; background-color: #050505; 
+            font-family: 'Outfit', sans-serif; 
         }
 
         /* === UTILS === */
         .force-hidden { display: none !important; }
-        .ui-hidden { opacity: 0; pointer-events: none; transform: translateY(10px); }
-        .ui-visible { opacity: 1; pointer-events: auto; transform: translateY(0); }
-        .transition-ui { transition: all 0.5s ease; }
+        .fade-in { animation: fadeIn 0.4s ease-out forwards; }
+        @keyframes fadeIn { from { opacity: 0; transform: scale(0.98); } to { opacity: 1; transform: scale(1); } }
+
+        /* === GLASS UI === */
+        .glass-panel {
+            background: rgba(15, 15, 15, 0.85); /* Темный полупрозрачный фон */
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+        }
+
+        .glass-btn {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.05);
+            transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+            cursor: pointer;
+        }
+        .glass-btn:hover { background: rgba(255,255,255,0.15); transform: translateY(-1px); }
+        .glass-btn:active { transform: scale(0.95); }
         
-        /* Video Layer */
-        #video-layer { position: fixed; inset: 0; z-index: 0; display: flex; align-items: center; justify-content: center; background: #000; }
-        #ui-layer { position: fixed; inset: 0; z-index: 50; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 24px; }
+        /* Active States */
+        .btn-active { background: #fff !important; color: #000 !important; box-shadow: 0 0 15px rgba(255,255,255,0.3); }
+        .voice-active { background: #22c55e !important; color: #000 !important; box-shadow: 0 0 15px rgba(34, 197, 94, 0.4); }
+
+        .pro-input {
+            background: rgba(0,0,0,0.4);
+            border: 1px solid rgba(255,255,255,0.1);
+            color: white;
+            font-family: monospace;
+        }
+        .pro-input:focus { border-color: #fff; outline: none; background: rgba(0,0,0,0.7); }
+
+        /* === VOICE CHAT ANIMATIONS === */
+        .voice-ring {
+            box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+            animation: pulse-green 1.5s infinite;
+        }
+        @keyframes pulse-green {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(34, 197, 94, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(34, 197, 94, 0); }
+        }
+
+        /* === LAYOUT FIXES === */
+        /* Видео всегда на весь экран, под интерфейсом */
+        #video-layer { position: absolute; inset: 0; z-index: 0; background: #000; display: flex; align-items: center; justify-content: center; }
+        /* Интерфейс поверх видео */
+        #ui-layer { position: absolute; inset: 0; z-index: 50; pointer-events: none; display: flex; flex-direction: column; justify-content: space-between; padding: 16px; }
+        .interactive { pointer-events: auto; }
     </style>
 </head>
 <body>
 
-    <div class="noise-bg"></div>
-    <div class="vignette"></div>
-    
-    <div id="audio-streams" class="hidden"></div>
-
-    <div id="screen-auth" class="fixed inset-0 z-[100] flex items-center justify-center bg-[#050505] transition-opacity duration-500">
-        <div class="glass-panel p-10 rounded-[40px] max-w-sm w-full text-center mx-4 relative overflow-hidden group">
-            <div class="w-24 h-24 bg-white/5 rounded-3xl flex items-center justify-center mx-auto mb-8 border border-white/10 shadow-2xl group-hover:scale-105 transition duration-700">
-                <i class="fa-solid fa-play text-4xl text-white ml-1"></i>
-            </div>
-            <h1 class="text-5xl font-bold text-white mb-2 tracking-tighter">Co-Watch</h1>
-            <p class="text-white/40 text-sm mb-12 font-medium tracking-widest uppercase">Sync & Voice</p>
+    <div id="screen-auth" class="fixed inset-0 z-[100] flex items-center justify-center bg-black transition-opacity duration-300">
+        <div class="glass-panel p-8 rounded-3xl max-w-sm w-full text-center mx-4 relative overflow-hidden">
+            <div class="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
             
-            <button id="btn-guest-login" class="w-full bg-white text-black font-bold py-4 rounded-2xl hover:bg-gray-200 transition transform hover:scale-[1.02] shadow-[0_0_30px_rgba(255,255,255,0.15)]">
+            <div class="w-20 h-20 bg-white/5 rounded-full flex items-center justify-center mx-auto mb-6 border border-white/10 shadow-xl">
+                <i class="fa-solid fa-play text-3xl text-white ml-1"></i>
+            </div>
+            <h1 class="text-4xl font-bold text-white mb-2 tracking-tight">Co-Watch</h1>
+            <p class="text-gray-400 text-sm mb-8 font-light">Кинотеатр для друзей</p>
+            
+            <button id="btn-guest-login" class="w-full bg-white text-black font-bold py-4 rounded-xl hover:bg-gray-200 transition transform hover:scale-[1.02] shadow-lg">
                 Войти как Гость
             </button>
-            <div id="auth-status" class="mt-6 text-xs text-white/20 h-4 font-mono"></div>
+            <div id="auth-status" class="mt-4 text-xs text-gray-500 min-h-[1rem]"></div>
         </div>
     </div>
 
-    <div id="screen-lobby" class="fixed inset-0 z-[90] flex items-center justify-center bg-[#050505] force-hidden">
-        <div class="w-full max-w-md p-4 relative z-10 fade-enter">
-            <div class="text-center mb-10">
+    <div id="screen-lobby" class="fixed inset-0 z-[90] flex items-center justify-center bg-black force-hidden">
+        <div class="w-full max-w-md p-4 relative z-10 fade-in">
+            <div class="text-center mb-8">
                 <div class="relative inline-block">
-                    <img id="lobby-avatar" src="" class="w-28 h-28 rounded-full border-4 border-[#151515] shadow-2xl object-cover bg-[#151515]">
-                    <div class="absolute bottom-2 right-2 w-6 h-6 bg-green-500 rounded-full border-4 border-[#151515]"></div>
+                    <img id="lobby-avatar" src="" class="w-24 h-24 rounded-full border-4 border-[#1a1a1a] shadow-2xl object-cover bg-gray-900">
+                    <div class="absolute bottom-0 right-0 w-6 h-6 bg-green-500 rounded-full border-4 border-[#1a1a1a]"></div>
                 </div>
-                <h2 class="text-3xl font-bold text-white mt-6">Привет, <span id="lobby-username" class="text-blue-400">...</span></h2>
+                <h2 class="text-2xl font-bold text-white mt-4">Привет, <span id="lobby-username" class="text-blue-400">...</span></h2>
             </div>
 
-            <div class="glass-panel rounded-[32px] p-8 space-y-6">
-                <button id="btn-create-room" class="w-full py-5 rounded-2xl bg-white text-black font-bold text-lg hover:bg-gray-200 transition shadow-lg flex items-center justify-center gap-3">
+            <div class="glass-panel rounded-2xl p-6 space-y-6">
+                <button id="btn-create-room" class="w-full py-4 rounded-xl bg-white text-black font-bold text-lg hover:bg-gray-200 transition shadow-lg flex items-center justify-center gap-2">
                     <i class="fa-solid fa-plus"></i> Создать комнату
                 </button>
                 
-                <div class="flex items-center gap-4 opacity-30">
-                    <div class="h-px bg-white flex-1"></div>
-                    <span class="text-[10px] uppercase font-bold tracking-[0.2em]">Или войти</span>
-                    <div class="h-px bg-white flex-1"></div>
+                <div class="flex items-center gap-3">
+                    <div class="h-px bg-white/10 flex-1"></div>
+                    <span class="text-[10px] text-gray-500 uppercase font-bold tracking-[0.2em]">ИЛИ ID</span>
+                    <div class="h-px bg-white/10 flex-1"></div>
                 </div>
                 
-                <form id="form-join-room" class="flex gap-3 h-16">
-                    <input type="text" id="input-room-id" placeholder="ID КОМНАТЫ" class="flex-1 bg-black/40 border border-white/10 rounded-2xl text-center uppercase tracking-[0.2em] text-xl font-bold text-white focus:outline-none focus:border-white/40 transition" required maxlength="6">
-                    <button type="submit" class="bg-[#222] text-white w-20 rounded-2xl hover:bg-[#333] border border-white/10 flex items-center justify-center transition hover:border-white/30">
-                        <i class="fa-solid fa-arrow-right text-xl"></i>
+                <form id="form-join-room" class="flex gap-2 h-14">
+                    <input type="text" id="input-room-id" placeholder="A1B2C" class="pro-input flex-1 px-4 rounded-xl text-center uppercase tracking-widest text-xl font-bold" required maxlength="6">
+                    <button type="submit" class="bg-[#222] text-white w-16 rounded-xl hover:bg-[#333] border border-white/10 flex items-center justify-center transition">
+                        <i class="fa-solid fa-arrow-right text-lg"></i>
                     </button>
                 </form>
             </div>
@@ -146,79 +129,80 @@
     <div id="screen-app" class="fixed inset-0 bg-black force-hidden">
         
         <div id="video-layer">
-            <div id="player-placeholder" class="text-center opacity-40 select-none">
-                <i class="fa-brands fa-youtube text-9xl mb-6 text-white/80"></i>
-                <p class="font-mono text-xs tracking-[0.5em] uppercase text-white/50">Waiting for Link</p>
+            <div id="player-placeholder" class="absolute inset-0 flex flex-col items-center justify-center text-gray-500 z-10 select-none">
+                <i class="fa-brands fa-youtube text-7xl mb-6 opacity-30 animate-bounce"></i>
+                <p class="font-mono text-xs opacity-50 tracking-[0.4em] uppercase">Ожидание ссылки</p>
             </div>
-            <div id="player" class="w-full h-full absolute inset-0"></div>
+            <div id="player" class="w-full h-full absolute inset-0 z-20"></div>
         </div>
 
         <div id="ui-layer">
             
-            <div class="flex flex-col md:flex-row justify-between items-center gap-4 pointer-events-auto transition-ui ui-visible" id="top-bar">
-                <div class="glass-panel px-6 py-3 rounded-full flex items-center gap-3 cursor-pointer hover:bg-white/10 transition group" id="copy-room-id">
-                    <div class="relative flex h-3 w-3">
-                      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
-                      <span class="relative inline-flex rounded-full h-3 w-3 bg-green-500"></span>
+            <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-3 interactive opacity-0 hover:opacity-100 transition-opacity duration-300" id="top-bar">
+                
+                <div class="glass-panel px-4 py-2 rounded-full flex items-center gap-3 cursor-pointer hover:bg-white/5 active:scale-95 transition" id="copy-room-id">
+                    <div class="relative w-2.5 h-2.5">
+                        <span class="absolute inset-0 bg-green-500 rounded-full animate-ping opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-2.5 w-2.5 bg-green-500"></span>
                     </div>
-                    <span class="font-mono font-bold text-sm text-white tracking-widest group-hover:text-green-400 transition" id="display-room-id">...</span>
-                    <i class="fa-regular fa-copy text-xs text-white/30 ml-2"></i>
+                    <span class="font-mono font-bold text-sm text-white tracking-widest" id="display-room-id">...</span>
+                    <i class="fa-regular fa-copy text-xs text-gray-500 ml-1"></i>
                 </div>
 
-                <div class="glass-panel p-2 rounded-full flex items-center gap-2 w-full max-w-lg shadow-2xl transition-transform hover:scale-[1.01]">
-                    <div class="w-10 h-10 rounded-full bg-[#FF0000] flex items-center justify-center flex-shrink-0 shadow-lg">
-                        <i class="fa-brands fa-youtube text-white text-sm"></i>
+                <div class="glass-panel p-1.5 rounded-full flex items-center gap-2 w-full max-w-lg shadow-2xl">
+                    <div class="w-8 h-8 rounded-full bg-red-600 flex items-center justify-center flex-shrink-0">
+                        <i class="fa-brands fa-youtube text-white text-xs"></i>
                     </div>
-                    <input type="text" id="input-video-url" placeholder="Вставьте ссылку на YouTube..." class="bg-transparent border-none text-white text-sm w-full focus:outline-none px-3 font-medium placeholder-white/30">
-                    <button id="btn-load-video" class="w-10 h-10 rounded-full bg-white text-black flex items-center justify-center hover:bg-gray-200 transition flex-shrink-0">
+                    <input type="text" id="input-video-url" placeholder="Вставьте ссылку (youtu.be/...)" class="bg-transparent border-none text-white text-sm w-full focus:outline-none px-2 h-full placeholder-gray-500">
+                    <button id="btn-load-video" class="w-9 h-9 rounded-full bg-white text-black flex items-center justify-center hover:bg-gray-200 transition flex-shrink-0">
                         <i class="fa-solid fa-play text-xs ml-0.5"></i>
                     </button>
                 </div>
 
-                <button id="btn-leave-room" class="glass-panel w-12 h-12 rounded-full flex items-center justify-center text-white/50 hover:text-red-400 hover:bg-white/5 transition">
+                <button id="btn-leave-room" class="glass-panel w-10 h-10 rounded-full flex items-center justify-center text-red-400 hover:text-red-500 hover:bg-white/10 transition shadow-lg">
                     <i class="fa-solid fa-right-from-bracket"></i>
                 </button>
             </div>
 
-            <div class="flex-1 flex flex-col justify-end items-end pb-28 pointer-events-none">
-                <div id="toast-area" class="flex flex-col gap-3 items-end w-80"></div>
+            <div class="flex-1 flex flex-col justify-end items-end pb-20 pointer-events-none">
+                <div id="toast-area" class="flex flex-col gap-2 w-72 items-end"></div>
             </div>
 
-            <div class="flex justify-center items-end pointer-events-auto transition-ui ui-visible" id="bottom-bar">
-                <div class="glass-panel p-3 rounded-[32px] flex items-center gap-4 shadow-2xl">
-                    <button id="btn-toggle-users" class="glass-btn w-14 h-14 rounded-2xl flex items-center justify-center text-xl text-white/70 hover:text-white">
+            <div class="flex justify-center items-end interactive" id="bottom-bar">
+                <div class="glass-panel p-2 rounded-2xl flex gap-3 shadow-2xl">
+                    <button id="btn-toggle-users" class="glass-btn w-12 h-12 rounded-xl flex items-center justify-center text-xl text-gray-400 hover:text-white transition tooltip-btn">
                         <i class="fa-solid fa-users"></i>
                     </button>
 
-                    <button id="btn-toggle-voice" class="glass-btn w-20 h-20 rounded-[28px] flex items-center justify-center text-2xl text-white/70 -mt-10 border border-white/10 hover:border-white/40 bg-[#1a1a1a] shadow-xl relative overflow-hidden group">
-                        <i class="fa-solid fa-microphone-slash relative z-10 transition-transform group-hover:scale-110"></i>
+                    <button id="btn-toggle-voice" class="glass-btn w-14 h-14 rounded-full flex items-center justify-center text-xl text-gray-400 -mt-4 border border-white/10 hover:border-white/30 bg-black/50 backdrop-blur-md">
+                        <i class="fa-solid fa-microphone-slash"></i>
                     </button>
 
-                    <button id="btn-toggle-chat" class="glass-btn w-14 h-14 rounded-2xl flex items-center justify-center text-xl text-white/70 hover:text-white relative">
-                        <i class="fa-regular fa-comment-dots"></i>
-                        <span id="chat-badge" class="absolute top-3 right-3 w-2.5 h-2.5 bg-blue-500 rounded-full shadow-[0_0_10px_#3b82f6] force-hidden"></span>
+                    <button id="btn-toggle-chat" class="glass-btn w-12 h-12 rounded-xl flex items-center justify-center text-xl text-gray-400 hover:text-white relative transition">
+                        <i class="fa-regular fa-comments"></i>
+                        <span id="chat-badge" class="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 rounded-full border border-black force-hidden"></span>
                     </button>
                 </div>
             </div>
 
-            <div id="panel-chat" class="absolute top-24 bottom-36 right-6 w-96 glass-panel rounded-[32px] flex flex-col shadow-2xl pointer-events-auto force-hidden overflow-hidden transition-all duration-300 transform translate-x-10 opacity-0 z-50">
-                <div class="p-5 border-b border-white/5 flex justify-between items-center bg-white/5">
-                    <span class="font-bold text-xs uppercase tracking-widest text-white/60">Чат</span>
-                    <button onclick="window.closePanels()" class="text-white/30 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            <div id="panel-chat" class="absolute top-20 bottom-24 right-4 w-80 glass-panel rounded-2xl flex flex-col shadow-2xl interactive force-hidden overflow-hidden transition-transform transform translate-x-0">
+                <div class="p-4 border-b border-white/10 bg-black/20 flex justify-between items-center">
+                    <span class="font-bold text-xs uppercase tracking-widest text-white/60">Чат комнаты</span>
+                    <button onclick="window.closePanels()" class="text-white/40 hover:text-white transition"><i class="fa-solid fa-xmark"></i></button>
                 </div>
-                <div id="chat-messages" class="flex-1 overflow-y-auto p-5 space-y-4"></div>
-                <form id="form-chat" class="p-4 border-t border-white/5 flex gap-2 bg-black/20">
-                    <input type="text" id="input-message" placeholder="Написать..." class="w-full bg-white/5 rounded-xl text-sm text-white focus:outline-none px-4 py-3 border border-white/5 focus:bg-white/10 transition" autocomplete="off">
-                    <button type="submit" class="text-blue-400 hover:text-white px-2 transition"><i class="fa-solid fa-paper-plane"></i></button>
+                <div id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-3 bg-black/20"></div>
+                <form id="form-chat" class="p-3 bg-black/40 border-t border-white/10 flex gap-2 backdrop-blur-xl">
+                    <input type="text" id="input-message" placeholder="Сообщение..." class="w-full bg-transparent text-sm text-white focus:outline-none px-2 py-2" autocomplete="off">
+                    <button type="submit" class="text-blue-400 hover:text-blue-300 px-2"><i class="fa-solid fa-paper-plane"></i></button>
                 </form>
             </div>
 
-            <div id="panel-users" class="absolute top-24 bottom-36 left-6 w-80 glass-panel rounded-[32px] flex flex-col shadow-2xl pointer-events-auto force-hidden overflow-hidden transition-all duration-300 transform -translate-x-10 opacity-0 z-50">
-                <div class="p-5 border-b border-white/5 flex justify-between items-center bg-white/5">
-                    <span class="font-bold text-xs uppercase tracking-widest text-white/60">Участники</span>
-                    <button onclick="window.closePanels()" class="text-white/30 hover:text-white"><i class="fa-solid fa-xmark"></i></button>
+            <div id="panel-users" class="absolute top-20 bottom-24 left-4 w-72 glass-panel rounded-2xl flex flex-col shadow-2xl interactive force-hidden overflow-hidden">
+                <div class="p-4 border-b border-white/10 bg-black/20 flex justify-between items-center">
+                    <span class="font-bold text-xs uppercase tracking-widest text-white/60">В сети</span>
+                    <button onclick="window.closePanels()" class="text-white/40 hover:text-white transition"><i class="fa-solid fa-xmark"></i></button>
                 </div>
-                <div id="users-list-container" class="flex-1 overflow-y-auto p-4 space-y-2"></div>
+                <div id="users-list-container" class="flex-1 overflow-y-auto p-3 space-y-2 bg-black/20"></div>
             </div>
 
         </div>
@@ -229,7 +213,7 @@
         import { getAuth, signInAnonymously, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, doc, setDoc, onSnapshot, addDoc, query, orderBy, limit, serverTimestamp, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // FIREBASE CONFIG
+        // CONFIG (Используем ту же конфигурацию)
         const firebaseConfig = {
           apiKey: "AIzaSyBrm8hgy9LGFFL_7CdlnR6jxyolqy94AQA",
           authDomain: "upbeat-orb-479013-p8.firebaseapp.com",
@@ -242,28 +226,35 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const APP_ID = 'cw-v5-stable';
+        const APP_ID = 'cw-v3-voice'; 
 
-        // GLOBAL STATE
+        // --- SCREEN MANAGER ---
+        // Жесткое управление видимостью слоев
+        function showScreen(screenId) {
+            ['screen-auth', 'screen-lobby', 'screen-app'].forEach(id => {
+                const el = document.getElementById(id);
+                if(el) el.classList.add('force-hidden');
+            });
+            const target = document.getElementById(screenId);
+            if(target) target.classList.remove('force-hidden');
+        }
+
+        // --- STATE ---
         let currentUser = null;
         let currentRoomId = null;
         let player = null;
         let unsubscribes = [];
         let uiTimeout;
-        let activeRoomUsers = []; 
+        let isVoiceOn = false; // Состояние микрофона
 
-        // VOICE STATE
-        let myPeer = null;
-        let myStream = null;
-        let isVoiceOn = false;
-        const activeCalls = {};
-
-        // --- AUTH ---
+        // --- AUTH FLOW ---
         onAuthStateChanged(auth, user => {
             if (user) {
                 currentUser = user;
-                document.getElementById('lobby-username').textContent = user.displayName;
-                document.getElementById('lobby-avatar').src = user.photoURL;
+                const nameEl = document.getElementById('lobby-username');
+                const avaEl = document.getElementById('lobby-avatar');
+                if(nameEl) nameEl.textContent = user.displayName;
+                if(avaEl) avaEl.src = user.photoURL;
                 showScreen('screen-lobby');
             } else {
                 showScreen('screen-auth');
@@ -271,162 +262,98 @@
         });
 
         document.getElementById('btn-guest-login').onclick = () => {
-            document.getElementById('auth-status').textContent = "Создание профиля...";
+            const status = document.getElementById('auth-status');
+            status.textContent = "Генерация профиля...";
             signInAnonymously(auth).then(cred => {
-                const name = "Guest " + Math.floor(Math.random()*1000);
+                const name = "Гость " + Math.floor(Math.random()*1000);
                 updateProfile(cred.user, { 
                     displayName: name, 
-                    photoURL: `https://api.dicebear.com/7.x/notionists/svg?seed=${name}&backgroundColor=111`
+                    photoURL: `https://api.dicebear.com/7.x/notionists/svg?seed=${name}&backgroundColor=transparent`
                 });
-            });
+            }).catch(e => status.textContent = "Error: " + e.message);
         };
 
         // --- ROOM LOGIC ---
-        document.getElementById('btn-create-room').onclick = () => joinRoom(Math.random().toString(36).substring(2, 7).toUpperCase());
+        document.getElementById('btn-create-room').onclick = () => {
+            joinRoom(Math.random().toString(36).substring(2, 7).toUpperCase());
+        };
+        
         document.getElementById('form-join-room').onsubmit = (e) => {
             e.preventDefault();
-            const id = document.getElementById('input-room-id').value.trim().toUpperCase();
-            if(id) joinRoom(id);
+            const val = document.getElementById('input-room-id').value.trim().toUpperCase();
+            if(val) joinRoom(val);
         };
 
         async function joinRoom(id) {
+            if(!id) return;
             currentRoomId = id;
             document.getElementById('display-room-id').textContent = id;
-            
-            // 1. Init PeerJS
-            initVoiceEngine(currentUser.uid);
+            isVoiceOn = false; // Сброс голоса при входе
+            updateVoiceBtnUI();
 
-            // 2. Register Presence
+            // Вход в комнату (Presence)
             await setDoc(doc(db, 'artifacts', APP_ID, 'rooms', id, 'presence', currentUser.uid), {
-                uid: currentUser.uid, displayName: currentUser.displayName, photoURL: currentUser.photoURL, state: 'online', voiceActive: false
+                uid: currentUser.uid, 
+                displayName: currentUser.displayName, 
+                photoURL: currentUser.photoURL, 
+                state: 'online',
+                voiceActive: false
             });
 
-            // 3. Listeners
-            unsubscribes.push(onSnapshot(doc(db, 'artifacts', APP_ID, 'rooms', id), s => { if(s.exists()) syncVideo(s.data()); }));
-            unsubscribes.push(onSnapshot(collection(db, 'artifacts', APP_ID, 'rooms', id, 'presence'), handlePresenceUpdate));
-            unsubscribes.push(onSnapshot(query(collection(db, 'artifacts', APP_ID, 'rooms', id, 'chat'), orderBy('ts', 'asc'), limit(50)), s => {
-                s.docChanges().forEach(c => { if(c.type==='added') renderMsg(c.doc.data()); });
+            // Подписки
+            // 1. Видео
+            unsubscribes.push(onSnapshot(doc(db, 'artifacts', APP_ID, 'rooms', id), snap => {
+                if(snap.exists()) syncVideo(snap.data());
+            }));
+
+            // 2. Участники (с логикой голоса)
+            unsubscribes.push(onSnapshot(collection(db, 'artifacts', APP_ID, 'rooms', id, 'presence'), snap => {
+                const list = document.getElementById('users-list-container');
+                list.innerHTML = '';
+                snap.forEach(d => {
+                    const u = d.data();
+                    const isMe = u.uid === currentUser.uid;
+                    const voiceClass = u.voiceActive ? 'voice-ring' : '';
+                    const voiceIcon = u.voiceActive ? '<i class="fa-solid fa-microphone text-green-500 text-xs"></i>' : '<i class="fa-solid fa-microphone-slash text-gray-600 text-xs"></i>';
+                    
+                    list.innerHTML += `
+                        <div class="flex items-center gap-3 p-3 rounded-xl bg-white/5 border border-white/5 mb-2">
+                            <div class="relative">
+                                <img src="${u.photoURL}" class="w-10 h-10 rounded-full bg-gray-800 object-cover ${voiceClass}">
+                                ${u.voiceActive ? '<span class="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-black"></span>' : ''}
+                            </div>
+                            <div class="flex-1 min-w-0">
+                                <p class="text-sm font-bold text-gray-200 truncate">${u.displayName} ${isMe ? '(Вы)' : ''}</p>
+                                <p class="text-xs text-gray-500 flex items-center gap-1">
+                                    ${voiceIcon} ${u.voiceActive ? 'Говорит' : 'В сети'}
+                                </p>
+                            </div>
+                        </div>
+                    `;
+                });
+            }));
+
+            // 3. Чат
+            unsubscribes.push(onSnapshot(query(collection(db, 'artifacts', APP_ID, 'rooms', id, 'chat'), orderBy('ts', 'asc'), limit(50)), snap => {
+                snap.docChanges().forEach(c => { if(c.type==='added') renderMsg(c.doc.data()); });
             }));
 
             showScreen('screen-app');
         }
 
-        // --- VOICE ENGINE ---
-        function initVoiceEngine(uid) {
-            myPeer = new Peer(uid);
-            myPeer.on('open', id => console.log('My Voice ID:', id));
-            
-            // Входящий звонок
-            myPeer.on('call', call => {
-                call.answer(myStream); // Отвечаем
-                call.on('stream', userStream => playAudioStream(userStream, call.peer));
-            });
+        // --- YOUTUBE API ---
+        if(!window.YT) {
+            const tag = document.createElement('script');
+            tag.src = "https://www.youtube.com/iframe_api";
+            document.body.appendChild(tag);
         }
 
-        function handlePresenceUpdate(snap) {
-            const list = document.getElementById('users-list-container');
-            list.innerHTML = '';
-            activeRoomUsers = []; 
-            
-            snap.forEach(d => {
-                const u = d.data();
-                activeRoomUsers.push(u.uid);
-                
-                const isMe = u.uid === currentUser.uid;
-                const ringClass = u.voiceActive ? 'talking-ring' : '';
-                const status = u.voiceActive ? '<span class="text-green-400 font-bold">Говорит</span>' : '<span class="text-white/30">Слушает</span>';
-                
-                list.innerHTML += `
-                    <div class="flex items-center gap-4 p-3 rounded-2xl bg-white/5 border border-white/5 mb-2">
-                        <div class="relative">
-                            <img src="${u.photoURL}" class="w-12 h-12 rounded-full object-cover ${ringClass}">
-                            ${u.voiceActive ? '<div class="absolute bottom-0 right-0 w-4 h-4 bg-green-500 rounded-full border-2 border-black"></div>' : ''}
-                        </div>
-                        <div class="flex-1 overflow-hidden">
-                            <p class="text-sm font-bold text-white truncate">${u.displayName} ${isMe ? '(Вы)' : ''}</p>
-                            <p class="text-xs">${status}</p>
-                        </div>
-                    </div>
-                `;
-
-                // Авто-звонок если я говорю
-                if (isVoiceOn && !isMe && !activeCalls[u.uid]) {
-                    connectToPeer(u.uid);
-                }
-            });
-        }
-
-        function connectToPeer(targetUid) {
-            if(!myStream) return;
-            const call = myPeer.call(targetUid, myStream);
-            activeCalls[targetUid] = call;
-            call.on('stream', remoteStream => playAudioStream(remoteStream, targetUid));
-            call.on('close', () => { delete activeCalls[targetUid]; removeAudio(targetUid); });
-            call.on('error', () => delete activeCalls[targetUid]);
-        }
-
-        // Voice Toggle
-        document.getElementById('btn-toggle-voice').onclick = async () => {
-            const btn = document.getElementById('btn-toggle-voice');
-            
-            if (isVoiceOn) {
-                // OFF
-                isVoiceOn = false;
-                if(myStream) myStream.getTracks().forEach(t => t.stop());
-                myStream = null;
-                
-                btn.classList.remove('voice-active');
-                btn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i>';
-                
-                updateDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', currentUser.uid), { voiceActive: false });
-                Object.values(activeCalls).forEach(call => call.close());
-                
-            } else {
-                // ON
-                try {
-                    myStream = await navigator.mediaDevices.getUserMedia({ audio: true });
-                    isVoiceOn = true;
-                    
-                    btn.classList.add('voice-active');
-                    btn.innerHTML = '<i class="fa-solid fa-microphone animate-pulse"></i>';
-                    
-                    updateDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', currentUser.uid), { voiceActive: true });
-                    
-                    activeRoomUsers.forEach(uid => {
-                        if (uid !== currentUser.uid) connectToPeer(uid);
-                    });
-
-                } catch (e) {
-                    alert("Разрешите доступ к микрофону!");
-                }
-            }
-        };
-
-        function playAudioStream(stream, id) {
-            const container = document.getElementById('audio-streams');
-            if (document.getElementById(`audio-${id}`)) return;
-            
-            const audio = document.createElement('audio');
-            audio.id = `audio-${id}`;
-            audio.srcObject = stream;
-            audio.autoplay = true;
-            container.appendChild(audio);
-        }
-        
-        function removeAudio(id) {
-            const el = document.getElementById(`audio-${id}`);
-            if(el) el.remove();
-        }
-
-        // --- YOUTUBE API (Vercel Fix) ---
-        if(!window.YT) { const t = document.createElement('script'); t.src = "https://www.youtube.com/iframe_api"; document.body.appendChild(t); }
         window.onYouTubeIframeAPIReady = () => {
             player = new YT.Player('player', {
                 height: '100%', width: '100%',
                 playerVars: { 
-                    'controls': 0, 'rel': 0, 'modestbranding': 1, 'disablekb': 1, 
-                    'origin': window.location.origin, 
-                    'host': 'https://www.youtube.com'
+                    'controls': 0, 'rel': 0, 'modestbranding': 1, 'disablekb': 1, 'iv_load_policy': 3,
+                    'origin': window.location.origin
                 },
                 events: { 'onStateChange': onPlayerStateChange }
             });
@@ -437,51 +364,101 @@
             if(isSyncing || !currentRoomId) return;
             if(e.data === 1 || e.data === 2) {
                 setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), {
-                    status: e.data===1?'playing':'paused', timestamp: player.getCurrentTime(), updatedAt: Date.now(), videoId: player.getVideoData().video_id
+                    status: e.data===1?'playing':'paused', 
+                    timestamp: player.getCurrentTime(), 
+                    updatedAt: Date.now(), 
+                    videoId: player.getVideoData().video_id
                 }, { merge: true });
             }
         }
 
         function syncVideo(d) {
             if(!player || !d.videoId) return;
-            try { if(player.getVideoData().video_id !== d.videoId) player.loadVideoById(d.videoId); } catch(e) { player.loadVideoById(d.videoId); }
+            try {
+                if(player.getVideoData().video_id !== d.videoId) player.loadVideoById(d.videoId);
+            } catch(e) { player.loadVideoById(d.videoId); }
+
             let t = d.timestamp;
             if(d.status === 'playing') t += (Date.now() - d.updatedAt)/1000;
+
             if(Math.abs(player.getCurrentTime() - t) > 1.5) {
-                isSyncing = true; player.seekTo(t, true); d.status==='playing'?player.playVideo():player.pauseVideo();
+                isSyncing = true;
+                player.seekTo(t, true);
+                d.status==='playing' ? player.playVideo() : player.pauseVideo();
                 setTimeout(()=>isSyncing=false, 1000);
             } else {
                 if(d.status==='playing' && player.getPlayerState()!==1) player.playVideo();
                 if(d.status==='paused' && player.getPlayerState()!==2) player.pauseVideo();
             }
         }
-        
+
         document.getElementById('btn-load-video').onclick = () => {
-            const match = document.getElementById('input-video-url').value.match(/(?:v=|\/)([\w-]{11})/);
-            if(match && currentRoomId) setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), { videoId: match[1], status: 'playing', timestamp: 0, updatedAt: Date.now() }, { merge: true });
-            document.getElementById('input-video-url').value = '';
+            const url = document.getElementById('input-video-url').value;
+            const match = url.match(/(?:v=|\/)([\w-]{11})/);
+            if(match && currentRoomId) {
+                setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), {
+                    videoId: match[1], status: 'playing', timestamp: 0, updatedAt: Date.now()
+                }, { merge: true });
+                document.getElementById('input-video-url').value = '';
+            }
         };
 
-        // --- CHAT ---
+        // --- VOICE CHAT LOGIC (UI + STATE) ---
+        const voiceBtn = document.getElementById('btn-toggle-voice');
+        
+        voiceBtn.onclick = async () => {
+            isVoiceOn = !isVoiceOn;
+            updateVoiceBtnUI();
+            
+            // Обновляем статус в БД
+            if(currentRoomId && currentUser) {
+                const userRef = doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', currentUser.uid);
+                await updateDoc(userRef, { voiceActive: isVoiceOn });
+                
+                if(isVoiceOn) {
+                    showToast({text: 'Микрофон включен', photo: currentUser.photoURL});
+                } else {
+                    showToast({text: 'Микрофон выключен', photo: currentUser.photoURL});
+                }
+            }
+        };
+
+        function updateVoiceBtnUI() {
+            if(isVoiceOn) {
+                voiceBtn.classList.add('voice-active');
+                voiceBtn.innerHTML = '<i class="fa-solid fa-microphone"></i>';
+            } else {
+                voiceBtn.classList.remove('voice-active');
+                voiceBtn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i>';
+            }
+        }
+
+        // --- CHAT & UTILS ---
         document.getElementById('form-chat').onsubmit = async (e) => {
             e.preventDefault();
-            const val = document.getElementById('input-message').value.trim();
-            if(val) await addDoc(collection(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'chat'), { text: val, sender: currentUser.displayName, photo: currentUser.photoURL, uid: currentUser.uid, ts: serverTimestamp() });
-            document.getElementById('input-message').value = '';
+            const inp = document.getElementById('input-message');
+            const txt = inp.value.trim();
+            if(!txt) return;
+            await addDoc(collection(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'chat'), {
+                text: txt, sender: currentUser.displayName, photo: currentUser.photoURL, uid: currentUser.uid, ts: serverTimestamp()
+            });
+            inp.value = '';
         };
 
         function renderMsg(msg) {
             const isMe = msg.uid === currentUser.uid;
+            const box = document.getElementById('chat-messages');
             const div = document.createElement('div');
-            div.className = `flex gap-3 mb-4 ${isMe ? 'flex-row-reverse' : ''} fade-enter`;
+            div.className = `flex gap-2 mb-3 ${isMe ? 'flex-row-reverse' : ''} fade-in`;
             div.innerHTML = `
-                <img src="${msg.photo}" class="w-8 h-8 rounded-full border border-white/10 shadow-lg object-cover">
-                <div class="${isMe ? 'bg-blue-600 text-white' : 'bg-white/10 text-gray-200'} p-3 rounded-2xl max-w-[85%] text-sm leading-relaxed shadow-lg backdrop-blur-md border border-white/5">
-                    <p class="font-bold text-[10px] opacity-50 mb-1 uppercase tracking-wider">${msg.sender}</p>
+                <img src="${msg.photo}" class="w-8 h-8 rounded-full border border-white/10 mt-1 shadow-sm object-cover">
+                <div class="${isMe ? 'bg-blue-600/80 text-white' : 'bg-white/10 text-gray-200'} p-3 rounded-2xl max-w-[80%] text-sm break-words border border-white/5 shadow-md">
+                    <p class="font-bold text-[10px] opacity-50 mb-1">${msg.sender}</p>
                     ${msg.text}
                 </div>`;
-            document.getElementById('chat-messages').appendChild(div);
-            document.getElementById('chat-messages').scrollTop = 99999;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+
             if(document.getElementById('panel-chat').classList.contains('force-hidden') && !isMe) {
                 document.getElementById('chat-badge').classList.remove('force-hidden');
                 showToast(msg);
@@ -489,91 +466,73 @@
         }
 
         function showToast(msg) {
+            const area = document.getElementById('toast-area');
             const t = document.createElement('div');
-            t.className = "glass-panel p-3 rounded-2xl flex items-center gap-3 shadow-2xl mb-2 fade-enter w-full cursor-pointer hover:bg-white/10 transition border-l-4 border-blue-500";
-            t.innerHTML = `<img src="${msg.photo}" class="w-8 h-8 rounded-full"><div class="overflow-hidden"><p class="text-xs font-bold text-white truncate">${msg.sender}</p><p class="text-xs text-white/50 truncate">${msg.text}</p></div>`;
+            t.className = "glass-panel px-4 py-3 rounded-xl flex items-center gap-3 pointer-events-auto cursor-pointer shadow-lg mb-2 fade-in transform hover:scale-105 transition w-full max-w-[250px]";
+            t.innerHTML = `
+                <img src="${msg.photo}" class="w-8 h-8 rounded-full bg-gray-800">
+                <div class="overflow-hidden">
+                    <p class="text-xs font-bold text-white truncate">${msg.sender || 'System'}</p>
+                    <p class="text-xs text-gray-400 truncate">${msg.text}</p>
+                </div>
+            `;
             t.onclick = () => document.getElementById('btn-toggle-chat').click();
-            document.getElementById('toast-area').appendChild(t);
-            setTimeout(() => t.remove(), 4000);
+            area.appendChild(t);
+            setTimeout(() => {
+                t.style.opacity = '0';
+                setTimeout(() => t.remove(), 300);
+            }, 4000);
         }
 
-        // --- UI UTILS (Panel Fix) ---
-        function showScreen(id) {
-            ['screen-auth', 'screen-lobby', 'screen-app'].forEach(sid => document.getElementById(sid).classList.add('force-hidden'));
-            document.getElementById(id).classList.remove('force-hidden');
-        }
-
-        // Таймеры для корректного закрытия анимаций
-        let panelTimeouts = {}; 
-
-        window.closePanels = (exceptId = null) => {
-            ['panel-chat', 'panel-users'].forEach(id => {
-                if(id === exceptId) return; // Не закрываем то, что открываем
-                
-                const el = document.getElementById(id);
-                // Анимация скрытия
-                el.classList.remove('translate-x-0');
-                if(id.includes('chat')) el.classList.add('translate-x-10', 'opacity-0');
-                else el.classList.add('-translate-x-10', 'opacity-0');
-                
-                // Таймер на display: none
-                if(panelTimeouts[id]) clearTimeout(panelTimeouts[id]);
-                panelTimeouts[id] = setTimeout(() => el.classList.add('force-hidden'), 300);
-            });
+        // --- PANEL TOGGLES ---
+        window.closePanels = () => {
+            ['panel-chat', 'panel-users'].forEach(id => document.getElementById(id).classList.add('force-hidden'));
+            ['btn-toggle-chat', 'btn-toggle-users'].forEach(id => document.getElementById(id).classList.remove('btn-active'));
         };
 
-        const togglePanel = (id, transformClass) => {
-            const p = document.getElementById(id);
-            const isHidden = p.classList.contains('force-hidden');
-            
-            // Закрываем другие, но не этот
-            window.closePanels(id);
-
-            if(isHidden) {
-                // OPEN
-                if(panelTimeouts[id]) clearTimeout(panelTimeouts[id]);
+        document.getElementById('btn-toggle-chat').onclick = () => {
+            const p = document.getElementById('panel-chat');
+            const wasHidden = p.classList.contains('force-hidden');
+            closePanels();
+            if(wasHidden) {
                 p.classList.remove('force-hidden');
-                
-                // Небольшая задержка для анимации
-                setTimeout(() => {
-                    p.classList.remove(transformClass, 'opacity-0');
-                    p.classList.add('translate-x-0');
-                }, 10);
-
-                if(id.includes('chat')) {
-                    document.getElementById('chat-badge').classList.add('force-hidden');
-                    setTimeout(() => document.getElementById('input-message').focus(), 100);
-                }
-            } else {
-                // CLOSE (если нажали повторно)
-                window.closePanels(); 
+                document.getElementById('btn-toggle-chat').classList.add('btn-active');
+                document.getElementById('chat-badge').classList.add('force-hidden');
+                setTimeout(() => document.getElementById('input-message').focus(), 100);
             }
         };
 
-        document.getElementById('btn-toggle-chat').onclick = () => togglePanel('panel-chat', 'translate-x-10');
-        document.getElementById('btn-toggle-users').onclick = () => togglePanel('panel-users', '-translate-x-10');
-        document.getElementById('btn-leave-room').onclick = () => window.location.reload();
-        document.getElementById('copy-room-id').onclick = () => { navigator.clipboard.writeText(currentRoomId); const el = document.getElementById('display-room-id'); const old=el.textContent; el.textContent="COPIED"; setTimeout(()=>el.textContent=old,1000); };
+        document.getElementById('btn-toggle-users').onclick = () => {
+            const p = document.getElementById('panel-users');
+            const wasHidden = p.classList.contains('force-hidden');
+            closePanels();
+            if(wasHidden) {
+                p.classList.remove('force-hidden');
+                document.getElementById('btn-toggle-users').classList.add('btn-active');
+            }
+        };
 
-        // --- AUTO HIDE UI (Correct Logic) ---
+        document.getElementById('btn-leave-room').onclick = () => {
+            unsubscribes.forEach(u => u());
+            window.location.reload();
+        };
+
+        document.getElementById('copy-room-id').onclick = () => {
+            navigator.clipboard.writeText(currentRoomId);
+            const el = document.getElementById('display-room-id');
+            const oldText = el.textContent;
+            el.textContent = "COPIED";
+            setTimeout(() => el.textContent = oldText, 1000);
+        };
+
+        // UI Auto-Hide
         document.addEventListener('mousemove', () => {
-            const top = document.getElementById('top-bar');
-            const bot = document.getElementById('bottom-bar');
-            
-            top.classList.remove('ui-hidden'); top.classList.add('ui-visible');
-            bot.classList.remove('ui-hidden'); bot.classList.add('ui-visible');
-            
+            document.getElementById('top-bar').style.opacity = '1';
             clearTimeout(uiTimeout);
             uiTimeout = setTimeout(() => {
-                // Проверяем, открыты ли панели
-                const chatHidden = document.getElementById('panel-chat').classList.contains('force-hidden');
-                const usersHidden = document.getElementById('panel-users').classList.contains('force-hidden');
-                const isInput = document.activeElement.tagName === 'INPUT';
-                
-                // Скрываем только если все закрыто и мы не пишем
-                if (chatHidden && usersHidden && !isInput) {
-                    top.classList.remove('ui-visible'); top.classList.add('ui-hidden');
-                    bot.classList.remove('ui-visible'); bot.classList.add('ui-hidden');
+                // Скрываем топ бар, если мышь не двигается и фокус не в инпуте
+                if(!document.activeElement.tagName.match(/INPUT|BUTTON/)) {
+                    document.getElementById('top-bar').style.opacity = '0';
                 }
             }, 3000);
         });
