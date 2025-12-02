@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
-    <title>Co-Watch | Final Fix</title>
+    <title>Co-Watch | Admin & UX Update</title>
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
@@ -36,6 +36,7 @@
         }
         .glass-btn:hover { background: rgba(255,255,255,0.15); transform: translateY(-1px); }
         .glass-btn:active { transform: translateY(1px); }
+        .glass-btn.disabled { opacity: 0.5; pointer-events: none; }
 
         .sidebar-item { transition: 0.2s; border-radius: 12px; }
         .sidebar-item:hover { background: rgba(255,255,255,0.05); }
@@ -45,15 +46,13 @@
         #player-yt, #player-vk-container, #player-stream { width: 100%; height: 100%; position: absolute; inset: 0; }
         iframe { width: 100% !important; height: 100% !important; border: none; pointer-events: auto; }
         
-        /* UI LAYERS - FIXED Z-INDEX */
+        /* UI LAYERS */
         #ui-layer { 
             position: fixed; inset: 0; z-index: 50; 
-            pointer-events: none; /* Пропускаем клики сквозь контейнер */
+            pointer-events: none; 
             display: flex; flex-direction: column; justify-content: space-between; padding: 20px; 
             transition: opacity 0.3s ease; 
         }
-
-        /* Элементы внутри UI должны быть кликабельны */
         #top-bar, #bottom-bar, #sidebar { pointer-events: auto; }
         
         /* SIDEBAR (CHAT) */
@@ -73,29 +72,60 @@
         .seek-slider::-webkit-slider-thumb { -webkit-appearance: none; width: 12px; height: 12px; border-radius: 50%; background: #fff; cursor: pointer; box-shadow: 0 0 10px rgba(255,255,255,0.5); transition: transform 0.1s; }
         .seek-slider:hover::-webkit-slider-thumb { transform: scale(1.3); }
 
+        /* NOTIFICATION TOAST (New Feature) */
+        #notification-area {
+            position: fixed; top: 100px; left: 50%; transform: translateX(-50%);
+            z-index: 200; pointer-events: none; width: 90%; max-width: 400px;
+            display: flex; flex-direction: column; gap: 10px; align-items: center;
+        }
+        .toast {
+            background: rgba(10, 10, 10, 0.6);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-left: 3px solid #fff;
+            padding: 16px 24px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+            color: #fff;
+            font-size: 14px;
+            font-weight: 500;
+            line-height: 1.5;
+            text-align: center;
+            animation: slideInToast 0.6s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+            opacity: 0; transform: translateY(-20px);
+        }
+        .toast.hiding { animation: fadeOutToast 0.5s ease forwards; }
+        @keyframes slideInToast { to { opacity: 1; transform: translateY(0); } }
+        @keyframes fadeOutToast { to { opacity: 0; transform: scale(0.9); } }
+
+        /* ADMIN BADGE */
+        .admin-crown { color: #fbbf24; text-shadow: 0 0 10px rgba(251, 191, 36, 0.5); }
+        
         /* UTILS */
         .force-hidden { display: none !important; }
         
-        /* Native Mode Overlay - исправлен клик */
+        /* Native Mode Overlay */
         #native-mode-hint { 
             position: fixed; top: 20px; left: 50%; transform: translateX(-50%); 
             background: #ef4444; color: white;
             padding: 10px 24px; border-radius: 30px; 
             font-weight: 800; font-size: 13px; text-transform: uppercase; letter-spacing: 1px;
             box-shadow: 0 10px 25px rgba(239, 68, 68, 0.4);
-            pointer-events: auto !important; /* ВАЖНО: всегда кликабелен */
+            pointer-events: auto !important; 
             cursor: pointer;
             opacity: 0; transition: 0.3s; z-index: 100; 
         }
         #native-mode-hint:hover { transform: translateX(-50%) scale(1.05); }
-
-        /* Click Overlay - ловит клики для паузы/скрытия UI */
         #click-overlay { position: absolute; inset: 0; z-index: 20; cursor: default; display: block; }
     </style>
 </head>
 <body onclick="unlockAudio()">
 
     <div class="noise-bg"></div>
+    
+    <div id="notification-area"></div>
+
     <div id="native-mode-hint" onclick="toggleNativeMode()">
         <i class="fa-solid fa-rotate-left mr-2"></i> Вернуть интерфейс
     </div>
@@ -104,7 +134,7 @@
         <div class="glass-panel p-10 rounded-[32px] max-w-sm w-full text-center pointer-events-auto relative overflow-hidden">
             <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 via-purple-500 to-pink-500"></div>
             <h1 class="text-5xl font-extrabold mb-2 tracking-tighter">Co-Watch</h1>
-            <p class="text-gray-400 mb-8 text-sm font-mono uppercase tracking-widest">Keyboard Edition</p>
+            <p class="text-gray-400 mb-8 text-sm font-mono uppercase tracking-widest">Admin Edition</p>
             
             <button id="btn-google-login" class="w-full bg-white text-black font-bold py-4 rounded-xl mb-3 hover:bg-gray-200 transition">
                 <i class="fa-brands fa-google mr-2"></i> Войти
@@ -229,18 +259,33 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
         import { getAuth, signInWithPopup, GoogleAuthProvider, signInAnonymously, onAuthStateChanged, signOut, updateProfile } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-        import { getFirestore, collection, doc, setDoc, onSnapshot, serverTimestamp, addDoc, query, orderBy, limit, deleteDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+        import { getFirestore, collection, doc, setDoc, onSnapshot, serverTimestamp, addDoc, query, orderBy, limit, deleteDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
         // CONFIG
         const firebaseConfig = { apiKey: "AIzaSyBrm8hgy9LGFFL_7CdlnR6jxyolqy94AQA", authDomain: "upbeat-orb-479013-p8.firebaseapp.com", projectId: "upbeat-orb-479013-p8", storageBucket: "upbeat-orb-479013-p8.firebasestorage.app", messagingSenderId: "547138498300", appId: "1:547138498300:web:a03c11d6aafd5f027cf179" };
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const APP_ID = 'cw-ultimate-fixed';
+        const APP_ID = 'cw-admin-ux';
 
         const get = (id) => document.getElementById(id);
         const formatTime = (s) => { const m=Math.floor(s/60), sec=Math.floor(s%60); return `${m}:${sec<10?'0':''}${sec}`; };
         window.unlockAudio = () => { const a = new (window.AudioContext || window.webkitAudioContext)(); if(a.state==='suspended') a.resume(); };
+
+        // --- UX: NOTIFICATIONS ---
+        window.showNotification = (text) => {
+            const area = get('notification-area');
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.textContent = text;
+            area.appendChild(toast);
+            
+            // 20 секунд висит, потом исчезает
+            setTimeout(() => {
+                toast.classList.add('hiding');
+                setTimeout(() => toast.remove(), 500); // время на анимацию исчезновения
+            }, 20000); 
+        };
 
         // --- AUTH ---
         onAuthStateChanged(auth, u => {
@@ -261,17 +306,18 @@
         get('btn-guest-login').onclick = () => signInAnonymously(auth).then(c => updateProfile(c.user, { displayName: `Watcher ${Math.floor(Math.random()*100)}` }));
         get('btn-logout').onclick = () => signOut(auth);
 
-        // --- ROOMS ---
+        // --- ROOMS & ADMIN SYSTEM ---
         let currentRoomId = null;
         let currentUser = null;
+        let myRole = 'viewer'; // 'admin' | 'viewer'
+        let iAmMuted = false;
         
         get('btn-create-room').onclick = () => { const id = Math.random().toString(36).substring(2,7).toUpperCase(); joinRoom(id, true); };
         get('btn-join-room').onclick = () => { const id = get('input-room-id').value.trim().toUpperCase(); if(id) joinRoom(id); };
         
         get('copy-room-id').onclick = () => {
              navigator.clipboard.writeText(currentRoomId);
-             get('copy-room-id').style.background = "rgba(34, 197, 94, 0.2)";
-             setTimeout(() => get('copy-room-id').style.background = "", 500);
+             showNotification(`ID комнаты ${currentRoomId} скопирован!`);
         };
 
         async function joinRoom(id, isCreator = false) {
@@ -284,12 +330,16 @@
                 uid: currentUser.uid, 
                 displayName: currentUser.displayName, 
                 photoURL: currentUser.photoURL || `https://api.dicebear.com/7.x/adventurer/svg?seed=${currentUser.uid}&backgroundColor=b6e3f4,c0aede,d1d4f9`,
-                role: isCreator ? 'host' : 'viewer',
-                lastActive: serverTimestamp()
+                role: isCreator ? 'admin' : 'viewer', // Creator starts as Admin
+                joinedAt: serverTimestamp(), // For inheritance logic
+                lastActive: serverTimestamp(),
+                mutedByAdmin: false
             });
 
+            // Listen to Room State (Video)
             onSnapshot(doc(db, 'artifacts', APP_ID, 'rooms', id), s => { if(s.exists()) syncState(s.data()); });
             
+            // Listen to Chat
             const chatQ = query(collection(db, 'artifacts', APP_ID, 'rooms', id, 'messages'), orderBy('createdAt', 'asc'), limit(50));
             onSnapshot(chatQ, snapshot => {
                 const div = get('chat-messages');
@@ -307,30 +357,109 @@
                 div.scrollTop = div.scrollHeight;
             });
 
+            // Listen to Users (Admin Logic & Inheritance)
             onSnapshot(collection(db, 'artifacts', APP_ID, 'rooms', id, 'presence'), snapshot => {
                 const list = get('list-users');
                 list.innerHTML = '';
-                let count = 0;
-                snapshot.forEach(doc => {
-                    const u = doc.data();
-                    count++;
+                let users = [];
+                let adminExists = false;
+
+                snapshot.forEach(d => {
+                    const u = d.data();
+                    users.push(u);
+                    if (u.role === 'admin') adminExists = true;
+                    
+                    // Check MY state
+                    if (u.uid === currentUser.uid) {
+                        myRole = u.role;
+                        
+                        // Check Mute State
+                        if (u.mutedByAdmin && !iAmMuted) {
+                             iAmMuted = true;
+                             muteMyMic(true);
+                             showNotification("Администратор отключил вам микрофон");
+                        } else if (!u.mutedByAdmin && iAmMuted) {
+                             iAmMuted = false;
+                             muteMyMic(false);
+                             showNotification("Микрофон снова доступен");
+                        }
+                    }
+                });
+
+                // ADMIN INHERITANCE LOGIC
+                // Если админа нет в списке, берем самого "старого" участника
+                if (!adminExists && users.length > 0) {
+                    // Сортировка по времени входа (joinedAt)
+                    // (обработка null joinedAt для тех, кто зашел прям сейчас)
+                    users.sort((a, b) => {
+                        const tA = a.joinedAt ? a.joinedAt.seconds : Date.now()/1000;
+                        const tB = b.joinedAt ? b.joinedAt.seconds : Date.now()/1000;
+                        return tA - tB;
+                    });
+                    
+                    // Если я - самый старый, я становлюсь админом
+                    if (users[0].uid === currentUser.uid) {
+                        updateDoc(userRef, { role: 'admin' });
+                        showNotification("Вы стали администратором комнаты!");
+                    }
+                }
+
+                // RENDER USERS
+                users.forEach(u => {
                     const el = document.createElement('div');
-                    el.className = "flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl cursor-pointer sidebar-item";
+                    el.className = "flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl cursor-pointer sidebar-item justify-between";
+                    
+                    let roleBadge = u.role === 'admin' ? '<i class="fa-solid fa-crown admin-crown ml-1"></i>' : '';
+                    let muteBtn = '';
+
+                    // Если я Админ, и это не я -> показать кнопку мута
+                    if (myRole === 'admin' && u.uid !== currentUser.uid) {
+                        const icon = u.mutedByAdmin ? 'fa-microphone-slash text-red-400' : 'fa-microphone text-white/20 hover:text-white';
+                        muteBtn = `<button class="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center transition" onclick="toggleMuteUser('${u.uid}', ${!u.mutedByAdmin})"><i class="fa-solid ${icon}"></i></button>`;
+                    } else if (u.mutedByAdmin) {
+                        muteBtn = `<span class="text-red-500/50 text-xs"><i class="fa-solid fa-microphone-slash"></i></span>`;
+                    }
+
                     el.innerHTML = `
-                        <img src="${u.photoURL}" class="w-8 h-8 rounded-full bg-white/10">
-                        <div class="flex flex-col">
-                            <span class="text-xs font-bold">${u.displayName}</span>
-                            <span class="text-[9px] text-white/40 uppercase">${u.role}</span>
+                        <div class="flex items-center gap-3">
+                            <img src="${u.photoURL}" class="w-8 h-8 rounded-full bg-white/10">
+                            <div class="flex flex-col">
+                                <span class="text-xs font-bold">${u.displayName} ${roleBadge}</span>
+                                <span class="text-[9px] text-white/40 uppercase">${u.role}</span>
+                            </div>
                         </div>
+                        ${muteBtn}
                     `;
                     list.appendChild(el);
                 });
-                if(count > 0) get('badge-users').classList.remove('hidden');
+                
+                if(users.length > 0) get('badge-users').classList.remove('hidden');
             });
 
             get('screen-lobby').classList.add('force-hidden');
             get('screen-app').classList.remove('force-hidden');
             setInterval(() => { setDoc(userRef, { lastActive: serverTimestamp() }, { merge: true }); }, 30000);
+        }
+
+        // --- ADMIN FUNCTIONS ---
+        
+        window.toggleMuteUser = (targetUid, newState) => {
+            // Только админ может вызывать
+             if (myRole !== 'admin') return;
+             updateDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId, 'presence', targetUid), {
+                 mutedByAdmin: newState
+             });
+        }
+        
+        function muteMyMic(isMuted) {
+            const btn = get('btn-toggle-voice');
+            if (isMuted) {
+                btn.classList.add('disabled');
+                btn.innerHTML = '<i class="fa-solid fa-microphone-slash text-red-500"></i>';
+            } else {
+                btn.classList.remove('disabled');
+                btn.innerHTML = '<i class="fa-solid fa-microphone-slash"></i>'; // Default state is disconnected
+            }
         }
 
         // --- UI LOGIC ---
@@ -364,6 +493,10 @@
         let isNativeMode = false;
 
         get('btn-load-video').onclick = () => {
+            if (myRole !== 'admin') {
+                showNotification("Только администратор может менять видео");
+                return;
+            }
             const url = get('input-video-url').value.trim();
             if(!url) return;
             
@@ -441,11 +574,13 @@
         window.onYouTubeIframeAPIReady = () => {
             ytPlayer = new YT.Player('player-yt', {
                 height: '100%', width: '100%',
-                // disablekb удален, чтобы клавиатура работала нативно, если фокус на iframe
                 playerVars: { 'controls': 0, 'rel': 0, 'origin': window.location.origin },
                 events: {
                     'onStateChange': (e) => {
                         if (!currentRoomId || isNativeMode) return;
+                        // ONLY ADMIN CAN UPDATE STATE
+                        if (myRole !== 'admin') return;
+
                         if (e.data === 1 || e.data === 2) {
                             setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), {
                                 status: e.data === 1 ? 'playing' : 'paused',
@@ -468,12 +603,19 @@
 
         // --- GLOBAL KEYBOARD SHORTCUTS ---
         document.addEventListener('keydown', (e) => {
-            // Не реагируем, если пишем в чате
             if (document.activeElement.tagName === 'INPUT' || document.activeElement.tagName === 'TEXTAREA') return;
             
             if (activeProvider === 'yt' && ytPlayer && currentRoomId) {
                 const current = ytPlayer.getCurrentTime();
                 
+                // Permission Check for Keys
+                if (myRole !== 'admin') {
+                     if (e.code === 'Space' || e.code === 'ArrowRight' || e.code === 'ArrowLeft') {
+                         showNotification("Управление доступно только админу");
+                     }
+                     return;
+                }
+
                 if (e.code === 'Space') {
                     e.preventDefault();
                     togglePlay();
@@ -493,6 +635,10 @@
 
         // --- CONTROLS ---
         window.togglePlay = () => {
+            if (myRole !== 'admin') {
+                showNotification("Только админ может ставить на паузу");
+                return;
+            }
             if (activeProvider === 'yt' && ytPlayer) {
                 const s = ytPlayer.getPlayerState();
                 setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), { 
@@ -503,6 +649,12 @@
         };
 
         get('seek-bar').oninput = (e) => {
+             if (myRole !== 'admin') {
+                 // Reset value if not admin try to drag
+                 // (Ideally we prevent drag via CSS pointer-events, but this is a fallback)
+                 showNotification("Перемотка доступна только админу");
+                 return;
+             }
              if (activeProvider === 'yt' && ytPlayer) {
                  const time = (e.target.value / 100) * ytPlayer.getDuration();
                  ytPlayer.seekTo(time);
@@ -518,23 +670,14 @@
             const hint = get('native-mode-hint');
 
             if (isNativeMode) {
-                // Скрываем UI
                 ui.style.opacity = '0';
                 ui.style.pointerEvents = 'none';
-                
-                // Убираем оверлей, чтобы клики попадали в YouTube
                 overlay.style.display = 'none';
-                
-                // Показываем кнопку возврата
                 hint.style.opacity = '1';
+                showNotification("Режим Native: UI скрыт, полный контроль YouTube");
             } else {
-                // Возвращаем UI
                 ui.style.opacity = '1';
-                
-                // Overlay возвращается, чтобы ловить клики паузы
                 overlay.style.display = 'block';
-                
-                // Прячем кнопку
                 hint.style.opacity = '0';
             }
         };
@@ -575,15 +718,10 @@
         const resetUi = () => {
             if(isNativeMode) return;
             const ui = get('ui-layer');
-            const top = get('top-bar');
-            const bottom = get('bottom-bar');
-            
-            // Если интерфейс активен, показываем
             ui.style.opacity = '1';
             
             clearTimeout(uiTimer);
             uiTimer = setTimeout(() => {
-                // Скрываем только если не пишем в чат и не навели на сайдбар
                 if(document.activeElement.tagName !== 'INPUT' && !get('sidebar').classList.contains('active')) {
                      ui.style.opacity = '0';
                 }
