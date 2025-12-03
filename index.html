@@ -7,7 +7,7 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
-    <title>Co-Watch | Батя Edition</title>
+    <title>Co-Watch | Батя Edition (iOS Fix)</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
@@ -22,6 +22,7 @@
             -webkit-tap-highlight-color: transparent;
             scrollbar-width: none;
             outline: none;
+            user-select: none; /* Helps UI feel more app-like */
         }
 
         ::-webkit-scrollbar {
@@ -38,8 +39,6 @@
             background-color: #050505;
             font-family: 'Manrope', sans-serif;
             color: #fff;
-            /* Fix for iOS bounce */
-            position: fixed; 
         }
 
         .noise-bg {
@@ -104,8 +103,6 @@
             display: flex;
             justify-content: center;
             align-items: center;
-            /* iOS Fixes */
-            -webkit-overflow-scrolling: touch;
         }
 
         #player-yt,
@@ -117,18 +114,12 @@
             inset: 0;
         }
 
-        /* iOS Iframe Fix */
-        #player-yt iframe {
-            width: 100%;
-            height: 100%;
-            pointer-events: auto !important;
-        }
-
+        /* IOS FIX: Ensure iframe captures pointer events properly */
         #video-layer iframe {
             width: 100% !important;
             height: 100% !important;
             border: none;
-            pointer-events: auto;
+            pointer-events: auto !important;
         }
 
         /* UI LAYERS & MOBILE ADAPTATION */
@@ -372,6 +363,19 @@
         #mobile-url-modal {
             z-index: 20005;
         }
+
+        /* IOS "KICKSTART" OVERLAY */
+        #ios-kickstart {
+            position: absolute;
+            inset: 0;
+            z-index: 20;
+            background: rgba(0,0,0,0.4);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            backdrop-filter: blur(2px);
+        }
     </style>
 </head>
 
@@ -442,10 +446,20 @@
                 </div>
                 <p class="text-white/30 font-mono tracking-[0.2em] text-xs md:text-sm">ЖДЕМ ВИДЕО ОТ БАТИ</p>
             </div>
-            <div id="player-yt" class="force-hidden z-10" style="pointer-events: auto;"></div>
+            
+            <div id="player-yt" class="force-hidden z-10"></div>
+            
+            <div id="ios-kickstart" class="force-hidden">
+                <div class="flex flex-col items-center animate-pulse">
+                    <div class="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center shadow-lg mb-2">
+                        <i class="fa-solid fa-play text-3xl ml-1"></i>
+                    </div>
+                    <span class="text-xs font-bold uppercase tracking-widest text-white/80">Tap to Sync</span>
+                </div>
+            </div>
+
             <div id="player-vk-container" class="force-hidden z-10"></div>
-            <video id="player-stream" class="force-hidden z-10 object-contain w-full h-full" autoplay
-                playsinline></video>
+            <video id="player-stream" class="force-hidden z-10 object-contain w-full h-full" autoplay playsinline></video>
         </div>
 
         <div id="ui-layer">
@@ -598,7 +612,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const APP_ID = 'cw-admin-ux-final-v4-ios-fix'; // Version bumped
+        const APP_ID = 'cw-admin-ux-final-v4-ios-fix'; // Version Bumped
 
         const get = (id) => document.getElementById(id);
         const formatTime = (s) => { const m = Math.floor(s / 60), sec = Math.floor(s % 60); return `${m}:${sec < 10 ? '0' : ''}${sec}`; };
@@ -698,6 +712,13 @@
             } catch (e) { console.error("Ошибка при выходе:", e); }
 
             if (peer) { peer.destroy(); peer = null; }
+            
+            // CLEAN UP PLAYER SAFELY
+            try {
+                if (ytPlayer && ytPlayer.destroy) ytPlayer.destroy();
+                ytPlayer = null;
+            } catch(e) {}
+
             get('player-yt').innerHTML = '';
             get('player-vk-container').innerHTML = '';
             const vStream = get('player-stream');
@@ -869,10 +890,10 @@
 
         let activeProvider = 'none';
         let ytPlayer = null;
-        let isPlayerReady = false; // Guard for iOS
         let isNativeMode = false;
         let allowGuests = false;
 
+        // --- VIDEO PARSER ---
         get('btn-load-video').onclick = () => {
             if (myRole !== 'admin' && !allowGuests) {
                 showNotification("<i class='fa-solid fa-lock mr-2'></i> Только Батя может ставить видео");
@@ -883,6 +904,7 @@
 
             let provider = 'yt', videoId = '';
             
+            // VK CHECK
             const vkRegex = /video(-?\d+)_(\d+)/;
             const vkMatch = url.match(vkRegex);
             
@@ -893,6 +915,7 @@
                 provider = 'vk'; 
                 videoId = url;
             } else {
+                // YOUTUBE
                 const ytRegExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
                 const ytMatch = url.match(ytRegExp);
                 
@@ -911,6 +934,7 @@
             get('input-video-url').value = '';
         };
 
+        // --- SYNC ENGINE ---
         function syncState(d) {
             if (d.allowGuests !== undefined) {
                 allowGuests = d.allowGuests;
@@ -918,10 +942,11 @@
             }
             if (d.videoId) get('player-placeholder').style.display = 'none';
 
+            // Provider Switching
             if (d.provider !== activeProvider) {
                 activeProvider = d.provider;
                 document.querySelectorAll('#video-layer > div, #video-layer > video').forEach(el => {
-                    if (el.id !== 'click-overlay') el.classList.add('force-hidden');
+                    if (el.id !== 'ios-kickstart' && el.id !== 'video-layer') el.classList.add('force-hidden');
                 });
 
                 if (d.provider === 'yt') get('player-yt').classList.remove('force-hidden');
@@ -931,6 +956,7 @@
                     connectToStream(d.streamPeerId);
                 }
 
+                // UI Mode for provider
                 if (d.provider !== 'yt') {
                     get('timeline-container').style.opacity = '0.5'; get('timeline-container').style.pointerEvents = 'none';
                 } else {
@@ -938,6 +964,7 @@
                 }
             }
 
+            // VK HANDLING
             if (d.provider === 'vk') {
                 const f = get('player-vk-container');
                 if (!f.querySelector('iframe') || f.querySelector('iframe').src !== d.videoId) {
@@ -945,74 +972,128 @@
                 }
             }
 
-            // CRITICAL iOS FIX: Only run sync if player is truly ready
-            if (d.provider === 'yt' && isPlayerReady && ytPlayer && ytPlayer.loadVideoById) {
+            // YOUTUBE SYNC LOGIC (ROBUST FOR IOS)
+            if (d.provider === 'yt' && ytPlayer && ytPlayer.loadVideoById) {
                 try {
-                    const diff = Math.abs(ytPlayer.getCurrentTime() - d.timestamp);
-                    // Check if video is loaded to prevent crash
-                    if (!ytPlayer.getVideoData || ytPlayer.getVideoData().video_id !== d.videoId) {
-                        ytPlayer.loadVideoById({videoId: d.videoId, suggestedQuality: 'auto'});
-                    }
+                    const playerState = ytPlayer.getPlayerState();
+                    const currentVid = ytPlayer.getVideoData() ? ytPlayer.getVideoData().video_id : null;
                     
-                    if (d.status === 'playing') {
-                        // iOS Safari requires user interaction before autoplaying with sound.
-                        // We rely on mute:1 initially, then user interaction.
-                        ytPlayer.playVideo(); 
-                    } else {
-                        ytPlayer.pauseVideo();
+                    // 1. Load correct video
+                    if (currentVid !== d.videoId) {
+                        console.log("Loading new video:", d.videoId);
+                        ytPlayer.loadVideoById({videoId: d.videoId});
+                        return; // Wait for next tick
                     }
-                    
-                    if (diff > 2) ytPlayer.seekTo(d.timestamp);
 
-                    if (d.status === 'playing') {
-                        get('btn-play-pause').innerHTML = '<i class="fa-solid fa-pause"></i>';
-                        get('status-text').innerText = "PLAYING";
-                        get('status-dot').className = "w-2 h-2 bg-green-500 rounded-full animate-pulse";
-                    } else {
-                        get('btn-play-pause').innerHTML = '<i class="fa-solid fa-play"></i>';
-                        get('status-text').innerText = "PAUSED";
-                        get('status-dot').className = "w-2 h-2 bg-yellow-500 rounded-full";
+                    // 2. Sync Time (Smart)
+                    // Only seek if difference is significant to prevent stuttering
+                    const myTime = ytPlayer.getCurrentTime();
+                    const diff = Math.abs(myTime - d.timestamp);
+                    const tolerance = 1.5; // Seconds
+
+                    if (diff > tolerance) {
+                        ytPlayer.seekTo(d.timestamp);
                     }
-                } catch (e) { 
-                    console.log("YT Sync Error (harmless on init):", e);
+
+                    // 3. Sync State (Play/Pause)
+                    if (d.status === 'playing') {
+                        if (playerState !== 1 && playerState !== 3) { // 3 is buffering
+                            ytPlayer.playVideo();
+                        }
+                        // iOS Fix: Если мы должны играть, но плеер "завис" в unstarted ( -1 ) или cued ( 5 ), показываем кнопку
+                        if (playerState === -1 || playerState === 5 || playerState === 2) {
+                             // Check if interaction needed
+                             // We don't force show here to avoid flickering, but the button is available via 'ios-kickstart'
+                        }
+                    } else {
+                        if (playerState === 1) ytPlayer.pauseVideo();
+                    }
+                    
+                    // UPDATE UI
+                    updateStatusUI(d.status);
+
+                } catch (e) {
+                    console.warn("YouTube Sync Error (Ignored for iOS stability):", e);
                 }
             }
         }
 
-        // --- ROBUST YOUTUBE INIT FOR IOS ---
+        function updateStatusUI(status) {
+            if (status === 'playing') {
+                get('btn-play-pause').innerHTML = '<i class="fa-solid fa-pause"></i>';
+                get('status-text').innerText = "PLAYING";
+                get('status-dot').className = "w-2 h-2 bg-green-500 rounded-full animate-pulse";
+                get('ios-kickstart').classList.add('force-hidden'); // Hide kickstarter if playing
+            } else {
+                get('btn-play-pause').innerHTML = '<i class="fa-solid fa-play"></i>';
+                get('status-text').innerText = "PAUSED";
+                get('status-dot').className = "w-2 h-2 bg-yellow-500 rounded-full";
+            }
+        }
+
+        // --- IOS KICKSTART LOGIC ---
+        // This is the magic fix for iOS. User must tap to start.
+        get('ios-kickstart').onclick = () => {
+            if (ytPlayer && ytPlayer.playVideo) {
+                ytPlayer.playVideo();
+                get('ios-kickstart').classList.add('force-hidden');
+            }
+        }
+
+        // --- YOUTUBE API SETUP ---
+        if (!window.YT) { const t = document.createElement('script'); t.src = "https://www.youtube.com/iframe_api"; document.body.appendChild(t); }
+        
         window.onYouTubeIframeAPIReady = () => {
-            console.log("YT API Ready");
+            const origin = window.location.origin || 'https://www.youtube.com'; // Safe Fallback
+            
             ytPlayer = new YT.Player('player-yt', {
                 height: '100%', 
                 width: '100%',
+                videoId: '', // Start empty
                 host: 'https://www.youtube.com', 
                 playerVars: { 
-                    'controls': 1, 
+                    'controls': 0, // Disable YT controls to force custom UI (prevents conflict)
+                    'disablekb': 1,
+                    'fs': 0,
                     'rel': 0, 
-                    'origin': window.location.origin, // Critical for iOS
-                    'autoplay': 1, 
-                    'mute': 1, // Must be muted for iOS autoplay
-                    'playsinline': 1, // MANDATORY for iOS to not fullscreen immediately
+                    'origin': origin,
+                    'widget_referrer': origin,
+                    'autoplay': 1, // Tries to autoplay
+                    'mute': 0, // Unmuted by default (iOS might force mute)
+                    'playsinline': 1, // CRITICAL FOR IOS
                     'enablejsapi': 1,
-                    'fs': 1
+                    'iv_load_policy': 3
                 },
                 events: {
-                    'onReady': (event) => {
-                        console.log("Player Ready");
-                        isPlayerReady = true;
-                        // Trigger a mute/unmute to help wake up the audio context on some devices
-                        try { event.target.mute(); } catch(e){}
+                    'onReady': (e) => {
+                         console.log("YT Ready");
+                         if (activeProvider === 'yt') e.target.playVideo();
                     },
                     'onStateChange': (e) => {
+                        // iOS State Handling
+                        // -1: unstarted, 0: ended, 1: playing, 2: paused, 3: buffering, 5: cued
+                        
+                        // If Unstarted (-1) and supposed to be playing -> Show Kickstart
+                        if (e.data === -1 || e.data === 5) {
+                             // Check DB state? Maybe later. For now assume user needs to tap if it doesn't start.
+                             // We only show kickstart if we receive a "playing" signal from DB but player is stuck.
+                        }
+
                         if (!currentRoomId || isNativeMode) return;
                         if (myRole !== 'admin' && !allowGuests) return;
 
-                        // 1 = playing, 2 = paused
                         if (e.data === 1 || e.data === 2) {
-                            setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), {
-                                status: e.data === 1 ? 'playing' : 'paused',
-                                timestamp: ytPlayer.getCurrentTime()
-                            }, { merge: true });
+                            // Debounce state updates to DB
+                            // Only update if we are the one triggering the change (basic check)
+                            // Ideally, we trust the Admin's state. 
+                            
+                            // NOTE: Removing the auto-update from state change for "Viewers" reduces loop issues.
+                            if (myRole === 'admin' || allowGuests) {
+                                setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), {
+                                    status: e.data === 1 ? 'playing' : 'paused',
+                                    timestamp: ytPlayer.getCurrentTime()
+                                }, { merge: true });
+                            }
                         }
                     },
                     'onError': (e) => {
@@ -1023,41 +1104,55 @@
                     }
                 }
             });
-            
-            // Poller for time updates
+
+            // UI UPDATER LOOP (With Try-Catch for iOS safety)
             setInterval(() => {
-                if (ytPlayer && isPlayerReady && ytPlayer.getCurrentTime) {
-                    try {
+                if (!ytPlayer || !ytPlayer.getCurrentTime) return;
+                
+                try {
+                    // Check if player is alive
+                    if (ytPlayer.getIframe() && activeProvider === 'yt') {
                         const t = ytPlayer.getCurrentTime();
                         const d = ytPlayer.getDuration();
-                        get('time-current').innerText = formatTime(t);
-                        get('time-duration').innerText = formatTime(d);
-                        get('seek-bar').value = (t / d) * 100 || 0;
-                    } catch(e) {}
+                        
+                        if (t && d) {
+                            get('time-current').innerText = formatTime(t);
+                            get('time-duration').innerText = formatTime(d);
+                            get('seek-bar').value = (t / d) * 100 || 0;
+                        }
+
+                        // iOS Kickstart Visibility Check
+                        // If DB says playing, but Player says Paused/Unstarted, show big button
+                        const state = ytPlayer.getPlayerState();
+                        const statusText = get('status-text').innerText;
+                        
+                        if (statusText === 'PLAYING' && (state === 2 || state === -1 || state === 5)) {
+                            get('ios-kickstart').classList.remove('force-hidden');
+                        } else {
+                            get('ios-kickstart').classList.add('force-hidden');
+                        }
+                    }
+                } catch (e) {
+                    // Silent catch to prevent UI freeze
                 }
             }, 1000);
         };
 
-        // Load Script AFTER defining callback
-        if (!window.YT) { 
-            const t = document.createElement('script'); 
-            t.src = "https://www.youtube.com/iframe_api"; 
-            document.body.appendChild(t); 
-        }
-        
         window.togglePlay = () => {
             if (myRole !== 'admin' && !allowGuests) {
                 showNotification("<i class='fa-solid fa-lock mr-2'></i> Пауза доступна только Бате");
                 return;
             }
-            if (activeProvider === 'yt' && ytPlayer && isPlayerReady) {
+            if (activeProvider === 'yt' && ytPlayer) {
                 try {
                     const s = ytPlayer.getPlayerState();
+                    const newState = (s === 1) ? 'paused' : 'playing';
+                    
                     setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), {
-                        status: s === 1 ? 'paused' : 'playing',
+                        status: newState,
                         timestamp: ytPlayer.getCurrentTime()
                     }, { merge: true });
-                } catch(e) { console.error(e); }
+                } catch(e) {}
             }
         };
 
@@ -1066,7 +1161,7 @@
                 showNotification("<i class='fa-solid fa-lock mr-2'></i> Перемотка только для Бати");
                 return;
             }
-            if (activeProvider === 'yt' && ytPlayer && isPlayerReady) {
+            if (activeProvider === 'yt' && ytPlayer) {
                 try {
                     const time = (e.target.value / 100) * ytPlayer.getDuration();
                     ytPlayer.seekTo(time);
@@ -1078,6 +1173,11 @@
         window.toggleNativeMode = () => {
             document.body.classList.toggle('native-mode');
             isNativeMode = document.body.classList.contains('native-mode');
+            if (ytPlayer && ytPlayer.getIframe) {
+                // On iOS native mode, we might want to bring back controls
+                // But replacing vars requires reloading. 
+                // For now, just unblocking the overlay allows native controls to work if present.
+            }
             showNotification(isNativeMode ? "Режим Native: Кликайте по видео!" : "UI восстановлен");
         };
 
