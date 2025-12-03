@@ -7,7 +7,7 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
-    <title>Co-Watch | Батя Edition v2.0</title>
+    <title>Co-Watch | Батя Edition</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
@@ -38,6 +38,8 @@
             background-color: #050505;
             font-family: 'Manrope', sans-serif;
             color: #fff;
+            /* Fix for iOS bounce */
+            position: fixed; 
         }
 
         .noise-bg {
@@ -102,6 +104,8 @@
             display: flex;
             justify-content: center;
             align-items: center;
+            /* iOS Fixes */
+            -webkit-overflow-scrolling: touch;
         }
 
         #player-yt,
@@ -113,44 +117,18 @@
             inset: 0;
         }
 
+        /* iOS Iframe Fix */
+        #player-yt iframe {
+            width: 100%;
+            height: 100%;
+            pointer-events: auto !important;
+        }
+
         #video-layer iframe {
             width: 100% !important;
             height: 100% !important;
             border: none;
             pointer-events: auto;
-        }
-
-        /* IOS OVERLAY FIX */
-        #ios-blocker {
-            position: absolute;
-            inset: 0;
-            z-index: 50;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: rgba(0, 0, 0, 0.4);
-            backdrop-filter: blur(2px);
-            cursor: pointer;
-        }
-        
-        #ios-blocker .big-play-btn {
-            width: 80px;
-            height: 80px;
-            background: rgba(255, 255, 255, 0.2);
-            border: 2px solid rgba(255, 255, 255, 0.4);
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 30px;
-            color: white;
-            animation: pulse 2s infinite;
-        }
-
-        @keyframes pulse {
-            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
-            70% { transform: scale(1.1); box-shadow: 0 0 0 15px rgba(255, 255, 255, 0); }
-            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
         }
 
         /* UI LAYERS & MOBILE ADAPTATION */
@@ -464,17 +442,7 @@
                 </div>
                 <p class="text-white/30 font-mono tracking-[0.2em] text-xs md:text-sm">ЖДЕМ ВИДЕО ОТ БАТИ</p>
             </div>
-            
-            <div id="ios-blocker" class="force-hidden" onclick="iosForcePlay()">
-                <div class="flex flex-col items-center gap-4">
-                    <div class="big-play-btn">
-                        <i class="fa-solid fa-play ml-1"></i>
-                    </div>
-                    <span class="text-sm font-bold tracking-widest uppercase text-white/80">Нажмите для синхронизации</span>
-                </div>
-            </div>
-
-            <div id="player-yt" class="force-hidden z-10"></div>
+            <div id="player-yt" class="force-hidden z-10" style="pointer-events: auto;"></div>
             <div id="player-vk-container" class="force-hidden z-10"></div>
             <video id="player-stream" class="force-hidden z-10 object-contain w-full h-full" autoplay
                 playsinline></video>
@@ -630,7 +598,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const APP_ID = 'cw-admin-ux-final-v4'; // NEW VERSION
+        const APP_ID = 'cw-admin-ux-final-v4-ios-fix'; // Version bumped
 
         const get = (id) => document.getElementById(id);
         const formatTime = (s) => { const m = Math.floor(s / 60), sec = Math.floor(s % 60); return `${m}:${sec < 10 ? '0' : ''}${sec}`; };
@@ -901,10 +869,10 @@
 
         let activeProvider = 'none';
         let ytPlayer = null;
+        let isPlayerReady = false; // Guard for iOS
         let isNativeMode = false;
         let allowGuests = false;
 
-        // --- IMPROVED VIDEO PARSER (FIX FOR INVALID IDs) ---
         get('btn-load-video').onclick = () => {
             if (myRole !== 'admin' && !allowGuests) {
                 showNotification("<i class='fa-solid fa-lock mr-2'></i> Только Батя может ставить видео");
@@ -915,7 +883,6 @@
 
             let provider = 'yt', videoId = '';
             
-            // VK CHECK
             const vkRegex = /video(-?\d+)_(\d+)/;
             const vkMatch = url.match(vkRegex);
             
@@ -926,7 +893,6 @@
                 provider = 'vk'; 
                 videoId = url;
             } else {
-                // YOUTUBE SMART CHECK
                 const ytRegExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
                 const ytMatch = url.match(ytRegExp);
                 
@@ -944,14 +910,6 @@
             }, { merge: true });
             get('input-video-url').value = '';
         };
-        
-        // IOS CLICK HANDLER
-        window.iosForcePlay = () => {
-            if (ytPlayer && typeof ytPlayer.playVideo === 'function') {
-                ytPlayer.playVideo();
-                get('ios-blocker').classList.add('force-hidden');
-            }
-        };
 
         function syncState(d) {
             if (d.allowGuests !== undefined) {
@@ -963,7 +921,7 @@
             if (d.provider !== activeProvider) {
                 activeProvider = d.provider;
                 document.querySelectorAll('#video-layer > div, #video-layer > video').forEach(el => {
-                    if (el.id !== 'ios-blocker') el.classList.add('force-hidden');
+                    if (el.id !== 'click-overlay') el.classList.add('force-hidden');
                 });
 
                 if (d.provider === 'yt') get('player-yt').classList.remove('force-hidden');
@@ -987,37 +945,24 @@
                 }
             }
 
-            if (d.provider === 'yt' && ytPlayer && ytPlayer.loadVideoById) {
+            // CRITICAL iOS FIX: Only run sync if player is truly ready
+            if (d.provider === 'yt' && isPlayerReady && ytPlayer && ytPlayer.loadVideoById) {
                 try {
                     const diff = Math.abs(ytPlayer.getCurrentTime() - d.timestamp);
-                    // Safe loading
-                    if (ytPlayer.getVideoData().video_id !== d.videoId) {
+                    // Check if video is loaded to prevent crash
+                    if (!ytPlayer.getVideoData || ytPlayer.getVideoData().video_id !== d.videoId) {
                         ytPlayer.loadVideoById({videoId: d.videoId, suggestedQuality: 'auto'});
-                        // Fix for iOS: Force mute on load to increase autoplay chance
-                        ytPlayer.mute(); 
                     }
                     
                     if (d.status === 'playing') {
-                        // Attempt to play
-                        ytPlayer.playVideo();
-                        
-                        // IOS CHECK: If we should be playing, but player is unstarted/paused after a moment
-                        // it means browser blocked it. Show the overlay.
-                        setTimeout(() => {
-                            const state = ytPlayer.getPlayerState();
-                            if ((state === -1 || state === 2 || state === 5) && d.status === 'playing') {
-                                get('ios-blocker').classList.remove('force-hidden');
-                            } else {
-                                get('ios-blocker').classList.add('force-hidden');
-                            }
-                        }, 500);
-
+                        // iOS Safari requires user interaction before autoplaying with sound.
+                        // We rely on mute:1 initially, then user interaction.
+                        ytPlayer.playVideo(); 
                     } else {
                         ytPlayer.pauseVideo();
                     }
                     
-                    // IMPROVED SYNC TOLERANCE (Was 2, now 0.8)
-                    if (diff > 0.8) ytPlayer.seekTo(d.timestamp);
+                    if (diff > 2) ytPlayer.seekTo(d.timestamp);
 
                     if (d.status === 'playing') {
                         get('btn-play-pause').innerHTML = '<i class="fa-solid fa-pause"></i>';
@@ -1028,40 +973,41 @@
                         get('status-text').innerText = "PAUSED";
                         get('status-dot').className = "w-2 h-2 bg-yellow-500 rounded-full";
                     }
-                } catch (e) { }
+                } catch (e) { 
+                    console.log("YT Sync Error (harmless on init):", e);
+                }
             }
         }
 
-        if (!window.YT) { const t = document.createElement('script'); t.src = "https://www.youtube.com/iframe_api"; document.body.appendChild(t); }
-        
-        // --- FIXED IOS PLAYER CONFIG ---
+        // --- ROBUST YOUTUBE INIT FOR IOS ---
         window.onYouTubeIframeAPIReady = () => {
+            console.log("YT API Ready");
             ytPlayer = new YT.Player('player-yt', {
                 height: '100%', 
                 width: '100%',
                 host: 'https://www.youtube.com', 
                 playerVars: { 
-                    'controls': 0, // Hide YT controls for better custom UI
+                    'controls': 1, 
                     'rel': 0, 
-                    'origin': window.location.origin,
+                    'origin': window.location.origin, // Critical for iOS
                     'autoplay': 1, 
-                    'mute': 1, // Crucial for IOS autoplay
-                    'playsinline': 1, 
+                    'mute': 1, // Must be muted for iOS autoplay
+                    'playsinline': 1, // MANDATORY for iOS to not fullscreen immediately
                     'enablejsapi': 1,
-                    'fs': 0,
-                    'iv_load_policy': 3
+                    'fs': 1
                 },
                 events: {
-                    'onReady': (e) => {
-                        e.target.mute(); // Double tap mute for safety
+                    'onReady': (event) => {
+                        console.log("Player Ready");
+                        isPlayerReady = true;
+                        // Trigger a mute/unmute to help wake up the audio context on some devices
+                        try { event.target.mute(); } catch(e){}
                     },
                     'onStateChange': (e) => {
-                        // If user interacts and plays, hide the blocker
-                        if (e.data === 1) get('ios-blocker').classList.add('force-hidden');
-                        
                         if (!currentRoomId || isNativeMode) return;
                         if (myRole !== 'admin' && !allowGuests) return;
 
+                        // 1 = playing, 2 = paused
                         if (e.data === 1 || e.data === 2) {
                             setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), {
                                 status: e.data === 1 ? 'playing' : 'paused',
@@ -1072,33 +1018,46 @@
                     'onError': (e) => {
                         console.error("YT Error:", e.data);
                         if (e.data === 150 || e.data === 101) {
-                             showNotification("<i class='fa-solid fa-ban text-red-500 mr-2'></i> Автор запретил встраивание этого видео");
+                             showNotification("<i class='fa-solid fa-ban text-red-500 mr-2'></i> Видео недоступно для встраивания");
                         }
                     }
                 }
             });
+            
+            // Poller for time updates
             setInterval(() => {
-                if (ytPlayer && ytPlayer.getCurrentTime) {
-                    const t = ytPlayer.getCurrentTime();
-                    const d = ytPlayer.getDuration();
-                    get('time-current').innerText = formatTime(t);
-                    get('time-duration').innerText = formatTime(d);
-                    get('seek-bar').value = (t / d) * 100 || 0;
+                if (ytPlayer && isPlayerReady && ytPlayer.getCurrentTime) {
+                    try {
+                        const t = ytPlayer.getCurrentTime();
+                        const d = ytPlayer.getDuration();
+                        get('time-current').innerText = formatTime(t);
+                        get('time-duration').innerText = formatTime(d);
+                        get('seek-bar').value = (t / d) * 100 || 0;
+                    } catch(e) {}
                 }
             }, 1000);
         };
 
+        // Load Script AFTER defining callback
+        if (!window.YT) { 
+            const t = document.createElement('script'); 
+            t.src = "https://www.youtube.com/iframe_api"; 
+            document.body.appendChild(t); 
+        }
+        
         window.togglePlay = () => {
             if (myRole !== 'admin' && !allowGuests) {
                 showNotification("<i class='fa-solid fa-lock mr-2'></i> Пауза доступна только Бате");
                 return;
             }
-            if (activeProvider === 'yt' && ytPlayer) {
-                const s = ytPlayer.getPlayerState();
-                setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), {
-                    status: s === 1 ? 'paused' : 'playing',
-                    timestamp: ytPlayer.getCurrentTime()
-                }, { merge: true });
+            if (activeProvider === 'yt' && ytPlayer && isPlayerReady) {
+                try {
+                    const s = ytPlayer.getPlayerState();
+                    setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), {
+                        status: s === 1 ? 'paused' : 'playing',
+                        timestamp: ytPlayer.getCurrentTime()
+                    }, { merge: true });
+                } catch(e) { console.error(e); }
             }
         };
 
@@ -1107,10 +1066,12 @@
                 showNotification("<i class='fa-solid fa-lock mr-2'></i> Перемотка только для Бати");
                 return;
             }
-            if (activeProvider === 'yt' && ytPlayer) {
-                const time = (e.target.value / 100) * ytPlayer.getDuration();
-                ytPlayer.seekTo(time);
-                setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), { timestamp: time }, { merge: true });
+            if (activeProvider === 'yt' && ytPlayer && isPlayerReady) {
+                try {
+                    const time = (e.target.value / 100) * ytPlayer.getDuration();
+                    ytPlayer.seekTo(time);
+                    setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), { timestamp: time }, { merge: true });
+                } catch(e) {}
             }
         };
 
