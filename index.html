@@ -823,7 +823,10 @@
                     }
                 });
 
-                if (!adminExists && users.length > 0) {
+                // --- FIX START: ПРОВЕРКА НА PENDING WRITES ---
+                // Мы запускаем логику "захвата власти" ТОЛЬКО если данные синхронизированы с сервером.
+                // Если snapshot.metadata.hasPendingWrites == true, значит мы только что зашли и еще не видим других (или наши данные летят).
+                if (!snapshot.metadata.hasPendingWrites && !adminExists && users.length > 0) {
                     users.sort((a, b) => {
                         const tA = a.joinedAt ? a.joinedAt.seconds : Date.now() / 1000;
                         const tB = b.joinedAt ? b.joinedAt.seconds : Date.now() / 1000;
@@ -835,6 +838,7 @@
                         showNotification("<i class='fa-solid fa-crown mr-2 text-yellow-500'></i> ТЕПЕРЬ ТЫ БАТЯ!");
                     }
                 }
+                // --- FIX END ---
 
                 users.forEach(u => {
                     const el = document.createElement('div');
