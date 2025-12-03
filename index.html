@@ -7,7 +7,7 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
-    <title>Co-Watch | Батя Edition</title>
+    <title>Co-Watch | Батя Edition v2.0</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
@@ -118,6 +118,39 @@
             height: 100% !important;
             border: none;
             pointer-events: auto;
+        }
+
+        /* IOS OVERLAY FIX */
+        #ios-blocker {
+            position: absolute;
+            inset: 0;
+            z-index: 50;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(2px);
+            cursor: pointer;
+        }
+        
+        #ios-blocker .big-play-btn {
+            width: 80px;
+            height: 80px;
+            background: rgba(255, 255, 255, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.4);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 30px;
+            color: white;
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0.4); }
+            70% { transform: scale(1.1); box-shadow: 0 0 0 15px rgba(255, 255, 255, 0); }
+            100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 255, 255, 0); }
         }
 
         /* UI LAYERS & MOBILE ADAPTATION */
@@ -431,6 +464,16 @@
                 </div>
                 <p class="text-white/30 font-mono tracking-[0.2em] text-xs md:text-sm">ЖДЕМ ВИДЕО ОТ БАТИ</p>
             </div>
+            
+            <div id="ios-blocker" class="force-hidden" onclick="iosForcePlay()">
+                <div class="flex flex-col items-center gap-4">
+                    <div class="big-play-btn">
+                        <i class="fa-solid fa-play ml-1"></i>
+                    </div>
+                    <span class="text-sm font-bold tracking-widest uppercase text-white/80">Нажмите для синхронизации</span>
+                </div>
+            </div>
+
             <div id="player-yt" class="force-hidden z-10"></div>
             <div id="player-vk-container" class="force-hidden z-10"></div>
             <video id="player-stream" class="force-hidden z-10 object-contain w-full h-full" autoplay
@@ -587,7 +630,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const APP_ID = 'cw-admin-ux-final-v3'; // Increased version to flush stale data
+        const APP_ID = 'cw-admin-ux-final-v4'; // NEW VERSION
 
         const get = (id) => document.getElementById(id);
         const formatTime = (s) => { const m = Math.floor(s / 60), sec = Math.floor(s % 60); return `${m}:${sec < 10 ? '0' : ''}${sec}`; };
@@ -884,7 +927,6 @@
                 videoId = url;
             } else {
                 // YOUTUBE SMART CHECK
-                // This handles: youtu.be, youtube.com/watch, youtube.com/embed, youtube.com/shorts
                 const ytRegExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
                 const ytMatch = url.match(ytRegExp);
                 
@@ -902,6 +944,14 @@
             }, { merge: true });
             get('input-video-url').value = '';
         };
+        
+        // IOS CLICK HANDLER
+        window.iosForcePlay = () => {
+            if (ytPlayer && typeof ytPlayer.playVideo === 'function') {
+                ytPlayer.playVideo();
+                get('ios-blocker').classList.add('force-hidden');
+            }
+        };
 
         function syncState(d) {
             if (d.allowGuests !== undefined) {
@@ -913,7 +963,7 @@
             if (d.provider !== activeProvider) {
                 activeProvider = d.provider;
                 document.querySelectorAll('#video-layer > div, #video-layer > video').forEach(el => {
-                    if (el.id !== 'click-overlay') el.classList.add('force-hidden');
+                    if (el.id !== 'ios-blocker') el.classList.add('force-hidden');
                 });
 
                 if (d.provider === 'yt') get('player-yt').classList.remove('force-hidden');
@@ -943,11 +993,31 @@
                     // Safe loading
                     if (ytPlayer.getVideoData().video_id !== d.videoId) {
                         ytPlayer.loadVideoById({videoId: d.videoId, suggestedQuality: 'auto'});
+                        // Fix for iOS: Force mute on load to increase autoplay chance
+                        ytPlayer.mute(); 
                     }
                     
-                    if (d.status === 'playing') ytPlayer.playVideo(); else ytPlayer.pauseVideo();
+                    if (d.status === 'playing') {
+                        // Attempt to play
+                        ytPlayer.playVideo();
+                        
+                        // IOS CHECK: If we should be playing, but player is unstarted/paused after a moment
+                        // it means browser blocked it. Show the overlay.
+                        setTimeout(() => {
+                            const state = ytPlayer.getPlayerState();
+                            if ((state === -1 || state === 2 || state === 5) && d.status === 'playing') {
+                                get('ios-blocker').classList.remove('force-hidden');
+                            } else {
+                                get('ios-blocker').classList.add('force-hidden');
+                            }
+                        }, 500);
+
+                    } else {
+                        ytPlayer.pauseVideo();
+                    }
                     
-                    if (diff > 2) ytPlayer.seekTo(d.timestamp);
+                    // IMPROVED SYNC TOLERANCE (Was 2, now 0.8)
+                    if (diff > 0.8) ytPlayer.seekTo(d.timestamp);
 
                     if (d.status === 'playing') {
                         get('btn-play-pause').innerHTML = '<i class="fa-solid fa-pause"></i>';
@@ -969,19 +1039,26 @@
             ytPlayer = new YT.Player('player-yt', {
                 height: '100%', 
                 width: '100%',
-                // Added HOST to fix origin issues on Vercel
                 host: 'https://www.youtube.com', 
                 playerVars: { 
-                    'controls': 1, 
+                    'controls': 0, // Hide YT controls for better custom UI
                     'rel': 0, 
-                    'origin': window.location.origin, // Explicit Origin
+                    'origin': window.location.origin,
                     'autoplay': 1, 
-                    'mute': 1, 
-                    'playsinline': 1, // Critical for iOS
-                    'enablejsapi': 1
+                    'mute': 1, // Crucial for IOS autoplay
+                    'playsinline': 1, 
+                    'enablejsapi': 1,
+                    'fs': 0,
+                    'iv_load_policy': 3
                 },
                 events: {
+                    'onReady': (e) => {
+                        e.target.mute(); // Double tap mute for safety
+                    },
                     'onStateChange': (e) => {
+                        // If user interacts and plays, hide the blocker
+                        if (e.data === 1) get('ios-blocker').classList.add('force-hidden');
+                        
                         if (!currentRoomId || isNativeMode) return;
                         if (myRole !== 'admin' && !allowGuests) return;
 
