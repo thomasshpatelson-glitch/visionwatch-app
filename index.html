@@ -3,6 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
+    <meta name="referrer" content="origin-when-cross-origin">
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
@@ -124,32 +125,23 @@
             position: fixed;
             inset: 0;
             z-index: 10000;
-            /* ВЫСОКИЙ Z-INDEX */
             display: flex;
             flex-direction: column;
             justify-content: space-between;
             padding: max(env(safe-area-inset-top), 20px) 16px env(safe-area-inset-bottom) 16px;
             pointer-events: none;
-            /* Сам слой пропускает клики */
         }
 
-        /* По умолчанию дети ловят клики */
         #ui-layer>* {
             pointer-events: auto;
         }
 
-        /* ========================================= */
-        /* === NATIVE MODE FIX (ИСПРАВЛЕНИЕ) === */
-        /* ========================================= */
-
-        /* Глобально отключаем клики на всем UI слое */
+        /* NATIVE MODE */
         body.native-mode #ui-layer {
             pointer-events: none !important;
             padding: 0 !important;
-            /* Убираем отступы, чтобы не перекрывать края */
         }
 
-        /* Полностью скрываем (удаляем из верстки) мешающие панели */
         body.native-mode #top-bar,
         body.native-mode #sidebar,
         body.native-mode #timeline-container,
@@ -157,7 +149,6 @@
             display: none !important;
         }
 
-        /* Нижний бар делаем невидимым и прозрачным для кликов */
         body.native-mode #bottom-bar {
             background: transparent !important;
             border: none !important;
@@ -165,7 +156,6 @@
             backdrop-filter: none !important;
             pointer-events: none !important;
             height: 0 !important;
-            /* Схлопываем высоту */
             padding: 0 !important;
             margin: 0 !important;
             overflow: visible !important;
@@ -182,25 +172,18 @@
             padding: 0 !important;
         }
 
-        /* Скрываем все кнопки внутри нижней панели... */
         body.native-mode #bottom-controls-panel>*:not(#btn-native) {
             display: none !important;
         }
 
-        /* ...КРОМЕ кнопки Native (шестерни) */
-        /* Мы позиционируем её абсолютно, чтобы она не зависела от скрытых контейнеров */
         body.native-mode #btn-native {
             display: flex !important;
             pointer-events: auto !important;
-            /* РАЗРЕШАЕМ КЛИК ТОЛЬКО СЮДА */
             position: fixed !important;
             bottom: 40px !important;
-            /* Поднимаем чуть выше, чтобы не перекрывать кнопку "на весь экран" ютуба */
             right: 20px !important;
             z-index: 10002 !important;
-
             background-color: rgba(220, 38, 38, 0.6) !important;
-            /* Красный цвет */
             color: white !important;
             border-color: transparent !important;
             opacity: 0.6 !important;
@@ -212,8 +195,6 @@
             opacity: 1 !important;
             transform: scale(1.0);
         }
-
-        /* === END NATIVE MODE FIX === */
 
         #top-bar {
             z-index: 10001 !important;
@@ -231,12 +212,10 @@
             position: relative;
         }
 
-        /* SIDEBAR (CHAT) - Mobile optimized */
-        /* FIX: Z-INDEX должен быть выше чем #ui-layer (10000) */
+        /* SIDEBAR (CHAT) */
         #sidebar {
             position: fixed;
             z-index: 20000;
-            /* FIXED: Increased from 60 to 20000 */
             transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s;
             display: flex;
             flex-direction: column;
@@ -252,7 +231,6 @@
             transform: translateY(0);
         }
 
-        /* Desktop Sidebar Override */
         @media (min-width: 768px) {
             #sidebar {
                 left: auto;
@@ -290,7 +268,6 @@
             }
         }
 
-        /* CONTROLS - Mobile Touch Friendly */
         .seek-slider {
             -webkit-appearance: none;
             width: 100%;
@@ -314,14 +291,13 @@
             margin-top: 0px;
         }
 
-        /* --- NOTIFICATION TOAST --- */
+        /* TOAST */
         #notification-area {
             position: fixed;
             top: 80px;
             left: 20px;
             right: 20px;
             z-index: 20002;
-            /* FIXED: Higher than sidebar */
             pointer-events: none;
             display: flex;
             flex-direction: column;
@@ -378,37 +354,12 @@
             transform: scale(0.95) translateY(-10px);
         }
 
-        /* UTILS */
         .force-hidden {
             display: none !important;
         }
 
-        .mobile-only {
-            display: block;
-        }
-
-        .desktop-only {
-            display: none;
-        }
-
-        @media (min-width: 768px) {
-            .mobile-only {
-                display: none;
-            }
-
-            .desktop-only {
-                display: block;
-            }
-        }
-
-        input {
-            font-size: 16px !important;
-        }
-
-        /* MODAL FIX */
         #mobile-url-modal {
             z-index: 20005;
-            /* Above everything */
         }
     </style>
 </head>
@@ -636,7 +587,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const APP_ID = 'cw-admin-ux-final-v2';
+        const APP_ID = 'cw-admin-ux-final-v3'; // Increased version to flush stale data
 
         const get = (id) => document.getElementById(id);
         const formatTime = (s) => { const m = Math.floor(s / 60), sec = Math.floor(s % 60); return `${m}:${sec < 10 ? '0' : ''}${sec}`; };
@@ -647,7 +598,6 @@
             const modal = get('mobile-url-modal');
             if (modal.classList.contains('force-hidden')) {
                 modal.classList.remove('force-hidden');
-                // Small timeout for animation
                 setTimeout(() => {
                     modal.classList.remove('opacity-0');
                     modal.querySelector('div').classList.remove('translate-y-10');
@@ -677,11 +627,8 @@
             const toast = document.createElement('div');
             toast.className = 'toast';
             toast.innerHTML = text;
-
             area.appendChild(toast);
-
             requestAnimationFrame(() => { toast.classList.add('show'); });
-
             setTimeout(() => {
                 toast.classList.remove('show');
                 toast.classList.add('hiding');
@@ -810,7 +757,7 @@
 
                     if (u.uid === currentUser.uid) {
                         myRole = u.role;
-                        updatePermissionsUI(); // Check if I became admin
+                        updatePermissionsUI(); 
                         if (u.mutedByAdmin && !iAmMuted) {
                             iAmMuted = true;
                             muteMyMic(true);
@@ -823,27 +770,21 @@
                     }
                 });
 
-                // --- FIX START: ПРОВЕРКА НА PENDING WRITES ---
-                // Мы запускаем логику "захвата власти" ТОЛЬКО если данные синхронизированы с сервером.
-                // Если snapshot.metadata.hasPendingWrites == true, значит мы только что зашли и еще не видим других (или наши данные летят).
                 if (!snapshot.metadata.hasPendingWrites && !adminExists && users.length > 0) {
                     users.sort((a, b) => {
                         const tA = a.joinedAt ? a.joinedAt.seconds : Date.now() / 1000;
                         const tB = b.joinedAt ? b.joinedAt.seconds : Date.now() / 1000;
                         return tA - tB;
                     });
-
                     if (users[0].uid === currentUser.uid) {
                         updateDoc(userRef, { role: 'admin' });
                         showNotification("<i class='fa-solid fa-crown mr-2 text-yellow-500'></i> ТЕПЕРЬ ТЫ БАТЯ!");
                     }
                 }
-                // --- FIX END ---
 
                 users.forEach(u => {
                     const el = document.createElement('div');
                     el.className = "flex items-center gap-3 p-2 hover:bg-white/5 rounded-xl cursor-pointer sidebar-item justify-between";
-
                     let roleBadge = u.role === 'admin' ? '<i class="fa-solid fa-crown admin-crown ml-1"></i>' : '';
                     let roleName = u.role === 'admin' ? 'БАТЯ' : 'ЗРИТЕЛЬ';
                     let muteBtn = '';
@@ -867,7 +808,6 @@
                     `;
                     list.appendChild(el);
                 });
-
                 if (users.length > 0) get('badge-users').classList.remove('hidden');
             });
 
@@ -921,6 +861,7 @@
         let isNativeMode = false;
         let allowGuests = false;
 
+        // --- IMPROVED VIDEO PARSER (FIX FOR INVALID IDs) ---
         get('btn-load-video').onclick = () => {
             if (myRole !== 'admin' && !allowGuests) {
                 showNotification("<i class='fa-solid fa-lock mr-2'></i> Только Батя может ставить видео");
@@ -930,16 +871,30 @@
             if (!url) return;
 
             let provider = 'yt', videoId = '';
+            
+            // VK CHECK
             const vkRegex = /video(-?\d+)_(\d+)/;
             const vkMatch = url.match(vkRegex);
-            const ytMatch = url.match(/(?:v=|\/)([\w-]{11})/);
-
+            
             if (vkMatch) {
-                provider = 'vk'; videoId = `https://vk.com/video_ext.php?oid=${vkMatch[1]}&id=${vkMatch[2]}&hd=2&autoplay=1`;
+                provider = 'vk'; 
+                videoId = `https://vk.com/video_ext.php?oid=${vkMatch[1]}&id=${vkMatch[2]}&hd=2&autoplay=1`;
             } else if (url.includes('vk.com/video_ext.php')) {
-                provider = 'vk'; videoId = url;
-            } else if (ytMatch) {
-                provider = 'yt'; videoId = ytMatch[1];
+                provider = 'vk'; 
+                videoId = url;
+            } else {
+                // YOUTUBE SMART CHECK
+                // This handles: youtu.be, youtube.com/watch, youtube.com/embed, youtube.com/shorts
+                const ytRegExp = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
+                const ytMatch = url.match(ytRegExp);
+                
+                if (ytMatch && ytMatch[2].length === 11) {
+                    provider = 'yt';
+                    videoId = ytMatch[2];
+                } else {
+                    showNotification("Неверная ссылка YouTube");
+                    return;
+                }
             }
 
             setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), {
@@ -985,8 +940,13 @@
             if (d.provider === 'yt' && ytPlayer && ytPlayer.loadVideoById) {
                 try {
                     const diff = Math.abs(ytPlayer.getCurrentTime() - d.timestamp);
-                    if (ytPlayer.getVideoData().video_id !== d.videoId) ytPlayer.loadVideoById(d.videoId);
+                    // Safe loading
+                    if (ytPlayer.getVideoData().video_id !== d.videoId) {
+                        ytPlayer.loadVideoById({videoId: d.videoId, suggestedQuality: 'auto'});
+                    }
+                    
                     if (d.status === 'playing') ytPlayer.playVideo(); else ytPlayer.pauseVideo();
+                    
                     if (diff > 2) ytPlayer.seekTo(d.timestamp);
 
                     if (d.status === 'playing') {
@@ -1003,10 +963,23 @@
         }
 
         if (!window.YT) { const t = document.createElement('script'); t.src = "https://www.youtube.com/iframe_api"; document.body.appendChild(t); }
+        
+        // --- FIXED IOS PLAYER CONFIG ---
         window.onYouTubeIframeAPIReady = () => {
             ytPlayer = new YT.Player('player-yt', {
-                height: '100%', width: '100%',
-                playerVars: { 'controls': 1, 'rel': 0, 'origin': window.location.origin, 'autoplay': 1, 'mute': 1, 'playsinline': 1 },
+                height: '100%', 
+                width: '100%',
+                // Added HOST to fix origin issues on Vercel
+                host: 'https://www.youtube.com', 
+                playerVars: { 
+                    'controls': 1, 
+                    'rel': 0, 
+                    'origin': window.location.origin, // Explicit Origin
+                    'autoplay': 1, 
+                    'mute': 1, 
+                    'playsinline': 1, // Critical for iOS
+                    'enablejsapi': 1
+                },
                 events: {
                     'onStateChange': (e) => {
                         if (!currentRoomId || isNativeMode) return;
@@ -1017,6 +990,12 @@
                                 status: e.data === 1 ? 'playing' : 'paused',
                                 timestamp: ytPlayer.getCurrentTime()
                             }, { merge: true });
+                        }
+                    },
+                    'onError': (e) => {
+                        console.error("YT Error:", e.data);
+                        if (e.data === 150 || e.data === 101) {
+                             showNotification("<i class='fa-solid fa-ban text-red-500 mr-2'></i> Автор запретил встраивание этого видео");
                         }
                     }
                 }
@@ -1058,17 +1037,10 @@
             }
         };
 
-        // --- NEW NATIVE MODE LOGIC ---
         window.toggleNativeMode = () => {
-            // Toggle class on body instead of hiding UI layer manually
             document.body.classList.toggle('native-mode');
             isNativeMode = document.body.classList.contains('native-mode');
-
-            if (isNativeMode) {
-                showNotification("Режим Native: Кликайте по видео!");
-            } else {
-                showNotification("UI восстановлен");
-            }
+            showNotification(isNativeMode ? "Режим Native: Кликайте по видео!" : "UI восстановлен");
         };
 
         window.toggleGuestPermissions = () => {
@@ -1123,7 +1095,6 @@
                 });
             });
         }
-
     </script>
 </body>
 
