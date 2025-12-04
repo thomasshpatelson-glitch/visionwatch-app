@@ -7,7 +7,7 @@
     <meta name="viewport"
         content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <meta http-equiv="Content-Security-Policy" content="default-src * 'unsafe-inline' 'unsafe-eval' data: blob:;">
-    <title>Co-Watch | Батя Edition (iOS Fix)</title>
+    <title>Co-Watch | Батя Edition (iOS Final)</title>
 
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
@@ -22,7 +22,7 @@
             -webkit-tap-highlight-color: transparent;
             scrollbar-width: none;
             outline: none;
-            user-select: none; /* Helps UI feel more app-like */
+            user-select: none;
         }
 
         ::-webkit-scrollbar {
@@ -368,13 +368,14 @@
         #ios-kickstart {
             position: absolute;
             inset: 0;
-            z-index: 20;
-            background: rgba(0,0,0,0.4);
+            z-index: 30; /* Higher than player, lower than UI */
+            background: rgba(0,0,0,0.6);
             display: flex;
             justify-content: center;
             align-items: center;
             cursor: pointer;
-            backdrop-filter: blur(2px);
+            backdrop-filter: blur(4px);
+            transition: opacity 0.3s ease;
         }
     </style>
 </head>
@@ -450,11 +451,11 @@
             <div id="player-yt" class="force-hidden z-10"></div>
             
             <div id="ios-kickstart" class="force-hidden">
-                <div class="flex flex-col items-center animate-pulse">
-                    <div class="w-20 h-20 bg-red-600 rounded-full flex items-center justify-center shadow-lg mb-2">
-                        <i class="fa-solid fa-play text-3xl ml-1"></i>
+                <div class="flex flex-col items-center animate-bounce">
+                    <div class="w-24 h-24 bg-red-600 rounded-full flex items-center justify-center shadow-[0_0_40px_rgba(220,38,38,0.5)] mb-4 border-4 border-white/20">
+                        <i class="fa-solid fa-play text-4xl ml-2 text-white"></i>
                     </div>
-                    <span class="text-xs font-bold uppercase tracking-widest text-white/80">Tap to Sync</span>
+                    <span class="text-sm font-bold uppercase tracking-[0.2em] text-white">Tap to Sync</span>
                 </div>
             </div>
 
@@ -612,7 +613,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const APP_ID = 'cw-admin-ux-final-v4-ios-fix'; // Version Bumped
+        const APP_ID = 'cw-ios-final-production'; 
 
         const get = (id) => document.getElementById(id);
         const formatTime = (s) => { const m = Math.floor(s / 60), sec = Math.floor(s % 60); return `${m}:${sec < 10 ? '0' : ''}${sec}`; };
@@ -986,10 +987,9 @@
                     }
 
                     // 2. Sync Time (Smart)
-                    // Only seek if difference is significant to prevent stuttering
                     const myTime = ytPlayer.getCurrentTime();
                     const diff = Math.abs(myTime - d.timestamp);
-                    const tolerance = 1.5; // Seconds
+                    const tolerance = 2.0; // Increased tolerance for iOS
 
                     if (diff > tolerance) {
                         ytPlayer.seekTo(d.timestamp);
@@ -997,13 +997,12 @@
 
                     // 3. Sync State (Play/Pause)
                     if (d.status === 'playing') {
-                        if (playerState !== 1 && playerState !== 3) { // 3 is buffering
-                            ytPlayer.playVideo();
-                        }
-                        // iOS Fix: Если мы должны играть, но плеер "завис" в unstarted ( -1 ) или cued ( 5 ), показываем кнопку
-                        if (playerState === -1 || playerState === 5 || playerState === 2) {
-                             // Check if interaction needed
-                             // We don't force show here to avoid flickering, but the button is available via 'ios-kickstart'
+                        // iOS Fix: Если статус Playing, но плеер не играет, показываем кнопку Kickstart
+                        // Мы не пытаемся форсировать playVideo здесь, так как Safari может заблокировать это.
+                        // Мы просто обновляем UI.
+                        if (playerState !== 1 && playerState !== 3) {
+                             // Try once (might work on desktop/android)
+                             ytPlayer.playVideo();
                         }
                     } else {
                         if (playerState === 1) ytPlayer.pauseVideo();
@@ -1023,11 +1022,11 @@
                 get('btn-play-pause').innerHTML = '<i class="fa-solid fa-pause"></i>';
                 get('status-text').innerText = "PLAYING";
                 get('status-dot').className = "w-2 h-2 bg-green-500 rounded-full animate-pulse";
-                get('ios-kickstart').classList.add('force-hidden'); // Hide kickstarter if playing
             } else {
                 get('btn-play-pause').innerHTML = '<i class="fa-solid fa-play"></i>';
                 get('status-text').innerText = "PAUSED";
                 get('status-dot').className = "w-2 h-2 bg-yellow-500 rounded-full";
+                get('ios-kickstart').classList.add('force-hidden'); // Hide if paused
             }
         }
 
@@ -1036,6 +1035,8 @@
         get('ios-kickstart').onclick = () => {
             if (ytPlayer && ytPlayer.playVideo) {
                 ytPlayer.playVideo();
+                // Также пытаемся размьютить, так как iOS часто стартует с mute
+                if(ytPlayer.isMuted()) ytPlayer.unMute();
                 get('ios-kickstart').classList.add('force-hidden');
             }
         }
@@ -1044,23 +1045,24 @@
         if (!window.YT) { const t = document.createElement('script'); t.src = "https://www.youtube.com/iframe_api"; document.body.appendChild(t); }
         
         window.onYouTubeIframeAPIReady = () => {
-            const origin = window.location.origin || 'https://www.youtube.com'; // Safe Fallback
+            // FIX: Use youtube-nocookie and explicit origin
+            const origin = window.location.origin; 
             
             ytPlayer = new YT.Player('player-yt', {
                 height: '100%', 
                 width: '100%',
-                videoId: '', // Start empty
-                host: 'https://www.youtube.com', 
+                videoId: '',
+                host: 'https://www.youtube-nocookie.com', // CORE FIX 1
                 playerVars: { 
-                    'controls': 0, // Disable YT controls to force custom UI (prevents conflict)
+                    'controls': 0, 
                     'disablekb': 1,
                     'fs': 0,
                     'rel': 0, 
                     'origin': origin,
                     'widget_referrer': origin,
-                    'autoplay': 1, // Tries to autoplay
-                    'mute': 0, // Unmuted by default (iOS might force mute)
-                    'playsinline': 1, // CRITICAL FOR IOS
+                    'autoplay': 1, 
+                    'mute': 0, 
+                    'playsinline': 1, // CORE FIX 2
                     'enablejsapi': 1,
                     'iv_load_policy': 3
                 },
@@ -1073,22 +1075,12 @@
                         // iOS State Handling
                         // -1: unstarted, 0: ended, 1: playing, 2: paused, 3: buffering, 5: cued
                         
-                        // If Unstarted (-1) and supposed to be playing -> Show Kickstart
-                        if (e.data === -1 || e.data === 5) {
-                             // Check DB state? Maybe later. For now assume user needs to tap if it doesn't start.
-                             // We only show kickstart if we receive a "playing" signal from DB but player is stuck.
-                        }
-
                         if (!currentRoomId || isNativeMode) return;
-                        if (myRole !== 'admin' && !allowGuests) return;
-
-                        if (e.data === 1 || e.data === 2) {
-                            // Debounce state updates to DB
-                            // Only update if we are the one triggering the change (basic check)
-                            // Ideally, we trust the Admin's state. 
-                            
-                            // NOTE: Removing the auto-update from state change for "Viewers" reduces loop issues.
-                            if (myRole === 'admin' || allowGuests) {
+                        
+                        // Prevent infinite loop: Only update DB if we initiated the change
+                        // (Simplified logic: if I am admin, I push state)
+                        if (myRole === 'admin' || allowGuests) {
+                            if (e.data === 1 || e.data === 2) {
                                 setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), {
                                     status: e.data === 1 ? 'playing' : 'paused',
                                     timestamp: ytPlayer.getCurrentTime()
@@ -1105,7 +1097,7 @@
                 }
             });
 
-            // UI UPDATER LOOP (With Try-Catch for iOS safety)
+            // UI UPDATER & KICKSTART CHECK LOOP
             setInterval(() => {
                 if (!ytPlayer || !ytPlayer.getCurrentTime) return;
                 
@@ -1122,20 +1114,20 @@
                         }
 
                         // iOS Kickstart Visibility Check
-                        // If DB says playing, but Player says Paused/Unstarted, show big button
+                        // Logic: If Room Status is PLAYING, but Player is NOT playing (and not buffering), show button.
                         const state = ytPlayer.getPlayerState();
                         const statusText = get('status-text').innerText;
                         
-                        if (statusText === 'PLAYING' && (state === 2 || state === -1 || state === 5)) {
+                        if (statusText === 'PLAYING' && (state === -1 || state === 5 || state === 2)) {
                             get('ios-kickstart').classList.remove('force-hidden');
                         } else {
                             get('ios-kickstart').classList.add('force-hidden');
                         }
                     }
                 } catch (e) {
-                    // Silent catch to prevent UI freeze
+                    // Silent catch
                 }
-            }, 1000);
+            }, 800);
         };
 
         window.togglePlay = () => {
@@ -1146,6 +1138,7 @@
             if (activeProvider === 'yt' && ytPlayer) {
                 try {
                     const s = ytPlayer.getPlayerState();
+                    // Toggle Logic
                     const newState = (s === 1) ? 'paused' : 'playing';
                     
                     setDoc(doc(db, 'artifacts', APP_ID, 'rooms', currentRoomId), {
@@ -1173,11 +1166,6 @@
         window.toggleNativeMode = () => {
             document.body.classList.toggle('native-mode');
             isNativeMode = document.body.classList.contains('native-mode');
-            if (ytPlayer && ytPlayer.getIframe) {
-                // On iOS native mode, we might want to bring back controls
-                // But replacing vars requires reloading. 
-                // For now, just unblocking the overlay allows native controls to work if present.
-            }
             showNotification(isNativeMode ? "Режим Native: Кликайте по видео!" : "UI восстановлен");
         };
 
